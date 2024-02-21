@@ -18,7 +18,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateM
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_info
 
-from src.util import add_submodules_to_sys_path, log_args, set_env_variables, create_dirs
+from src.util import add_submodules_to_sys_path, log_args, set_env_variables, create_output_dirs
 add_submodules_to_sys_path()
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
@@ -409,9 +409,9 @@ class CUDACallback(Callback):
         except AttributeError:
             pass
 
-if __name__ == "__main__":
+def main():
     set_env_variables()
-    create_dirs()
+    create_output_dirs()
     
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     sys.path.append(os.getcwd())
@@ -565,7 +565,6 @@ if __name__ == "__main__":
                 "target": "train_autoencoder.LearningRateMonitor",
                 "params": {
                     "logging_interval": "step",
-                    # "log_momentum": True
                 }
             },
             "cuda_callback": {
@@ -689,3 +688,6 @@ if __name__ == "__main__":
             os.rename(logdir, dst)
         if trainer.global_rank == 0:
             print(trainer.profiler.summary())
+
+if __name__ == "__main__":
+    main()

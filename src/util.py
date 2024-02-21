@@ -31,7 +31,7 @@ def set_env_variables():
 
     os.environ["TENSORBOARD_DIR"] = ".logs/tensorboard"
     
-def create_dirs():
+def create_output_dirs():
     """Create directories for data, model, and output."""
     os.makedirs(os.environ["DATA_DIR"], exist_ok=True)
     os.makedirs(os.environ["MODEL_DIR"], exist_ok=True)
