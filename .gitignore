@@ -1,7 +1,13 @@
 data
+!src/data
+
 models
+!src/models
+
 results
-!src/*
+
+src/clip
+src/taming-transformers
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
