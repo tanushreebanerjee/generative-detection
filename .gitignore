@@ -7,7 +7,16 @@ models
 results
 
 taming
+
 *.pth
+*.slurm
+*.log
+*.out
+*.err
+*.txt
+*.csv
+*.json
+*.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
