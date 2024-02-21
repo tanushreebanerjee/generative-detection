@@ -1,11 +1,10 @@
 [submodule "submodules/latent-diffusion"]
 	path = submodules/latent-diffusion
 	url = https://github.com/CompVis/latent-diffusion.git
-[submodule "src/CLIP"]
-	path = src/CLIP
-	url = https://github.com/openai/CLIP.git
-	branch = main
-[submodule "src/taming-transformers"]
-	path = src/taming-transformers
+[submodule "submodules/taming-transformers"]
+	path = submodules/taming-transformers
 	url = https://github.com/CompVis/taming-transformers.git
 	branch = master
+[submodule "submodules/CLIP"]
+	path = submodules/CLIP
+	url = https://github.com/openai/CLIP.git
