@@ -1,6 +1,5 @@
-import sys
-latent_diffusion_path = "submodules/latent-diffusion/"
-sys.path.append(latent_diffusion_path)
+# src/models/autoencoder.py
+
 from ldm.models.autoencoder import AutoencoderKL
 
 class Autoencoder(AutoencoderKL):

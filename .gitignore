@@ -6,8 +6,8 @@ models
 
 results
 
-src/clip
-src/taming-transformers
+taming
+*.pth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
