@@ -5,7 +5,7 @@ model:
     monitor: "val/rec_loss"
     embed_dim: 4
     lossconfig:
-      target: ldm.modules.losses.LPIPSWithDiscriminator
+      target: src.modules.losses.LPIPSWithDiscriminator
       params:
         disc_start: 50001
         kl_weight: 0.000001
@@ -24,7 +24,7 @@ model:
       dropout: 0.0
 
 data:
-  target: main.DataModuleFromConfig
+  target: train_autoencoder.DataModuleFromConfig
   params:
     batch_size: 12
     wrap: True
@@ -42,7 +42,7 @@ data:
 lightning:
   callbacks:
     image_logger:
-      target: main.ImageLogger
+      target: train_autoencoder.ImageLogger
       params:
         batch_frequency: 1000
         max_images: 8
