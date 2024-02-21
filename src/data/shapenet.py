@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 from torch.utils.data import Dataset
 
-class ShapeNetDataset(Dataset):
+class ShapeNetBase(Dataset):
     def __init__(self, root_dir, synset_id='02958343', transform=None):
         self.root_dir = root_dir
         self.synset_id = synset_id
