@@ -18,9 +18,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateM
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_info
 
-from src.util.misc import add_submodules_to_sys_path, log_args, set_env_variables
-set_env_variables()
-add_submodules_to_sys_path()
+from src.util.misc import log_opts, set_submodule_paths, set_cache_directories
+set_submodule_paths(submodule_dir="submodules")
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
 
@@ -36,6 +35,30 @@ def get_parser(**parser_kwargs):
             raise argparse.ArgumentTypeError("Boolean value expected.")
 
     parser = argparse.ArgumentParser(**parser_kwargs)
+    
+    # cache directories
+    parser.add_argument(
+        "--transformers_cache",
+        type=str,
+        default=".cache/transformers_cache",
+        help="transformers cache directory",
+    )
+    
+    parser.add_argument(
+        "--torch_home",
+        type=str,
+        default=".cache/torch_home",
+        help="torch home directory",
+    )
+
+    # submodules directory
+    parser.add_argument(
+        "--submodules_dir",
+        type=str,
+        default="submodules",
+        help="submodules directory",
+    )
+    
     parser.add_argument(
         "-n",
         "--name",
@@ -419,6 +442,8 @@ def main():
     parser = Trainer.add_argparse_args(parser)
 
     opt, unknown = parser.parse_known_args()
+    set_cache_directories(opt)
+
     if opt.name and opt.resume:
         raise ValueError(
             "-n/--name and -r/--resume cannot be specified both."
@@ -457,7 +482,7 @@ def main():
     ckptdir = os.path.join(logdir, "checkpoints")
     cfgdir = os.path.join(logdir, "configs")
     seed_everything(opt.seed)
-    log_args(opt)
+    log_opts(opt)
     try:
         # init and save configs
         configs = [OmegaConf.load(cfg) for cfg in opt.base]
