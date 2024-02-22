@@ -8,6 +8,8 @@ results
 
 taming
 
+scripts/slurm
+
 *.pth
 *.slurm
 *.log
