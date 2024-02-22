@@ -50,14 +50,6 @@ def get_parser(**parser_kwargs):
         default=".cache/torch_home",
         help="torch home directory",
     )
-
-    # submodules directory
-    parser.add_argument(
-        "--submodules_dir",
-        type=str,
-        default="submodules",
-        help="submodules directory",
-    )
     
     parser.add_argument(
         "-n",
