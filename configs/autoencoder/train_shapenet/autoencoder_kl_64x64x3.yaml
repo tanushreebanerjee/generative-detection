@@ -25,7 +25,7 @@ model:
 
 
 data:
-  target: train_autoencoder.DataModuleFromConfig
+  target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 12
     wrap: True

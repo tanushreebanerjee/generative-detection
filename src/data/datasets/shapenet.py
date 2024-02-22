@@ -74,13 +74,11 @@ class ShapeNetBase(Dataset):
 
         return data
     
-    class ShapeNetTrain(ShapeNetBase):
-        def __init__(self, root_dir, synset_id='02958343', transform=None):
-            super().__init__(root_dir, synset_id, transform)
-            self.data = self.data[:int(len(self.data) * 0.8)]
-            
-    class ShapeNetValidation(ShapeNetBase):
-        def __init__(self, root_dir, synset_id='02958343', transform=None):
-            super().__init__(root_dir, synset_id, transform)
-            self.data = self.data[int(len(self.data) * 0.8):]
+class ShapeNetTrain(ShapeNetBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+class ShapeNetValidation(ShapeNetBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
