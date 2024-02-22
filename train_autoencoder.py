@@ -45,6 +45,29 @@ def nondefault_trainer_args(opt):
     args = parser.parse_args([])
     return sorted(k for k in vars(args) if getattr(opt, k) != getattr(args, k))
 
+# def main():
+#     """Main function."""
+#     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+#     sys.path.append(os.getcwd())
+
+#     parser = get_parser()
+#     opt, unknown = parser.parse_known_args()
+#     set_cache_directories(opt)
+#     opt.now = now
+
+#     trainer_configurator = TrainerConfigurator(opt, unknown)
+#     trainer = trainer_configurator.configure_trainer()
+
+#     logdir = "logs"  # Modify log directory as needed
+
+#     autoencoder_trainer = AutoEncoderTrainer(trainer, logdir)
+
+#     try:
+#         autoencoder_trainer.train_autoencoder(model, data)  # Add model and data instantiation
+#     finally:
+#         if trainer.global_rank == 0:
+#             print(trainer.profiler.summary())
+
 def main():
     """Main function."""
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
@@ -244,69 +267,69 @@ def main():
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
 
-        # # data
-        # data = instantiate_from_config(config.data)
-        # # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
-        # # calling these ourselves should not be necessary but it is.
-        # # lightning still takes care of proper multiprocessing though
-        # data.prepare_data()
-        # data.setup()
-        # print("#### Data #####")
-        # for k in data.datasets:
-        #     print(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
+        # data
+        data = instantiate_from_config(config.data)
+        # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
+        # calling these ourselves should not be necessary but it is.
+        # lightning still takes care of proper multiprocessing though
+        data.prepare_data()
+        data.setup()
+        print("#### Data #####")
+        for k in data.datasets:
+            print(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
 
-        # # configure learning rate
-        # bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
-        # if not cpu:
-        #     ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
-        # else:
-        #     ngpu = 1
-        # if 'accumulate_grad_batches' in lightning_config.trainer:
-        #     accumulate_grad_batches = lightning_config.trainer.accumulate_grad_batches
-        # else:
-        #     accumulate_grad_batches = 1
-        # print(f"accumulate_grad_batches = {accumulate_grad_batches}")
-        # lightning_config.trainer.accumulate_grad_batches = accumulate_grad_batches
-        # if opt.scale_lr:
-        #     model.learning_rate = accumulate_grad_batches * ngpu * bs * base_lr
-        #     print(
-        #         "Setting learning rate to {:.2e} = {} (accumulate_grad_batches) * {} (num_gpus) * {} (batchsize) * {:.2e} (base_lr)".format(
-        #             model.learning_rate, accumulate_grad_batches, ngpu, bs, base_lr))
-        # else:
-        #     model.learning_rate = base_lr
-        #     print("++++ NOT USING LR SCALING ++++")
-        #     print(f"Setting learning rate to {model.learning_rate:.2e}")
-
-
-        # # allow checkpointing via USR1
-        # def melk(*args, **kwargs):
-        #     # run all checkpoint hooks
-        #     if trainer.global_rank == 0:
-        #         print("Summoning checkpoint.")
-        #         ckpt_path = os.path.join(ckptdir, "last.ckpt")
-        #         trainer.save_checkpoint(ckpt_path)
+        # configure learning rate
+        bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
+        if not cpu:
+            ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+        else:
+            ngpu = 1
+        if 'accumulate_grad_batches' in lightning_config.trainer:
+            accumulate_grad_batches = lightning_config.trainer.accumulate_grad_batches
+        else:
+            accumulate_grad_batches = 1
+        print(f"accumulate_grad_batches = {accumulate_grad_batches}")
+        lightning_config.trainer.accumulate_grad_batches = accumulate_grad_batches
+        if opt.scale_lr:
+            model.learning_rate = accumulate_grad_batches * ngpu * bs * base_lr
+            print(
+                "Setting learning rate to {:.2e} = {} (accumulate_grad_batches) * {} (num_gpus) * {} (batchsize) * {:.2e} (base_lr)".format(
+                    model.learning_rate, accumulate_grad_batches, ngpu, bs, base_lr))
+        else:
+            model.learning_rate = base_lr
+            print("++++ NOT USING LR SCALING ++++")
+            print(f"Setting learning rate to {model.learning_rate:.2e}")
 
 
-        # def divein(*args, **kwargs):
-        #     if trainer.global_rank == 0:
-        #         import pudb;
-        #         pudb.set_trace()
+        # allow checkpointing via USR1
+        def melk(*args, **kwargs):
+            # run all checkpoint hooks
+            if trainer.global_rank == 0:
+                print("Summoning checkpoint.")
+                ckpt_path = os.path.join(ckptdir, "last.ckpt")
+                trainer.save_checkpoint(ckpt_path)
 
 
-        # import signal
+        def divein(*args, **kwargs):
+            if trainer.global_rank == 0:
+                import pudb;
+                pudb.set_trace()
 
-        # signal.signal(signal.SIGUSR1, melk)
-        # signal.signal(signal.SIGUSR2, divein)
 
-        # # run
-        # if opt.train:
-        #     try:
-        #         trainer.fit(model, data)
-        #     except Exception:
-        #         melk()
-        #         raise
-        # if not opt.no_test and not trainer.interrupted:
-        #     trainer.test(model, data)
+        import signal
+
+        signal.signal(signal.SIGUSR1, melk)
+        signal.signal(signal.SIGUSR2, divein)
+
+        # run
+        if opt.train:
+            try:
+                trainer.fit(model, data)
+            except Exception:
+                melk()
+                raise
+        if not opt.no_test and not trainer.interrupted:
+            trainer.test(model, data)
     except Exception:
         if opt.debug and trainer.global_rank == 0:
             try:
