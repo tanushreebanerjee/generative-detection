@@ -1,7 +1,6 @@
 # src/util.py
 import os
 import sys
-import argparse
 import logging
 
 def log_args(args):
@@ -12,7 +11,7 @@ def log_args(args):
 
 def add_submodules_to_sys_path():
     """Add submodules to sys.path."""
-    submodule_dir = "submodules"
+    submodule_dir = os.environ["SUBMODULE_DIR"]
     submodule_names = os.listdir(submodule_dir)
     for submodule_name in submodule_names:
         submodule_path = os.path.join(submodule_dir, submodule_name)
@@ -20,19 +19,14 @@ def add_submodules_to_sys_path():
         
 def set_env_variables():
     """Set environment variables for data, model, output, and tensorboard directories."""
-    os.environ["TRANSFORMERS_CACHE"] = ".cache/transformers"
-    os.environ["TORCH_HOME"] = ".cache/torch"
-
     os.environ["DATA_DIR"] = "data"
-
     os.environ["MODEL_DIR"] = "models"
-
     os.environ["OUTPUT_DIR"] = "results"
-
-    os.environ["TENSORBOARD_DIR"] = ".logs/tensorboard"
+    os.environ["LOGGING_DIR"] = ".logs"
+    os.environ["TENSORBOARD_DIR"] = f"{os.environ['LOGGING_DIR']}/tensorboard"
+    os.environ["CONFIG_DIR"] = "configs"
+    os.environ["SUBMODULE_DIR"] = "submodules"
+    os.environ["CACHE_DIR"] = ".cache"
     
-def create_output_dirs():
-    """Create directories for data, model, and output."""
-    os.makedirs(os.environ["DATA_DIR"], exist_ok=True)
-    os.makedirs(os.environ["MODEL_DIR"], exist_ok=True)
-    os.makedirs(os.environ["OUTPUT_DIR"], exist_ok=True)
+    os.environ["TRANSFORMERS_CACHE"] = f"{os.environ['CACHE_DIR']}/transformers"
+    os.environ["TORCH_HOME"] = f"{os.environ['CACHE_DIR']}/torch"

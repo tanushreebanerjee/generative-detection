@@ -18,7 +18,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateM
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_info
 
-from src.util import add_submodules_to_sys_path, log_args, set_env_variables, create_output_dirs
+from src.util.misc import add_submodules_to_sys_path, log_args, set_env_variables
+set_env_variables()
 add_submodules_to_sys_path()
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
@@ -410,9 +411,7 @@ class CUDACallback(Callback):
             pass
 
 def main():
-    set_env_variables()
-    create_output_dirs()
-    
+    """Main function."""
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     sys.path.append(os.getcwd())
 
