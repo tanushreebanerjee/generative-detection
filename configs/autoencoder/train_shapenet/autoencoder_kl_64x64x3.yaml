@@ -43,7 +43,7 @@ data:
 lightning:
   callbacks:
     image_logger:
-      target: train_autoencoder.ImageLogger
+      target: src.util.callbacks.ImageLogger
       params:
         batch_frequency: 1000
         max_images: 8
