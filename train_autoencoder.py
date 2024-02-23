@@ -14,7 +14,18 @@ set_submodule_paths(submodule_dir="submodules")
 from ldm.util import instantiate_from_config
 
 def get_parser(**parser_kwargs):
-    """Get parser for command line arguments."""
+    """
+    Returns an ArgumentParser object with predefined arguments for command-line parsing.
+
+    Args:
+        **parser_kwargs: Additional keyword arguments to be passed to the ArgumentParser constructor.
+
+    Returns:
+        argparse.ArgumentParser: An ArgumentParser object with predefined arguments.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value provided for a boolean argument is not a valid boolean value.
+    """
     def str2bool(v):
         if isinstance(v, bool):
             return v
@@ -41,18 +52,52 @@ def get_parser(**parser_kwargs):
     return parser
 
 def nondefault_trainer_args(opt):
+    """Return the non-default trainer arguments.
+
+    This function takes an `opt` object as input and compares its attributes with the default
+    arguments of the `Trainer` class. It returns a sorted list of attribute names that have
+    different values between `opt` and the default arguments.
+
+    Args:
+        opt (object): An object containing the arguments.
+
+    Returns:
+        list: A sorted list of attribute names that have different values between `opt` and
+        the default arguments.
+    """
     parser = argparse.ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args([])
     return sorted(k for k in vars(args) if getattr(opt, k) != getattr(args, k))
 
 def parse_args():
+    """
+    Parse command line arguments.
+
+    Returns:
+        opt (argparse.Namespace): Parsed command line arguments.
+        unknown (list): List of unknown command line arguments.
+    """
     parser = get_parser()
     parser = Trainer.add_argparse_args(parser)
     opt, unknown = parser.parse_known_args()
     return opt, unknown
 
 def get_nowname(opt, now):
+    """Get the name for the current execution.
+
+    This function determines the name for the current execution based on the provided options and current time.
+
+    Args:
+        opt (object): The options object containing the execution parameters.
+        now (str): The current time.
+
+    Raises:
+        ValueError: If the specified resume file cannot be found.
+
+    Returns:
+        tuple: A tuple containing the updated options object and the name for the current execution.
+    """
     if opt.resume:
         if not os.path.exists(opt.resume):
             raise ValueError("Cannot find {}".format(opt.resume))
@@ -84,12 +129,31 @@ def get_nowname(opt, now):
     return opt, nowname
 
 def merge_configs(opt, unknown):
+    """
+    Merge multiple configurations into a single configuration.
+
+    Args:
+        opt (List[str]): List of configuration file paths.
+        unknown (List[str]): List of command-line arguments.
+
+    Returns:
+        OmegaConf.DictConfig: Merged configuration.
+    """
     configs = [OmegaConf.load(cfg) for cfg in opt.base]
     cli = OmegaConf.from_dotlist(unknown)
     config = OmegaConf.merge(*configs, cli)
     return config
 
 def set_trainer_config(opt, lightning_config):
+    """Set the trainer configuration based on the provided options.
+
+    Args:
+        opt (object): The options object containing the trainer configuration.
+        lightning_config (object): The lightning configuration object.
+
+    Returns:
+        tuple: A tuple containing the trainer configuration and a boolean indicating whether to use CPU.
+    """
     trainer_config = lightning_config.get("trainer", OmegaConf.create())
     # default to ddp
     trainer_config["accelerator"] = "ddp"
@@ -106,6 +170,19 @@ def set_trainer_config(opt, lightning_config):
     return trainer_config, cpu
 
 def get_logger_cfgs(opt, logdir, nowname, lightning_config):
+    """
+    Get the logger configurations for the training process.
+
+    Args:
+        opt: The options for the training process.
+        logdir: The directory to save the logs.
+        nowname: The name of the logger.
+        lightning_config: The configuration for the lightning logger.
+
+    Returns:
+        The logger configurations.
+
+    """
     # default logger configs
     default_logger_cfgs = {
         "wandb": {
@@ -134,6 +211,18 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
     return logger_cfg
 
 def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
+    """
+    Get the configuration for model checkpoint callbacks.
+
+    Args:
+        ckptdir (str): The directory to save the checkpoints.
+        model: The model object.
+        lightning_config: The configuration object for PyTorch Lightning.
+
+    Returns:
+        dict: The configuration for model checkpoint callbacks.
+    """
+    
     default_modelckpt_cfg = {
             "target": "pytorch_lightning.callbacks.ModelCheckpoint",
             "params": {
@@ -157,6 +246,23 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
     return modelckpt_cfg
 
 def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_config, trainer_opt, modelckpt_cfg):
+    """
+    Returns the configuration for callbacks used in the training process.
+
+    Args:
+        opt (type): The options for the callbacks.
+        now (type): The current time.
+        logdir (type): The directory for logging.
+        ckptdir (type): The directory for saving checkpoints.
+        cfgdir (type): The directory for configuration files.
+        config (type): The configuration settings.
+        lightning_config (type): The configuration settings for the lightning module.
+        trainer_opt (type): The options for the trainer.
+        modelckpt_cfg (type): The configuration for model checkpointing.
+
+    Returns:
+        type: The configuration for the callbacks.
+    """
     # add callback which sets up log directory
     default_callbacks_cfg = {
         "setup_callback": {
@@ -224,6 +330,15 @@ def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_conf
     return callbacks_cfg
 
 def get_data(config):
+    """
+    Get the data for training.
+
+    Args:
+        config (object): The configuration object.
+
+    Returns:
+        object: The prepared data object.
+    """
     data = instantiate_from_config(config.data)
     # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
     # calling these ourselves should not be necessary but it is.
@@ -236,6 +351,19 @@ def get_data(config):
     return data
 
 def configure_learning_rate(config, model, lightning_config, cpu, opt):
+    """
+    Configures the learning rate for the model based on the provided configuration.
+
+    Args:
+        config: The configuration object.
+        model: The model object.
+        lightning_config: The lightning configuration object.
+        cpu: A boolean indicating whether to use CPU or not.
+        opt: The optimization object.
+
+    Returns:
+        The updated model object with the learning rate configured.
+    """  
     # configure learning rate
     bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
     if not cpu:
@@ -261,7 +389,17 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
     return model
 
 def main():
-    """Main function."""
+    """
+    Main function for training the autoencoder model.
+
+    This function performs the following steps:
+    1. Sets up the necessary paths and configurations.
+    2. Instantiates the model.
+    3. Sets up the trainer and callbacks.
+    4. Trains the model if specified.
+    5. Tests the model if specified.
+    """
+    
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     sys.path.append(os.getcwd())
 
