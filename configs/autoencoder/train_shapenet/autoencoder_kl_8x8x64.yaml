@@ -31,12 +31,12 @@ data:
     batch_size: 12
     wrap: True
     train:
-      target: src.data.datasets.shapenet.ShapeNetTrain
+      target: src.data.datasets.shapenet.ShapeNetSRTrain
       params:
         size: 1024
         degradation: pil_nearest
     validation:
-      target: src.data.datasets.shapenet.ShapeNetValidation
+      target: src.data.datasets.shapenet.ShapeNetSRValidation
       params:
         size: 1024
         degradation: pil_nearest
