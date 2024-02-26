@@ -50,6 +50,12 @@ lightning:
         max_images: 8
         increase_log_steps: True
 
+    progress_bar:
+      target: src.util.callbacks.TQDMProgressBar
+      params:
+        refresh_rate: 1
+        process_position: 0
+
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
