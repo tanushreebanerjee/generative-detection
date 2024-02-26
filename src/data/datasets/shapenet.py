@@ -15,6 +15,8 @@ class ShapeNetBase(Dataset):
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
         self.split = None
+        self.random_seed = retrieve(self.config, "random_seed", default=42)
+        np.random.seed(self.random_seed)
         self._prepare()
         self._load()
 
@@ -69,7 +71,15 @@ class ShapeNetBase(Dataset):
             rotation = np.load(rotation_path)
             self.elevations = np.append(self.elevations, elevation)
             self.rotations = np.append(self.rotations, rotation)
-     
+        
+    def _save_splits(self, unique_objects):
+        split_dir = os.path.join(self.data_root, "splits")
+        os.makedirs(split_dir, exist_ok=True)
+        split_file = os.path.join(split_dir, f"{self.split}.txt")
+        with open(split_file, "w") as f:
+            for o in unique_objects:
+                f.write(f"{o}\n")
+    
     def _load(self):
         self.data_root = self.config.get("data_root", "data/processed/shapenet/processed_get3d")
     
@@ -79,7 +89,6 @@ class ShapeNetBase(Dataset):
         self.relpaths = self._filter_relpaths(self.relpaths)
         print("Removed {} files from filelist during filtering.".format(l1 - len(self.relpaths)))
         self.relpaths = self._filter_split(self.relpaths)
-        print("{} files in {} split.".format(len(self.relpaths), f"{self.split}" if self.split is not None else "Unspecified split, loading all files"))
         
         self.synsets = [rpath.split("/")[0] for rpath in self.relpaths]
         self.objects = [rpath.split("/")[1] for rpath in self.relpaths]
@@ -103,13 +112,6 @@ class ShapeNetBase(Dataset):
 
         self._load_transforms()
         self._load_camera()
-        
-        # divide into train, validation and test sets by object
-        self.split = retrieve(self.config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
-        # assign each object to a split
-        self.split_idx = np.random.choice(3, len(self.objects), p=[self.split["train"], self.split["validation"], self.split["test"]])
-        self.split_idx = np.array(self.split_idx)
-        self.split_idx = np.array([self.split_idx[self.objects.index(o)] for o in self.objects])
                 
         labels = {
             "relpath": np.array(self.relpaths),
@@ -132,6 +134,9 @@ class ShapeNetBase(Dataset):
         else:
             self.data = labels
             
+        # save objects in split to file
+        self._save_splits(unique_objects)
+            
 class ShapeNetTrain(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.process_images = process_images
@@ -140,7 +145,7 @@ class ShapeNetTrain(ShapeNetBase):
         super().__init__(**kwargs)
     
     def _prepare(self):
-        pass
+        self.random_crop = retrieve(self.config, "random_crop", default=True)
         
 class ShapeNetValidation(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
@@ -150,7 +155,8 @@ class ShapeNetValidation(ShapeNetBase):
         super().__init__(**kwargs)
         
     def _prepare(self):
-        pass
+        self.random_crop = retrieve(self.config, "random_crop", default=False)
+        
         
 class ShapeNetTest(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
@@ -160,5 +166,5 @@ class ShapeNetTest(ShapeNetBase):
         super().__init__(**kwargs)
         
     def _prepare(self):
-        pass
+        self.random_crop = retrieve(self.config, "random_crop", default=False)
     
