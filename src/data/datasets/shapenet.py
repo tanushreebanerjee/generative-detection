@@ -14,6 +14,7 @@ class ShapeNetBase(Dataset):
             self.config = OmegaConf.to_container(self.config)
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
+        self.split = None
         self._prepare()
         self._load()
 
@@ -29,6 +30,19 @@ class ShapeNetBase(Dataset):
     def _filter_relpaths(self, relpaths):
         ignore = set([])
         relpaths = [rpath for rpath in relpaths if not rpath.split("/")[-1] in ignore]
+        return relpaths
+    
+    def _filter_split(self, relpaths):
+        """Filters the given list of relative paths based on the specified split percentages."""
+        if self.split is not None:
+            assert self.split in ["train", "validation", "test"], f"Invalid split {self.split}."
+            split_prop = retrieve(self.config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
+            unique_objects = np.unique([rpath.split("/")[1] for rpath in relpaths])
+            split_idx = np.random.choice(3, len(unique_objects), p=[split_prop["train"], split_prop["validation"], split_prop["test"]])
+            split_idx = np.array(split_idx)
+            split_idx = np.array([split_idx[list(unique_objects).index(o)] for o in [rpath.split("/")[1] for rpath in relpaths]])
+            relpaths = [rpath for rpath, idx in zip(relpaths, split_idx) if idx == self.split]
+        
         return relpaths
     
     def _load_transforms(self):
@@ -64,6 +78,8 @@ class ShapeNetBase(Dataset):
         l1 = len(self.relpaths)
         self.relpaths = self._filter_relpaths(self.relpaths)
         print("Removed {} files from filelist during filtering.".format(l1 - len(self.relpaths)))
+        self.relpaths = self._filter_split(self.relpaths)
+        print("{} files in {} split.".format(len(self.relpaths), f"{self.split}" if self.split is not None else "Unspecified split, loading all files"))
         
         self.synsets = [rpath.split("/")[0] for rpath in self.relpaths]
         self.objects = [rpath.split("/")[1] for rpath in self.relpaths]
@@ -103,8 +119,7 @@ class ShapeNetBase(Dataset):
             "transforms_path": self.transforms_paths,
             "elevations": self.elevations,
             "rotations": self.rotations,
-            "abspaths": np.array(self.abspaths),
-            "split_idx": np.array(self.split_idx),
+            "abspaths": np.array(self.abspaths)
         }
 
         if self.process_images:
@@ -121,6 +136,7 @@ class ShapeNetTrain(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.process_images = process_images
         self.data_root = data_root
+        self.split = "train"
         super().__init__(**kwargs)
     
     def _prepare(self):
@@ -130,6 +146,7 @@ class ShapeNetValidation(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.data_root = data_root
         self.process_images = process_images
+        self.split = "validation"
         super().__init__(**kwargs)
         
     def _prepare(self):
@@ -139,6 +156,7 @@ class ShapeNetTest(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.data_root = data_root
         self.process_images = process_images
+        self.split = "test"
         super().__init__(**kwargs)
         
     def _prepare(self):
