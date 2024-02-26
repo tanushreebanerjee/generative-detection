@@ -453,37 +453,37 @@ def main():
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir
 
-        # # data
-        # data = get_data(config)
+        # data
+        data = get_data(config)
 
-        # # configure learning rate
-        # model = configure_learning_rate(config, model, lightning_config, cpu, opt)
+        # configure learning rate
+        model = configure_learning_rate(config, model, lightning_config, cpu, opt)
 
-        # # allow checkpointing via USR1
-        # def melk(*args, **kwargs):
-        #     # run all checkpoint hooks
-        #     if trainer.global_rank == 0:
-        #         print("Summoning checkpoint.")
-        #         ckpt_path = os.path.join(ckptdir, "last.ckpt")
-        #         trainer.save_checkpoint(ckpt_path)
+        # allow checkpointing via USR1
+        def melk(*args, **kwargs):
+            # run all checkpoint hooks
+            if trainer.global_rank == 0:
+                print("Summoning checkpoint.")
+                ckpt_path = os.path.join(ckptdir, "last.ckpt")
+                trainer.save_checkpoint(ckpt_path)
 
-        # def divein(*args, **kwargs):
-        #     if trainer.global_rank == 0:
-        #         import pudb;
-        #         pudb.set_trace()
+        def divein(*args, **kwargs):
+            if trainer.global_rank == 0:
+                import pudb;
+                pudb.set_trace()
 
-        # signal.signal(signal.SIGUSR1, melk)
-        # signal.signal(signal.SIGUSR2, divein)
+        signal.signal(signal.SIGUSR1, melk)
+        signal.signal(signal.SIGUSR2, divein)
 
-        # # run
-        # if opt.train:
-        #     try:
-        #         trainer.fit(model, data)
-        #     except Exception:
-        #         melk()
-        #         raise
-        # if not opt.no_test and not trainer.interrupted:
-        #     trainer.test(model, data)
+        # run
+        if opt.train:
+            try:
+                trainer.fit(model, data)
+            except Exception:
+                melk()
+                raise
+        if not opt.no_test and not trainer.interrupted:
+            trainer.test(model, data)
     except Exception:
         if opt.debug and trainer.global_rank == 0:
             try:
