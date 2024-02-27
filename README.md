@@ -27,6 +27,8 @@ pip install -e .
 ## Prepare ShapeNet Dataset
 Please follow instructions in the [GET3D repository](https://github.com/nv-tlabs/GET3D/blob/master/render_shapenet_data/README.md) to download and render the ShapeNet dataset. Save this processed dataset at `ROOT/data/processed/shapenet/processed_get3d`.
 
+The code we used to generate our ShapeNet dataset train, validation and test splits is in `src/data/datasets/shapenet.py` in the `create_splits` function. We set the `numpy` random seed as `23` to generate these splits.
+
 ## Train autoencoder on ShapeNet images
 ```bash
 python train_autoencoder.py --base configs/autoencoder/train_shapenet/autoencoder_kl_8x8x64.yaml -t --gpus 0

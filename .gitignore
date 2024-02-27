@@ -1,26 +1,10 @@
-data
-!src/data
-
-models
-!src/models
-
-results
-
-taming
-
+data/original
+data/processed
 scripts/slurm
 
+taming
 logs
-
-*.pth
-*.slurm
-*.log
-*.out
-*.err
-*.txt
-*.csv
-*.json
-*.pkl
+.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

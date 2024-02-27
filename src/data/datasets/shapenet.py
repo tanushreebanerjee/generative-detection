@@ -15,6 +15,7 @@ from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr
 import logging
 
 def create_splits(config):
+    splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
     data_root = retrieve(config, "data_root", default="data/processed/shapenet/processed_get3d")
     split_prop = retrieve(config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
     shuffle = retrieve(config, "shuffle", default=True)
@@ -32,9 +33,9 @@ def create_splits(config):
                 split_objects[split].append(obj)
                 break
 
-    os.makedirs(f"{data_root}/splits", exist_ok=True)
+    os.makedirs(splits_dir, exist_ok=True)
     for split, objects in split_objects.items():
-        with open(f"{data_root}/splits/{split}.txt", "w") as f:
+        with open(os.path.join(splits_dir, f"{split}.txt"), "w") as f:
             for obj in objects:
                 f.write(obj + "\n")    
     
@@ -68,7 +69,7 @@ class ShapeNetBase(Dataset):
         """Filters the given list of relative paths based on the specified split percentages."""
         if self.split is not None:
             assert self.split in ["train", "validation", "test"], f"Invalid split {self.split}."
-            objects_in_split_path = os.path.join(self.data_root, "splits", f"{self.split}.txt")
+            objects_in_split_path = os.path.join(self.config.get("splits_dir", "data/splits/shapenet"), f"{self.split}.txt")
             with open(objects_in_split_path, "r") as f:
                 objects_in_split = f.read().splitlines()
             relpaths = [rpath for rpath in relpaths if rpath.split("/")[1] in objects_in_split]
