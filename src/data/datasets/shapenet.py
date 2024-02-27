@@ -12,6 +12,7 @@ from omegaconf import OmegaConf
 import cv2
 from taming.data.imagenet import retrieve, ImagePaths
 from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr_light
+import logging
 
 def create_splits(config):
     data_root = retrieve(config, "data_root", default="data/processed/shapenet/processed_get3d")
@@ -115,7 +116,7 @@ class ShapeNetBase(Dataset):
         self._load_imgs(img_dir)                 
         l1 = len(self.relpaths)
         self.relpaths = self._filter_relpaths(self.relpaths)
-        print("Removed {} files from filelist during filtering.".format(l1 - len(self.relpaths)))
+        logging.info("Removed {} files from filelist during filtering.".format(l1 - len(self.relpaths)))
         self.relpaths = self._filter_split(self.relpaths)
         
         self.synsets = [rpath.split("/")[0] for rpath in self.relpaths]
