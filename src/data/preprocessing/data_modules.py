@@ -2,6 +2,7 @@
 
 import torch
 import numpy as np
+import os
 from functools import partial
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
@@ -58,7 +59,10 @@ class DataModuleFromConfig(pl.LightningDataModule):
             super().__init__()
             self.batch_size = batch_size
             self.dataset_configs = dict()
-            self.num_workers = num_workers if num_workers is not None else batch_size * 2
+            self.num_workers = num_workers if num_workers is not None else os.cpu_count() # batch_size * 2
+            print(f"Using {self.num_workers} workers for data loading. ")
+            print(f"Number of CPU cores: {os.cpu_count()}")
+            print(f"Batch size: {batch_size}")
             self.use_worker_init_fn = use_worker_init_fn
             if train is not None:
                 self.dataset_configs["train"] = train
@@ -98,7 +102,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
             init_fn = None
         return DataLoader(self.datasets["train"], batch_size=self.batch_size,
                           num_workers=self.num_workers, shuffle=False if is_iterable_dataset else True,
-                          worker_init_fn=init_fn)
+                          worker_init_fn=init_fn, pin_memory=torch.cuda.is_available())
 
     def _val_dataloader(self, shuffle=False):
         """generate the validation dataloader(s)"""
@@ -111,7 +115,8 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           batch_size=self.batch_size,
                           num_workers=self.num_workers,
                           worker_init_fn=init_fn,
-                          shuffle=shuffle)
+                          shuffle=shuffle,
+                          pin_memory=torch.cuda.is_available())
 
     def _test_dataloader(self, shuffle=False):
         """generate the test dataloader(s)"""
@@ -126,7 +131,8 @@ class DataModuleFromConfig(pl.LightningDataModule):
         shuffle = shuffle and (not is_iterable_dataset)
 
         return DataLoader(self.datasets["test"], batch_size=self.batch_size,
-                          num_workers=self.num_workers, worker_init_fn=init_fn, shuffle=shuffle)
+                          num_workers=self.num_workers, worker_init_fn=init_fn, shuffle=shuffle, 
+                          pin_memory=torch.cuda.is_available())
 
     def _predict_dataloader(self, shuffle=False):
         """generate the predict dataloader(s)"""
@@ -136,4 +142,5 @@ class DataModuleFromConfig(pl.LightningDataModule):
         else:
             init_fn = None
         return DataLoader(self.datasets["predict"], batch_size=self.batch_size,
-                          num_workers=self.num_workers, worker_init_fn=init_fn)
+                          num_workers=self.num_workers, worker_init_fn=init_fn, 
+                          pin_memory=torch.cuda.is_available())
