@@ -97,14 +97,6 @@ class ShapeNetBase(Dataset):
             rotation = np.load(rotation_path)
             self.elevations = np.append(self.elevations, elevation)
             self.rotations = np.append(self.rotations, rotation)
-        
-    def _save_splits(self, unique_objects):
-        split_dir = os.path.join(self.data_root, "splits")
-        os.makedirs(split_dir, exist_ok=True)
-        split_file = os.path.join(split_dir, f"{self.split}.txt")
-        with open(split_file, "w") as f:
-            for o in unique_objects:
-                f.write(f"{o}\n")
     
     def _load_imgs(self, img_dir):
         self.relpaths = []
@@ -169,8 +161,6 @@ class ShapeNetBase(Dataset):
                                    )
         else:
             self.data = labels
-            
-        self._save_splits(unique_objects)
         
         print(f"Loaded {len(self.data)} examples from {self.split} split.")
         print(f"Unique Synsets: {len(unique_synsets)}")
