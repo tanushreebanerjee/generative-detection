@@ -10,6 +10,8 @@ taming
 
 scripts/slurm
 
+logs
+
 *.pth
 *.slurm
 *.log

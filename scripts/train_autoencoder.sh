@@ -3,7 +3,7 @@ source ~/.bashrc && conda activate gen-detection
 
 CUDA_VISIBLE_DEVICES=0
 export CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
-GPUS=1
+GPUS=0,
 
 MODE=train
 MODEL=autoencoder

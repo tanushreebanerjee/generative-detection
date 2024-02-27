@@ -23,7 +23,7 @@ class nuScenesBase(Dataset):
         raise NotImplementedError("Subclass must implement _prepare method")
     
     def _load(self):
-        raise NotImplementedError("Subclass must implement _load method")
+        raise NotImplementedError("_load method must be implemented")
 
 class nuScenesTrain(nuScenesBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):

@@ -20,9 +20,6 @@ class ShapeNetBase(Dataset):
             self.config = OmegaConf.to_container(self.config)
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
-        self.split = None
-        self.random_seed = retrieve(self.config, "random_seed", default=42)
-        np.random.seed(self.random_seed)
         self._prepare()
         self._load()
 
@@ -33,7 +30,7 @@ class ShapeNetBase(Dataset):
         return self.data[i]
 
     def _prepare(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Subclass must implement _prepare method")
 
     def _filter_relpaths(self, relpaths):
         ignore = set([])
@@ -142,7 +139,12 @@ class ShapeNetBase(Dataset):
             
         # save objects in split to file
         self._save_splits(unique_objects)
-            
+        
+        # print some stats
+        print(f"Loaded {len(self.data)} examples from {self.split} split.")
+        print(f"Unique Synsets: {len(unique_synsets)}")
+        print(f"Unique Objects: {len(unique_objects)}")
+        
 class ShapeNetTrain(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.process_images = process_images
@@ -162,8 +164,7 @@ class ShapeNetValidation(ShapeNetBase):
         
     def _prepare(self):
         self.random_crop = retrieve(self.config, "random_crop", default=False)
-        
-        
+
 class ShapeNetTest(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.data_root = data_root
