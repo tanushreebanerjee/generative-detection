@@ -6,7 +6,7 @@ import json
 
 def log_opts(opts):
     """Log the options."""
-    logging.info("Options: %s", json.dumps(vars(opts), indent=4))
+    logging.info("Options: %s", json.dumps(vars(opts), indent=2))
 
 def set_submodule_paths(submodule_dir):
     """Set the paths for the submodules."""

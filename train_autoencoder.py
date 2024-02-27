@@ -1,6 +1,8 @@
 # train_autoencoder.py
 import argparse, os, sys, datetime, glob
 import pytorch_lightning as pl
+import logging
+import json
 
 import signal
 from packaging import version
@@ -38,6 +40,7 @@ def get_parser(**parser_kwargs):
     parser = argparse.ArgumentParser(**parser_kwargs)
     parser.add_argument("--transformers_cache",type=str,default=".cache/transformers_cache", help="transformers cache directory",)
     parser.add_argument("--torch_home", type=str, default=".cache/torch_home", help="torch home directory")
+    parser.add_argument("--logging_level", type=str, default="INFO", help="logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     parser.add_argument("-n", "--name", type=str, const=True, default="", nargs="?", help="postfix for logdir")
     parser.add_argument("-r", "--resume", type=str, const=True, default="", nargs="?", help="resume from logdir or checkpoint in logdir")
     parser.add_argument("-b", "--base", nargs="*", metavar="base_config.yaml", default=list(), help="paths to base configs. Loaded from left-to-right. Parameters can be overwritten or added with command-line options of the form `--key value`.")
@@ -47,7 +50,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument("-d", "--debug", type=str2bool, nargs="?", const=True, default=False, help="enable post-mortem debugging")
     parser.add_argument("-s", "--seed", type=int, default=23, help="seed for seed_everything")
     parser.add_argument("-f", "--postfix", type=str, default="", help="post-postfix for default name")
-    parser.add_argument("-l", "--logdir", type=str, default="logs", help="directory for logging dat shit")
+    parser.add_argument("-l", "--logdir", type=str, default="logs", help="directory for logs")
     parser.add_argument("--scale_lr", type=str2bool,nargs="?",const=True,default=True,help="scale base-lr by ngpu * batch_size * n_accumulate")
     return parser
 
@@ -164,7 +167,7 @@ def set_trainer_config(opt, lightning_config):
         cpu = True
     else:
         gpuinfo = trainer_config["gpus"]
-        print(f"Running on GPUs {gpuinfo}")
+        logging.info(f"Running on GPUs {gpuinfo}")
         cpu = False
 
     return trainer_config, cpu
@@ -233,7 +236,7 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
             }
         }
     if hasattr(model, "monitor"):
-        print(f"Monitoring {model.monitor} as checkpoint metric.")
+        logging.info(f"Monitoring {model.monitor} as checkpoint metric.")
         default_modelckpt_cfg["params"]["monitor"] = model.monitor
         default_modelckpt_cfg["params"]["save_top_k"] = 3
 
@@ -242,7 +245,7 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
     else:
         modelckpt_cfg =  OmegaConf.create()
     modelckpt_cfg = OmegaConf.merge(default_modelckpt_cfg, modelckpt_cfg)
-    print(f"Merged modelckpt-cfg: \n{modelckpt_cfg}")
+    logging.info(f"Using ModelCheckpoint with {json.dumps(modelckpt_cfg, indent=2)}")
     return modelckpt_cfg
 
 def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_config, trainer_opt, modelckpt_cfg):
@@ -304,7 +307,7 @@ def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_conf
         callbacks_cfg = OmegaConf.create()
 
     if 'metrics_over_trainsteps_checkpoint' in callbacks_cfg:
-        print(
+        logging.warning(
             'Caution: Saving checkpoints every n train steps without deleting. This might require some free space.')
         default_metrics_over_trainsteps_ckpt_dict = {
             'metrics_over_trainsteps_checkpoint':
@@ -345,9 +348,9 @@ def get_data(config):
     # lightning still takes care of proper multiprocessing though
     data.prepare_data()
     data.setup()
-    print("#### Data #####")
+    logging.info("#### Data #####")
     for k in data.datasets:
-        print(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
+        logging.info(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
     return data
 
 def configure_learning_rate(config, model, lightning_config, cpu, opt):
@@ -374,17 +377,17 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
         accumulate_grad_batches = lightning_config.trainer.accumulate_grad_batches
     else:
         accumulate_grad_batches = 1
-    print(f"accumulate_grad_batches = {accumulate_grad_batches}")
+    logging.info(f"accumulate_grad_batches = {accumulate_grad_batches}")
     lightning_config.trainer.accumulate_grad_batches = accumulate_grad_batches
     if opt.scale_lr:
         model.learning_rate = accumulate_grad_batches * ngpu * bs * base_lr
-        print(
+        logging.info(
             "Setting learning rate to {:.2e} = {} (accumulate_grad_batches) * {} (num_gpus) * {} (batchsize) * {:.2e} (base_lr)".format(
                 model.learning_rate, accumulate_grad_batches, ngpu, bs, base_lr))
     else:
         model.learning_rate = base_lr
-        print("++++ NOT USING LR SCALING ++++")
-        print(f"Setting learning rate to {model.learning_rate:.2e}")
+        logging.info("++++ NOT USING LR SCALING ++++")
+        logging.info(f"Setting learning rate to {model.learning_rate:.2e}")
         
     return model
 
@@ -415,7 +418,7 @@ def main():
     
     opt, nowname = get_nowname(opt, now)
     logdir = os.path.join(opt.logdir, nowname)
-
+    logging.basicConfig(level=getattr(logging, opt.logging_level))
     ckptdir = os.path.join(logdir, "checkpoints")
     cfgdir = os.path.join(logdir, "configs")
     seed_everything(opt.seed)
@@ -442,7 +445,7 @@ def main():
         # modelcheckpoint - use TrainResult/EvalResult(checkpoint_on=metric) to
         # specify which metric is used to determine best models
         modelckpt_cfg = get_model_checkpoint_cfgs(ckptdir, model, lightning_config)
-        print(f"Merged modelckpt-cfg: \n{modelckpt_cfg}")
+        logging.info(f"Merged modelckpt-cfg: \n{json.dumps(modelckpt_cfg, indent=2)}")
         if version.parse(pl.__version__) < version.parse('1.4.0'):
             trainer_kwargs["checkpoint_callback"] = instantiate_from_config(modelckpt_cfg)
 
@@ -463,7 +466,7 @@ def main():
         def melk(*args, **kwargs):
             # run all checkpoint hooks
             if trainer.global_rank == 0:
-                print("Summoning checkpoint.")
+                logging.info("Summoning checkpoint.")
                 ckpt_path = os.path.join(ckptdir, "last.ckpt")
                 trainer.save_checkpoint(ckpt_path)
 
@@ -500,7 +503,7 @@ def main():
             os.makedirs(os.path.split(dst)[0], exist_ok=True)
             os.rename(logdir, dst)
         if trainer.global_rank == 0:
-            print(trainer.profiler.summary())
+            logging.info(f"{trainer.profiler.summary()}")
 
 if __name__ == "__main__":
     main()
