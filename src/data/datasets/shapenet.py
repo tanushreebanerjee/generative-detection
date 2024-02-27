@@ -162,10 +162,6 @@ class ShapeNetBase(Dataset):
         else:
             self.data = labels
         
-        print(f"Loaded {len(self.data)} examples from {self.split} split.")
-        print(f"Unique Synsets: {len(unique_synsets)}")
-        print(f"Unique Objects: {len(unique_objects)}")
-        
 class ShapeNetTrain(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
         self.process_images = process_images
