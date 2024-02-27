@@ -2,7 +2,6 @@
 
 import torch
 import numpy as np
-import logging
 import os
 from functools import partial
 import pytorch_lightning as pl
@@ -60,10 +59,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
             super().__init__()
             self.batch_size = batch_size
             self.dataset_configs = dict()
-            self.num_workers = num_workers if num_workers is not None else batch_size * 2
-            logging.info(f"Using {self.num_workers} workers for data loading. ")
-            logging.info(f"Number of CPU cores: {os.cpu_count()}")
-            logging.info(f"Batch size: {batch_size}")
+            self.num_workers = num_workers if num_workers is not None else os.cpu_count() # batch_size * 2
             self.use_worker_init_fn = use_worker_init_fn
             if train is not None:
                 self.dataset_configs["train"] = train
