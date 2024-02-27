@@ -228,7 +228,7 @@ class CUDACallback(Callback):
         torch.cuda.synchronize(trainer.root_gpu)
         self.start_time = time.time()
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
+    def on_train_epoch_end(self, trainer, pl_module): # , outputs
         """Log the average peak memory and epoch time."""
         
         torch.cuda.synchronize(trainer.root_gpu)
