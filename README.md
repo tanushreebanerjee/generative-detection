@@ -1,5 +1,5 @@
 # generative-detection
-Generative object detection using a Latent Diffusion Models.
+Generative object detection using Variational Autoencoders (VAEs).
 
 ## Installation instructions
 
