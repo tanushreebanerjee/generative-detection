@@ -1,25 +1,30 @@
 # src/modules/encoders/pose_encoder.py
 import torch.nn as nn
 
-class PoseEncoder(nn.Module):
+class PoseEncoder(nn.Module): 
     """
-    A class representing a pose encoder module.
-
-    Args:
-        config (object): Configuration object containing input and output dimensions.
-
-    Attributes:
-        config (object): Configuration object containing input and output dimensions.
-        fc (nn.Linear): Linear layer for encoding the input.
-
-    Methods:
-        forward(x): Forward pass of the pose encoder.
-
+    PoseEncoder is a module that encodes pose features into image features.
     """
+
     def __init__(self, config):
+        """
+        Initializes a new instance of the PoseEncoder class.
+
+        Args:
+            config (object): Configuration object containing pose and image feature dimensions.
+        """
         super(PoseEncoder, self).__init__()
         self.config = config
-        self.fc = nn.Linear(config.input_dim, config.output_dim)
+        self.fc = nn.Linear(config.pose_feat_dims, config.img_feat_dims)
     
     def forward(self, x):
+        """
+        Forward pass of the PoseEncoder module.
+
+        Args:
+            x (tensor): Input tensor containing pose features.
+
+        Returns:
+            tensor: Output tensor containing encoded image features.
+        """
         return self.fc(x)
