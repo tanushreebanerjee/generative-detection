@@ -13,6 +13,32 @@ import cv2
 from taming.data.imagenet import retrieve, ImagePaths
 from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr_light
 
+def create_splits(config):
+    data_root = retrieve(config, "data_root", default="data/processed/shapenet/processed_get3d")
+    split_prop = retrieve(config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
+    shuffle = retrieve(config, "shuffle", default=True)
+    
+    synsets = os.listdir(os.path.join(data_root, "img"))
+    objects = np.array([os.listdir(os.path.join(data_root, "img", synset)) for synset in synsets]).flatten()
+    
+    if shuffle:
+        np.random.shuffle(objects)
+    
+    split_objects = {split: [] for split in split_prop.keys()}
+    for obj in objects:
+        for split, prop in split_prop.items():
+            if len(split_objects[split]) < len(objects) * prop:
+                split_objects[split].append(obj)
+                break
+
+    os.makedirs(f"{data_root}/splits", exist_ok=True)
+    for split, objects in split_objects.items():
+        with open(f"{data_root}/splits/{split}.txt", "w") as f:
+            for obj in objects:
+                f.write(obj + "\n")    
+    
+    return split_objects            
+    
 class ShapeNetBase(Dataset):
     def __init__(self, config=None):
         self.config = config or OmegaConf.create()
@@ -41,13 +67,10 @@ class ShapeNetBase(Dataset):
         """Filters the given list of relative paths based on the specified split percentages."""
         if self.split is not None:
             assert self.split in ["train", "validation", "test"], f"Invalid split {self.split}."
-            split_prop = retrieve(self.config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
-            unique_objects = np.unique([rpath.split("/")[1] for rpath in relpaths])
-            split_idx = np.random.choice(3, len(unique_objects), p=[split_prop["train"], split_prop["validation"], split_prop["test"]])
-            split_idx = np.array(split_idx)
-            split_idx = np.array([split_idx[list(unique_objects).index(o)] for o in [rpath.split("/")[1] for rpath in relpaths]])
-            relpaths = [rpath for rpath, idx in zip(relpaths, split_idx) if idx == self.split]
-        
+            objects_in_split_path = os.path.join(self.data_root, "splits", f"{self.split}.txt")
+            with open(objects_in_split_path, "r") as f:
+                objects_in_split = f.read().splitlines()
+            relpaths = [rpath for rpath in relpaths if rpath.split("/")[1] in objects_in_split]
         return relpaths
     
     def _load_transforms(self):
@@ -83,11 +106,21 @@ class ShapeNetBase(Dataset):
             for o in unique_objects:
                 f.write(f"{o}\n")
     
+    def _load_imgs(self, img_dir):
+        self.relpaths = []
+        for synset in os.listdir(img_dir):
+            synset_dir = os.path.join(img_dir, synset)
+            for obj in os.listdir(synset_dir):
+                obj_dir = os.path.join(synset_dir, obj)
+                for img in os.listdir(obj_dir):
+                    img_path = os.path.join(obj_dir, img)
+                    if img_path.endswith(".png"):
+                        self.relpaths.append(os.path.relpath(img_path, img_dir))
+                    
     def _load(self):
         self.data_root = self.config.get("data_root", "data/processed/shapenet/processed_get3d")
-    
         img_dir = os.path.join(self.data_root, "img")
-        self.relpaths = [os.path.relpath(os.path.join(root, file), img_dir) for root, _, files in os.walk(img_dir) for file in files if file.endswith(".png")]
+        self._load_imgs(img_dir)                 
         l1 = len(self.relpaths)
         self.relpaths = self._filter_relpaths(self.relpaths)
         print("Removed {} files from filelist during filtering.".format(l1 - len(self.relpaths)))
@@ -137,10 +170,8 @@ class ShapeNetBase(Dataset):
         else:
             self.data = labels
             
-        # save objects in split to file
         self._save_splits(unique_objects)
         
-        # print some stats
         print(f"Loaded {len(self.data)} examples from {self.split} split.")
         print(f"Unique Synsets: {len(unique_synsets)}")
         print(f"Unique Objects: {len(unique_objects)}")
