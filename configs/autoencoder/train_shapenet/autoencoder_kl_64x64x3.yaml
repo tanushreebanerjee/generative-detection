@@ -1,0 +1,61 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: src.models.autoencoder.Autoencoder
+  params:
+    monitor: "val/rec_loss"
+    embed_dim: 3
+    lossconfig:
+      target: src.modules.losses.LPIPSWithDiscriminator
+      params:
+        disc_start: 50001
+        kl_weight: 0.000001
+        disc_weight: 0.5
+
+    ddconfig:
+      double_z: True
+      z_channels: 3
+      resolution: 256
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult: [ 1,2,4 ]  # num_down = len(ch_mult)-1
+      num_res_blocks: 2
+      attn_resolutions: [ ]
+      dropout: 0.0
+
+
+data:
+  data_root: data/processed/shapenet/processed_get3d
+  target: src.data.preprocessing.data_modules.DataModuleFromConfig
+  params:
+    batch_size: 12
+    wrap: True
+    train:
+      target: src.data.datasets.shapenet.ShapeNetSRTrain
+      params:
+        size: 64
+        degradation: pil_nearest
+    validation:
+      target: src.data.datasets.shapenet.ShapeNetSRValidation
+      params:
+        size: 64
+        degradation: pil_nearest
+
+lightning:
+  callbacks:
+    image_logger:
+      target: src.util.callbacks.ImageLogger
+      params:
+        batch_frequency: 1000
+        max_images: 8
+        increase_log_steps: True
+
+    progress_bar:
+      target: src.util.callbacks.TQDMProgressBar
+      params:
+        refresh_rate: 1
+        process_position: 0
+
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2

@@ -1,7 +1,10 @@
-data
-models
-results
-!src/*
+data/original
+data/processed
+scripts/slurm
+
+taming
+logs
+.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
