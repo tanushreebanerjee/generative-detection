@@ -2,7 +2,6 @@
 import argparse, os, sys, datetime, glob
 import pytorch_lightning as pl
 import logging
-import json
 
 import signal
 from packaging import version
@@ -245,7 +244,7 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
     else:
         modelckpt_cfg =  OmegaConf.create()
     modelckpt_cfg = OmegaConf.merge(default_modelckpt_cfg, modelckpt_cfg)
-    logging.info(f"Using ModelCheckpoint with {json.dumps(modelckpt_cfg, indent=2)}")
+    logging.info(f"Using ModelCheckpoint with {modelckpt_cfg}")
     return modelckpt_cfg
 
 def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_config, trainer_opt, modelckpt_cfg):
@@ -445,7 +444,7 @@ def main():
         # modelcheckpoint - use TrainResult/EvalResult(checkpoint_on=metric) to
         # specify which metric is used to determine best models
         modelckpt_cfg = get_model_checkpoint_cfgs(ckptdir, model, lightning_config)
-        logging.info(f"Merged modelckpt-cfg: \n{json.dumps(modelckpt_cfg, indent=2)}")
+        logging.info(f"Merged modelckpt-cfg: \n{modelckpt_cfg}")
         if version.parse(pl.__version__) < version.parse('1.4.0'):
             trainer_kwargs["checkpoint_callback"] = instantiate_from_config(modelckpt_cfg)
 
