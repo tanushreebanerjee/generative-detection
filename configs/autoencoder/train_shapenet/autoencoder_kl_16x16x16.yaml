@@ -33,12 +33,12 @@ data:
     train:
       target: src.data.datasets.shapenet.ShapeNetSRTrain
       params:
-        size: 256
+        size: 64
         degradation: pil_nearest
     validation:
       target: src.data.datasets.shapenet.ShapeNetSRValidation
       params:
-        size: 256
+        size: 64
         degradation: pil_nearest
 
 lightning:
