@@ -6,7 +6,7 @@ import torch
 import torchvision
 from PIL import Image
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateMonitor, TQDMProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateMonitor, TQDMProgressBar, DeviceStatsMonitor
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_info
 from omegaconf import OmegaConf
 

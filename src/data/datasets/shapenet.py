@@ -13,6 +13,7 @@ import cv2
 from taming.data.imagenet import retrieve, ImagePaths
 from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr_light
 import logging
+import cProfile
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -48,8 +49,13 @@ class ShapeNetBase(Dataset):
             self.config = OmegaConf.to_container(self.config)
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
+        profiler = cProfile.Profile()
+        profiler.enable()
         self._prepare()
         self._load()
+        profiler.disable()
+        logging.info("Profiling ShapeNetBase._prepare() and ShapeNetBase._load()")
+        profiler.print_stats()
 
     def __len__(self):
         return len(self.data)

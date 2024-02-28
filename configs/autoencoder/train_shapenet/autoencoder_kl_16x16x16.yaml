@@ -56,6 +56,10 @@ lightning:
         refresh_rate: 1
         process_position: 0
 
+    device_stats_monitor:
+      target: src.util.callbacks.DeviceStatsMonitor
+
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
+    profiler: advanced

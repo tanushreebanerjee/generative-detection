@@ -158,11 +158,11 @@ def set_trainer_config(opt, lightning_config):
     """
     trainer_config = lightning_config.get("trainer", OmegaConf.create())
     # default to ddp
-    trainer_config["accelerator"] = "ddp"
+    trainer_config["strategy"] = "ddp"
     for k in nondefault_trainer_args(opt):
         trainer_config[k] = getattr(opt, k)
     if not "gpus" in trainer_config:
-        del trainer_config["accelerator"]
+        del trainer_config["strategy"]
         cpu = True
     else:
         gpuinfo = trainer_config["gpus"]
