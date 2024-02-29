@@ -61,5 +61,5 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: advanced
+    profiler: pytorch
     max_epochs: 1

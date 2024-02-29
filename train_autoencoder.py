@@ -484,10 +484,12 @@ def main():
             except Exception:
                 melk()
                 raise
-        if not opt.no_test and not trainer.interrupted:
-            trainer.test(model, data)
+        if "test" in data.datasets:
+            if not opt.no_test and not trainer.interrupted:
+                trainer.test(model, data)
+    
     except Exception as e:
-        logging.error(e)
+        logging.error(e, exc_info=True) 
         if opt.debug and trainer.global_rank == 0:
             try:
                 import pudb as debugger
