@@ -23,7 +23,6 @@ model:
       attn_resolutions: [ ]
       dropout: 0.0
 
-
 data:
   data_root: data/processed/shapenet/processed_get3d
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
@@ -63,3 +62,4 @@ lightning:
     benchmark: True
     accumulate_grad_batches: 2
     profiler: advanced
+    max_epochs: 1

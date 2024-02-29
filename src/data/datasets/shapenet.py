@@ -13,7 +13,8 @@ import cv2
 from taming.data.imagenet import retrieve, ImagePaths
 from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr_light
 import logging
-import cProfile
+import cProfile, pstats, io
+from pstats import SortKey
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -49,14 +50,25 @@ class ShapeNetBase(Dataset):
             self.config = OmegaConf.to_container(self.config)
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
-        profiler = cProfile.Profile()
-        profiler.enable()
+        pr = cProfile.Profile()
+        pr.enable()
         self._prepare()
         self._load()
-        profiler.disable()
-        logging.info("Profiling ShapeNetBase._prepare() and ShapeNetBase._load()")
-        profiler.print_stats()
-
+        pr.disable()
+        self._output_profiler_logs(pr)
+        
+    def _output_profiler_logs(self, pr):
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+        profiler_logs_dir = ".profiler_logs"
+        os.makedirs(profiler_logs_dir, exist_ok=True)
+        profiler_logs_path = os.path.join(profiler_logs_dir, "shapenet_perf_log.txt")
+        with open(profiler_logs_path, "w") as f:
+            f.write(s.getvalue())
+          
     def __len__(self):
         return len(self.data)
 
