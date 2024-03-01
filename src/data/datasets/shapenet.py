@@ -3,16 +3,14 @@ import os
 import json
 import numpy as np
 import albumentations
-from functools import partial
-import PIL
 from PIL import Image
-import torchvision.transforms.functional as TF
 from torch.utils.data import Dataset
 from omegaconf import OmegaConf
 import cv2
 from taming.data.imagenet import retrieve, ImagePaths
-from ldm.modules.image_degradation import degradation_fn_bsr, degradation_fn_bsr_light
 import logging
+import cProfile, pstats, io
+from pstats import SortKey
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -26,11 +24,13 @@ def create_splits(config):
     if shuffle:
         np.random.shuffle(objects)
     
-    split_objects = {split: [] for split in split_prop.keys()}
+    split_objects = {split: [None] * int(len(objects) * prop) for split, prop in split_prop.items()}
+    split_counts = {split: 0 for split in split_prop.keys()}
     for obj in objects:
         for split, prop in split_prop.items():
-            if len(split_objects[split]) < len(objects) * prop:
-                split_objects[split].append(obj)
+            if split_counts[split] < len(objects) * prop:
+                split_objects[split][split_counts[split]] = obj
+                split_counts[split] += 1
                 break
 
     os.makedirs(splits_dir, exist_ok=True)
@@ -48,9 +48,25 @@ class ShapeNetBase(Dataset):
             self.config = OmegaConf.to_container(self.config)
         self.keep_orig_class_label = self.config.get("keep_orig_class_label", False)
         self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
+        pr = cProfile.Profile()
+        pr.enable()
         self._prepare()
         self._load()
-
+        pr.disable()
+        self._output_profiler_logs(pr)
+        
+    def _output_profiler_logs(self, pr):
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+        profiler_logs_dir = f"logs/profiler_logs/{self.__class__.__name__}"
+        os.makedirs(profiler_logs_dir, exist_ok=True)
+        profiler_logs_path = os.path.join(profiler_logs_dir, self.split + ".txt")
+        with open(profiler_logs_path, "w") as f:
+            f.write(s.getvalue())
+          
     def __len__(self):
         return len(self.data)
 
@@ -76,40 +92,48 @@ class ShapeNetBase(Dataset):
         return relpaths
     
     def _load_transforms(self):
-        self.transforms = np.array([])
-        self.transforms_paths = np.array([])
-        for rpath in self.relpaths:
+        self.transforms = np.array([None] * len(self.relpaths))
+        self.transforms_paths = np.array([None] * len(self.relpaths))
+        for idx, rpath in enumerate(self.relpaths):
             synset = rpath.split("/")[0]
             obj = rpath.split("/")[1]
             transforms_path = os.path.join(self.data_root, "img", synset, obj, "transforms.json")
             with open(transforms_path, "r") as f:
                 transforms = json.load(f)
-                self.transforms = np.append(self.transforms, transforms)
-                self.transforms_paths = np.append(self.transforms_paths, transforms_path)
+                self.transforms[idx] = transforms
+                self.transforms_paths[idx] = transforms_path
     
-    def _load_camera(self):        
-        self.elevations = np.array([])
-        self.rotations = np.array([])
-        for rpath in self.relpaths:
+    def _load_camera(self):     
+        self.elevations = np.array([None] * len(self.relpaths))
+        self.rotations = np.array([None] * len(self.relpaths))
+        
+        for idx, rpath in enumerate(self.relpaths):
             synset = rpath.split("/")[0]
             obj = rpath.split("/")[1]
             elevation_path = os.path.join(self.data_root, "camera", synset, obj, "elevation.npy")
             rotation_path = os.path.join(self.data_root, "camera", synset, obj, "rotation.npy")
             elevation = np.load(elevation_path)
             rotation = np.load(rotation_path)
-            self.elevations = np.append(self.elevations, elevation)
-            self.rotations = np.append(self.rotations, rotation)
-    
+            self.elevations[idx] = elevation
+            self.rotations[idx] = rotation
+            
+    def count_png_files(self, directory):
+        count = 0
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith('.png'):
+                    count += 1
+        return count
+
     def _load_imgs(self, img_dir):
-        self.relpaths = []
-        for synset in os.listdir(img_dir):
-            synset_dir = os.path.join(img_dir, synset)
-            for obj in os.listdir(synset_dir):
-                obj_dir = os.path.join(synset_dir, obj)
-                for img in os.listdir(obj_dir):
-                    img_path = os.path.join(obj_dir, img)
-                    if img_path.endswith(".png"):
-                        self.relpaths.append(os.path.relpath(img_path, img_dir))
+        self.relpaths = [None] * self.count_png_files(img_dir)
+        index = 0
+        for root, dirs, files in os.walk(img_dir):
+            for file in files:
+                if file.endswith('.png'):
+                    self.relpaths[index] = os.path.relpath(os.path.join(root, file), img_dir)
+                    index += 1
+        return self.relpaths
                     
     def _load(self):
         self.data_root = self.config.get("data_root", "data/processed/shapenet/processed_get3d")
@@ -172,7 +196,7 @@ class ShapeNetTrain(ShapeNetBase):
         super().__init__(**kwargs)
     
     def _prepare(self):
-        self.random_crop = retrieve(self.config, "random_crop", default=True)
+        self.random_crop = retrieve(self.config, "random_crop", default=False)
         
 class ShapeNetValidation(ShapeNetBase):
     def __init__(self, process_images=True, data_root=None, **kwargs):
@@ -190,76 +214,27 @@ class ShapeNetTest(ShapeNetBase):
         self.process_images = process_images
         self.split = "test"
         super().__init__(**kwargs)
-        
+
     def _prepare(self):
         self.random_crop = retrieve(self.config, "random_crop", default=False)
     
-class ShapeNetSR(Dataset):
-    def __init__(self, size=None,
-                 degradation=None, downscale_f=4, min_crop_f=0.5, max_crop_f=1.,
-                 random_crop=True):
+class ShapeNetPose(Dataset):
+    def __init__(self, size=None):
         """
         ShapeNet Super-Resolution Dataset
         Performs following ops in order:
-        1.  crops a crop of size s from image either as random or center crop
-        2.  resizes crop to size with cv2.area_interpolation
-        3.  degrades resized crop with degradation_fn
-
+        1.  resizes crop to size with cv2.area_interpolation
+        
         :param size: resizing to size after cropping
-        :param degradation: degradation_fn, e.g. cv_bicubic or bsrgan_light
-        :param downscale_f: Low Resolution Downsample factor
-        :param min_crop_f: determines crop size s,
-          where s = c * min_img_side_len with c sampled from interval (min_crop_f, max_crop_f)
-        :param max_crop_f: ""
-        :param data_root:
-        :param random_crop:
         """    
         
         self.base = self.get_base()
         
         assert size is not None, "size must be specified"
-        assert (size / downscale_f).is_integer(), "size must be divisible by downscale_f"
         self.size = size
-        self.LR_size = int(size / downscale_f)
-        
-        self.min_crop_f = min_crop_f
-        self.max_crop_f = max_crop_f
-        
-        assert(max_crop_f <= 1.)
-        self.center_crop = not random_crop
         
         self.image_rescaler = albumentations.SmallestMaxSize(max_size=size, interpolation=cv2.INTER_AREA)
-        self.pil_interpolation = False # gets reset later if incase interp_op is from pillow
-        
-        if degradation == "bsrgan":
-            self.degradation_process = partial(degradation_fn_bsr, sf=downscale_f)
 
-        elif degradation == "bsrgan_light":
-            self.degradation_process = partial(degradation_fn_bsr_light, sf=downscale_f)
-
-        else:
-            interpolation_fn = {
-            "cv_nearest": cv2.INTER_NEAREST,
-            "cv_bilinear": cv2.INTER_LINEAR,
-            "cv_bicubic": cv2.INTER_CUBIC,
-            "cv_area": cv2.INTER_AREA,
-            "cv_lanczos": cv2.INTER_LANCZOS4,
-            "pil_nearest": PIL.Image.NEAREST,
-            "pil_bilinear": PIL.Image.BILINEAR,
-            "pil_bicubic": PIL.Image.BICUBIC,
-            "pil_box": PIL.Image.BOX,
-            "pil_hamming": PIL.Image.HAMMING,
-            "pil_lanczos": PIL.Image.LANCZOS,
-            }[degradation]
-
-            self.pil_interpolation = degradation.startswith("pil_")
-
-            if self.pil_interpolation:
-                self.degradation_process = partial(TF.resize, size=self.LR_size, interpolation=interpolation_fn)
-
-            else:
-                self.degradation_process = albumentations.SmallestMaxSize(max_size=self.LR_size,
-                                                                          interpolation=interpolation_fn)
     def __len__(self):
         return len(self.base)
     
@@ -272,47 +247,27 @@ class ShapeNetSR(Dataset):
 
         image = np.array(image).astype(np.uint8)
 
-        min_side_len = min(image.shape[:2])
-        crop_side_len = min_side_len * np.random.uniform(self.min_crop_f, self.max_crop_f, size=None)
-        crop_side_len = int(crop_side_len)
-
-        if self.center_crop:
-            self.cropper = albumentations.CenterCrop(height=crop_side_len, width=crop_side_len)
-
-        else:
-            self.cropper = albumentations.RandomCrop(height=crop_side_len, width=crop_side_len)
-
-        image = self.cropper(image=image)["image"]
         image = self.image_rescaler(image=image)["image"]
 
-        if self.pil_interpolation:
-            image_pil = PIL.Image.fromarray(image)
-            LR_image = self.degradation_process(image_pil)
-            LR_image = np.array(LR_image).astype(np.uint8)
-
-        else:
-            LR_image = self.degradation_process(image=image)["image"]
-
-        example["image"] = (image/127.5 - 1.0).astype(np.float32)
-        example["LR_image"] = (LR_image/127.5 - 1.0).astype(np.float32)
+        example["image"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
 
         return example
         
-class ShapeNetSRTrain(ShapeNetSR):
+class ShapeNetPoseTrain(ShapeNetPose):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
     def get_base(self):
         return ShapeNetTrain()
 
-class ShapeNetSRValidation(ShapeNetSR):
+class ShapeNetPoseValidation(ShapeNetPose):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
     def get_base(self):
         return ShapeNetValidation()
     
-class ShapeNetSRTest(ShapeNetSR):
+class ShapeNetPoseTest(ShapeNetPose):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         

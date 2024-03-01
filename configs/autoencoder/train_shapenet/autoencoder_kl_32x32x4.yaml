@@ -30,15 +30,13 @@ data:
     batch_size: 12
     wrap: True
     train:
-      target: src.data.datasets.shapenet.ShapeNetSRTrain
+      target: src.data.datasets.shapenet.ShapeNetPoseTrain
       params:
         size: 64
-        degradation: pil_nearest
     validation:
-      target: src.data.datasets.shapenet.ShapeNetSRValidation
+      target: src.data.datasets.shapenet.ShapeNetPoseValidation
       params:
         size: 64
-        degradation: pil_nearest
 
 lightning:
   callbacks:
@@ -55,6 +53,11 @@ lightning:
         refresh_rate: 1
         process_position: 0
 
+    device_stats_monitor: 
+      target: src.util.callbacks.DeviceStatsMonitor
+
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
+    profiler: pytorch
+    max_epochs: 1
