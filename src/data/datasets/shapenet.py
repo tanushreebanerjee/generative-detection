@@ -11,7 +11,7 @@ from taming.data.imagenet import retrieve, ImagePaths
 import logging
 import cProfile, pstats, io
 from pstats import SortKey
-from se3 import SE3
+import se3.se3 as se3
 from math import radians
 
 def create_splits(config):
@@ -249,7 +249,7 @@ class ShapeNetPose(Dataset):
                 idx (int): The index of the object.
 
             Returns:
-                object_pose (SE3): The pose of the object as a 3D transformation matrix.
+                object_pose (se3.SE3): The pose of the object as a 3D transformation matrix.
             """
             # Assuming rotation and elevation are given in degrees
             rotation_deg = self.base.rotations[idx]
@@ -260,7 +260,7 @@ class ShapeNetPose(Dataset):
             elevation_rad = radians(elevation_deg)
 
             # Construct SE3 transformation matrix
-            object_pose = SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
+            object_pose = se3.SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
             
             return object_pose
     

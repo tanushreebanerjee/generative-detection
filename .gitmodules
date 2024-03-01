@@ -8,3 +8,6 @@
 [submodule "submodules/CLIP"]
 	path = submodules/CLIP
 	url = https://github.com/openai/CLIP.git
+[submodule "submodules/se3"]
+	path = submodules/se3
+	url = https://github.com/ccorcos/se3.git
