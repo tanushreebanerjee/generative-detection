@@ -11,6 +11,8 @@ from taming.data.imagenet import retrieve, ImagePaths
 import logging
 import cProfile, pstats, io
 from pstats import SortKey
+from se3 import SE3
+from math import radians
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -108,10 +110,13 @@ class ShapeNetBase(Dataset):
         for idx, rpath in enumerate(self.relpaths):
             synset = rpath.split("/")[0]
             obj = rpath.split("/")[1]
+            cam_idx = int(rpath.split("/")[2].split(".")[0])
             elevation_path = os.path.join(self.data_root, "camera", synset, obj, "elevation.npy")
             rotation_path = os.path.join(self.data_root, "camera", synset, obj, "rotation.npy")
-            elevation = np.load(elevation_path)
-            rotation = np.load(rotation_path)
+            elevation_arr = np.load(elevation_path)
+            rotation_arr = np.load(rotation_path)
+            elevation = elevation_arr[cam_idx]
+            rotation = rotation_arr[cam_idx]
             self.elevations[idx] = elevation
             self.rotations[idx] = rotation
             
@@ -236,6 +241,29 @@ class ShapeNetPose(Dataset):
     def __len__(self):
         return len(self.base)
     
+    def _get_object_pose_as_se3(self, idx):
+            """
+            Get the pose of the object at the given index as a 3D transformation matrix.
+
+            Parameters:
+                idx (int): The index of the object.
+
+            Returns:
+                object_pose (SE3): The pose of the object as a 3D transformation matrix.
+            """
+            # Assuming rotation and elevation are given in degrees
+            rotation_deg = self.base.rotations[idx]
+            elevation_deg = self.base.elevations[idx]
+
+            # Convert degrees to radians
+            rotation_rad = radians(rotation_deg)
+            elevation_rad = radians(elevation_deg)
+
+            # Construct SE3 transformation matrix
+            object_pose = SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
+            
+            return object_pose
+    
     def __getitem__(self, i):
         example = self.base[i]
         image = Image.open(example["file_path_"])
@@ -248,6 +276,7 @@ class ShapeNetPose(Dataset):
         image = self.image_rescaler(image=image)["image"]
 
         example["image"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
+        example["object_pose"] = self._get_object_pose_as_se3(i)
 
         return example
         
