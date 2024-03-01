@@ -260,9 +260,10 @@ class ShapeNetPose(Dataset):
             elevation_rad = radians(elevation_deg)
 
             # Construct SE3 transformation matrix
-            object_pose = se3.SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
+            object_pose_se3 = se3.SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
             
-            return object_pose
+            obj_pose_T = object_pose_se3.T
+            return obj_pose_T
     
     def __getitem__(self, i):
         example = self.base[i]
