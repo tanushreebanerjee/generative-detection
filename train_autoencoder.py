@@ -196,15 +196,15 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
                 "id": nowname,
             }
         },
-        "tensorboard": {
+        "testtube": {
             "target": "pytorch_lightning.loggers.TensorBoardLogger",
             "params": {
-                "name": "tensorboard",
+                "name": "testtube",
                 "save_dir": logdir,
             }
         },
     }
-    default_logger_cfg = default_logger_cfgs["tensorboard"]
+    default_logger_cfg = default_logger_cfgs["testtube"]
     if "logger" in lightning_config:
         logger_cfg = lightning_config.logger
     else:
