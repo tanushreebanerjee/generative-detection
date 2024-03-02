@@ -30,11 +30,13 @@ class PoseAutoencoder(AutoencoderKL):
                  ckpt_path=None,
                  ignore_keys=[],
                  image_key="image",
+                 pose_key="object_pose",
                  colorize_nlabels=None,
                  monitor=None,
                  ):
         pl.LightningModule.__init__(self)
         self.image_key = image_key
+        self.pose_key = pose_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
         self.loss = instantiate_from_config(lossconfig)
@@ -69,19 +71,8 @@ class PoseAutoencoder(AutoencoderKL):
         img_feat_map = posterior.sample()
         img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
         return img_feat_map_flat.size(1)
-    
-    def encode(self, x):
-        h = self.encoder(x)
-        moments = self.quant_conv(h)
-        posterior = DiagonalGaussianDistribution(moments)
-        return posterior
-
-    def decode(self, z):
-        z = self.post_quant_conv(z)
-        dec = self.decoder(z)
-        return dec
         
-    def decode_pose(self, x):
+    def _decode_pose(self, x):
         """
         Decode the pose from the given image feature map.
         
@@ -94,7 +85,7 @@ class PoseAutoencoder(AutoencoderKL):
         x = x.view(x.size(0), -1)  # flatten the input tensor
         return self.pose_decoder(x)
     
-    def encode_pose(self, x):
+    def _encode_pose(self, x):
         """
         Encode the pose to get the pose feature map from the given pose tensor.
         
@@ -111,6 +102,23 @@ class PoseAutoencoder(AutoencoderKL):
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)), 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)))
     
+    def _get_feat_map_img_pose(self, img_feat_map):
+            """
+            Get the feature map of image and pose.
+
+            Args:
+                img_feat_map (Tensor): The feature map of the image.
+
+            Returns:
+                feat_map_img_pose (Tensor): The combined feature map of image and pose.
+                pose_decoded (Tensor): The decoded pose.
+
+            """
+            pose_decoded = self._decode_pose(img_feat_map)
+            pose_feat_map = self._encode_pose(pose_decoded)         
+            feat_map_img_pose = img_feat_map + pose_feat_map
+            return feat_map_img_pose, pose_decoded
+    
     def forward(self, input, sample_posterior=True):
         """
         Forward pass of the autoencoder.
@@ -121,22 +129,78 @@ class PoseAutoencoder(AutoencoderKL):
         
         Returns:
             tuple: Tuple containing 
-                - decoded image feature map
-                - posterior distribution
-                - feature map of image and pose
-                - decoded pose
+                - dec: Decoded image tensor.
+                - posterior: Posterior distribution.
+                - pose_decoded: Decoded pose tensor.
         """
         posterior = self.encode(input)
         if sample_posterior:
             z = posterior.sample()
         else:
             z = posterior.mode()
-            
-        img_feat_map = z
         
-        pose_decoded = self.decode_pose(img_feat_map)
-        pose_feat_map = self.encode_pose(pose_decoded)         
-        feat_map_img_pose = img_feat_map + pose_feat_map        
-        pose_feat_map = self.decode(feat_map_img_pose)
+        z, pose_decoded = self._get_feat_map_img_pose(z)
+            
+        dec = self.decode(z)
 
-        return pose_feat_map, posterior#, pose_decoded
+        return dec, posterior, pose_decoded
+        
+    def get_pose_input(self, batch, k):
+        x = batch[k] 
+        x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format).float()
+        return x
+    
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        inputs = self.get_input(batch, self.image_key)
+        pose_inputs = self.get_pose_input(batch, self.pose_key)
+        
+        reconstructions, posterior, pose_reconstructions = self(inputs)
+        
+        if optimizer_idx == 0:
+            # train encoder+decoder+logvar
+            aeloss, log_dict_ae = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
+                                            posterior, optimizer_idx, self.global_step,
+                                            last_layer=self.get_last_layer(), split="train")
+            self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
+            return aeloss
+
+        if optimizer_idx == 1:
+            # train the discriminator
+            discloss, log_dict_disc = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
+                                                posterior, optimizer_idx, self.global_step,
+                                                last_layer=self.get_last_layer(), split="train")
+
+            self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
+            return discloss
+    
+    def validation_step(self, batch, batch_idx):
+        inputs = self.get_input(batch, self.image_key)
+        pose_inputs = self.get_pose_input(batch, self.pose_key)
+        reconstructions, posterior, pose_reconstructions = self(inputs)
+        _, log_dict_ae = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
+                                        posterior, 0, self.global_step,
+                                        last_layer=self.get_last_layer(), split="val")
+
+        _, log_dict_disc = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
+                                            posterior, 1, self.global_step,
+                                            last_layer=self.get_last_layer(), split="val")
+
+        self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
+        self.log_dict(log_dict_ae)
+        self.log_dict(log_dict_disc)
+        return self.log_dict
+    
+    def configure_optimizers(self):
+        lr = self.learning_rate
+        opt_ae = torch.optim.Adam(list(self.encoder.parameters())+
+                                  list(self.decoder.parameters())+
+                                  list(self.quant_conv.parameters())+
+                                  list(self.post_quant_conv.parameters())+
+                                  list(self.pose_encoder.parameters())+
+                                  list(self.pose_decoder.parameters()),
+                                  lr=lr, betas=(0.5, 0.9))
+        opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
+                                    lr=lr, betas=(0.5, 0.9))
+        return [opt_ae, opt_disc], []
