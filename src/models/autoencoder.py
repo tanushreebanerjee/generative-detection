@@ -68,8 +68,6 @@ class PoseAutoencoder(AutoencoderKL):
         posterior = DiagonalGaussianDistribution(moments)
         img_feat_map = posterior.sample()
         img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
-        logging.info(f"img_feat_map.size(): {img_feat_map.size()}") # torch.Size([1, 64, 2, 2])
-        logging.info(f"img_feat_map_flat.size(): {img_feat_map_flat.size()}") #  torch.Size([1, 256])
         return img_feat_map_flat.size(1)
     
     def encode(self, x):
@@ -106,10 +104,12 @@ class PoseAutoencoder(AutoencoderKL):
         Returns:
             Encoded pose feature map tensor.
         """
-        # batch size = 12
-        flattened_encoded_pose_feat_map = self.pose_encoder(x) # torch.Size([12, 256])
-        # unflatten the tensor to [12, 64, 2, 2])
-        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, int(math.sqrt(self.embed_dim)), int(math.sqrt(self.embed_dim)))
+        
+        flattened_encoded_pose_feat_map = self.pose_encoder(x)
+        
+        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, 
+                                                    int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)), 
+                                                    int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)))
     
     def forward(self, input, sample_posterior=True):
         """
@@ -128,28 +128,15 @@ class PoseAutoencoder(AutoencoderKL):
         """
         posterior = self.encode(input)
         if sample_posterior:
-            img_feat_map = posterior.sample()
+            z = posterior.sample()
         else:
-            img_feat_map = posterior.mode()
+            z = posterior.mode()
             
-        ## LDM repo legacy
-        z = img_feat_map
-        logging.info(f"z.size(): {z.size()}")
-        dec = self.decode(z)
-        logging.info(f"dec.size(): {dec.size()}")
-        ##
+        img_feat_map = z
         
-        logging.info(f"img_feat_map.size(): {img_feat_map.size()}") #  torch.Size([12, 64, 2, 2])
         pose_decoded = self.decode_pose(img_feat_map)
-        logging.info(f"pose_decoded.size(): {pose_decoded.size()}") # torch.Size([12, 16])
-        pose_encoded = self.encode_pose(pose_decoded)
-        logging.info(f"pose_encoded.size(): {pose_encoded.size()}") # torch.Size([12, 256])
-         
-        pose_feat_map = self.decode(pose_encoded)
-        logging.info(f"pose_feat_map.size(): {pose_feat_map.size()}")
-        feat_map_img_pose = img_feat_map + pose_feat_map
-        logging.info(f"feat_map_img_pose.size(): {feat_map_img_pose.size()}")
-        
-        
-        
-        return dec, posterior#, feat_map_img_pose, pose_decoded
+        pose_feat_map = self.encode_pose(pose_decoded)         
+        feat_map_img_pose = img_feat_map + pose_feat_map        
+        pose_feat_map = self.decode(feat_map_img_pose)
+
+        return pose_feat_map, posterior#, pose_decoded
