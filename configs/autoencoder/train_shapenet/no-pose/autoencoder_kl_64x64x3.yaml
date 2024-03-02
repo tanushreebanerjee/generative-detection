@@ -15,7 +15,7 @@ model:
     ddconfig:
       double_z: True
       z_channels: 3
-      resolution: 256
+      resolution: 64
       in_channels: 3
       out_ch: 3
       ch: 128
@@ -33,11 +33,11 @@ data:
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
       params:
-        size: 256
+        size: 64
     validation:
       target: src.data.datasets.shapenet.ShapeNetPoseValidation
       params:
-        size: 256
+        size: 64
 
 lightning:
   callbacks:
