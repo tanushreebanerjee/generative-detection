@@ -51,11 +51,11 @@ class PoseAutoencoder(AutoencoderKL):
         img_feat_dims = self._get_img_feat_dims(ddconfig)
         print(f"img_feat_dims: {img_feat_dims}")
         
-        pose_config = {"img_feat_dims": img_feat_dims,
+        feat_dim_config = {"img_feat_dims": img_feat_dims,
                        "pose_feat_dims": SE3_DIM}
                 
-        self.pose_decoder = PoseDecoder(**pose_config)
-        self.pose_encoder = PoseEncoder(**pose_config)
+        self.pose_decoder = PoseDecoder(**feat_dim_config)
+        self.pose_encoder = PoseEncoder(**feat_dim_config)
     
     def _get_img_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
