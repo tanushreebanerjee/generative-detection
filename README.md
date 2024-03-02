@@ -19,7 +19,13 @@ conda env create -f environment.yml
 ```bash
 conda activate gen-detection
 ```
-5. Install the Python package:
+
+5. To initialize, fetch and checkout all the nested submodules:
+```bash
+git submodule update --init --recursive
+```
+
+6. Install the Python package:
 ```bash
 pip install -e .
 ```
