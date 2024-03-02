@@ -69,19 +69,8 @@ class PoseAutoencoder(AutoencoderKL):
         img_feat_map = posterior.sample()
         img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
         return img_feat_map_flat.size(1)
-    
-    def encode(self, x):
-        h = self.encoder(x)
-        moments = self.quant_conv(h)
-        posterior = DiagonalGaussianDistribution(moments)
-        return posterior
-
-    def decode(self, z):
-        z = self.post_quant_conv(z)
-        dec = self.decoder(z)
-        return dec
         
-    def decode_pose(self, x):
+    def _decode_pose(self, x):
         """
         Decode the pose from the given image feature map.
         
@@ -94,7 +83,7 @@ class PoseAutoencoder(AutoencoderKL):
         x = x.view(x.size(0), -1)  # flatten the input tensor
         return self.pose_decoder(x)
     
-    def encode_pose(self, x):
+    def _encode_pose(self, x):
         """
         Encode the pose to get the pose feature map from the given pose tensor.
         
@@ -110,6 +99,23 @@ class PoseAutoencoder(AutoencoderKL):
         return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)), 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.size(1)/self.z_channels)))
+    
+    def _get_feat_map_img_pose(self, img_feat_map):
+            """
+            Get the feature map of image and pose.
+
+            Args:
+                img_feat_map (Tensor): The feature map of the image.
+
+            Returns:
+                feat_map_img_pose (Tensor): The combined feature map of image and pose.
+                pose_decoded (Tensor): The decoded pose.
+
+            """
+            pose_decoded = self._decode_pose(img_feat_map)
+            pose_feat_map = self._encode_pose(pose_decoded)         
+            feat_map_img_pose = img_feat_map + pose_feat_map
+            return feat_map_img_pose, pose_decoded
     
     def forward(self, input, sample_posterior=True):
         """
@@ -131,12 +137,9 @@ class PoseAutoencoder(AutoencoderKL):
             z = posterior.sample()
         else:
             z = posterior.mode()
-            
-        img_feat_map = z
         
-        pose_decoded = self.decode_pose(img_feat_map)
-        pose_feat_map = self.encode_pose(pose_decoded)         
-        feat_map_img_pose = img_feat_map + pose_feat_map        
-        dec = self.decode(feat_map_img_pose)
+        z, pose_decoded = self._get_feat_map_img_pose(z)
+            
+        dec = self.decode(z)
 
         return dec, posterior, pose_decoded
