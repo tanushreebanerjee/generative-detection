@@ -36,14 +36,14 @@ class SetupCallback(Callback):
         self.config = config
         self.lightning_config = lightning_config
 
-    def on_keyboard_interrupt(self, trainer, pl_module):
+    def on_exception(self, trainer, pl_module):
         """Callback method triggered when a keyboard interrupt occurs during training."""
         if trainer.global_rank == 0:
             print("Summoning checkpoint.")
             ckpt_path = os.path.join(self.ckptdir, "last.ckpt")
             trainer.save_checkpoint(ckpt_path)
 
-    def on_pretrain_routine_start(self, trainer, pl_module):
+    def on_fit_start(self, trainer, pl_module):
         """Callback method called at the start of the pretrain routine."""
         if trainer.global_rank == 0:
             # Create logdirs and save configs
@@ -113,7 +113,7 @@ class ImageLogger(Callback):
         self.batch_freq = batch_frequency
         self.max_images = max_images
         self.logger_log_images = {
-            pl.loggers.TestTubeLogger: self._testtube,
+            pl.loggers.TensorBoardLogger: self._testtube,
         }
         self.log_steps = [2 ** n for n in range(int(np.log2(self.batch_freq)) + 1)]
         if not increase_log_steps:
@@ -126,7 +126,7 @@ class ImageLogger(Callback):
 
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
-        """Helper method to visualize images using TestTubeLogger."""
+        """Helper method to visualize images using TensorBoardLogger."""
         for k in images:
             grid = torchvision.utils.make_grid(images[k])
             grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
@@ -202,12 +202,12 @@ class ImageLogger(Callback):
             return True
         return False
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Callback function called at the end of each training batch."""
         if not self.disabled and (pl_module.global_step > 0 or self.log_first_step):
             self.log_img(pl_module, batch, batch_idx, split="train")
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Callback function called at the end of each validation batch."""
         if not self.disabled and pl_module.global_step > 0:
             self.log_img(pl_module, batch, batch_idx, split="val")

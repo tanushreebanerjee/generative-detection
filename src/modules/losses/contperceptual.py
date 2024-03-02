@@ -17,9 +17,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.pose_loss = nn.MSELoss()
         self.class_loss = nn.CrossEntropyLoss()
 
-    def gt_pose_to_so3(self, gt):
-        raise NotImplementedError
-    
     def compute_pose_loss(self, pred, gt):
         gt = self.gt_pose_to_so3(gt)
         return self.pose_loss(pred, gt)
@@ -36,19 +33,19 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 global_step, last_layer, cond, split,
                 weights)
     
-        pose_loss = self.compute_pose_loss(reconstructions, inputs)
-        class_loss = self.compute_class_loss(posteriors, inputs)
+        # pose_loss = self.compute_pose_loss(reconstructions, inputs)
+        # class_loss = self.compute_class_loss(posteriors, inputs)
         
-        weighted_pose_loss = self.pose_weight * pose_loss
-        weighted_class_loss = self.class_weight * class_loss
+        # weighted_pose_loss = self.pose_weight * pose_loss
+        # weighted_class_loss = self.class_weight * class_loss
         
-        loss += weighted_pose_loss + weighted_class_loss
+        # loss += weighted_pose_loss + weighted_class_loss
         
-        log["{}/pose_loss".format(split)] = pose_loss.clone().detach().mean()
-        log["{}/class_loss".format(split)] = class_loss.clone().detach().mean()
-        log["{}/weighted_pose_loss".format(split)] = weighted_pose_loss.clone().detach().mean()
-        log["{}/weighted_class_loss".format(split)] = weighted_class_loss.clone().detach().mean()
-        log["{}/total_loss".format(split)] = loss.clone().detach().mean()
+        # log["{}/pose_loss".format(split)] = pose_loss.clone().detach().mean()
+        # log["{}/class_loss".format(split)] = class_loss.clone().detach().mean()
+        # log["{}/weighted_pose_loss".format(split)] = weighted_pose_loss.clone().detach().mean()
+        # log["{}/weighted_class_loss".format(split)] = weighted_class_loss.clone().detach().mean()
+        # log["{}/total_loss".format(split)] = loss.clone().detach().mean()
         
         return loss, log
             
