@@ -127,10 +127,9 @@ class PoseAutoencoder(AutoencoderKL):
         
         Returns:
             tuple: Tuple containing 
-                - decoded image feature map
-                - posterior distribution
-                - feature map of image and pose
-                - decoded pose
+                - dec: Decoded image tensor.
+                - posterior: Posterior distribution.
+                - pose_decoded: Decoded pose tensor.
         """
         posterior = self.encode(input)
         if sample_posterior:
