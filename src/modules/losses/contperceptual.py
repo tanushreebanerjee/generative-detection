@@ -3,6 +3,9 @@ import torch.nn as nn
 from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWithDiscriminator_LDM
 from se3.homtrans3d import T2xyzrpy
 import logging
+import math
+
+SE3_DIM = 16
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
@@ -29,6 +32,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 global_step, last_layer, cond, split,
                 weights)
 
+        assert pose_input.shape == pose_decoded.shape
+        assert pose_input.shape[1] == math.sqrt(SE3_DIM), pose_input.shape[2] == math.sqrt(SE3_DIM)
+                
         x_in, y_in, z_in, roll_in, pitch_in, yaw_in = T2xyzrpy(pose_input)
         x_dec, y_dec, z_dec, roll_dec, pitch_dec, yaw_dec = T2xyzrpy(pose_decoded)
         logging.info("pose_input (xyzrpy): %f %f %f %f %f %f", x_in, y_in, z_in, roll_in, pitch_in, yaw_in)
