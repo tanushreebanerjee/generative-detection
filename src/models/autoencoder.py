@@ -9,7 +9,7 @@ from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 import torch
 import logging
-import math.sqrt as sqrt
+import math
 
 SE3_DIM = 16
 
@@ -109,7 +109,7 @@ class PoseAutoencoder(AutoencoderKL):
         # batch size = 12
         flattened_encoded_pose_feat_map = self.pose_encoder(x) # torch.Size([12, 256])
         # unflatten the tensor to [12, 64, 2, 2])
-        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, int(sqrt(self.embed_dim)), int(sqrt(self.embed_dim)))
+        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, int(math.sqrt(self.embed_dim)), int(math.sqrt(self.embed_dim)))
     
     def forward(self, input, sample_posterior=True):
         """
