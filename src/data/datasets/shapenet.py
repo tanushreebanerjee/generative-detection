@@ -11,7 +11,7 @@ from taming.data.imagenet import retrieve, ImagePaths
 import logging
 import cProfile, pstats, io
 from pstats import SortKey
-import se3.se3 as se3
+import se3
 from math import radians
 
 def create_splits(config):

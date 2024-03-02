@@ -14,7 +14,7 @@ model:
     ddconfig:
       double_z: True
       z_channels: 3
-      resolution: 256
+      resolution: 64
       in_channels: 3
       out_ch: 3
       ch: 128
