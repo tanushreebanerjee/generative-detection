@@ -31,7 +31,7 @@ class PoseAutoencoder(AutoencoderKL):
                  colorize_nlabels=None,
                  monitor=None,
                  ):
-        super().__init__()
+        super().__init__(ddconfig, lossconfig, embed_dim, ckpt_path, ignore_keys, image_key, colorize_nlabels, monitor)
         self.image_key = image_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
@@ -49,6 +49,7 @@ class PoseAutoencoder(AutoencoderKL):
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
         img_feat_dims = self._get_img_feat_dims(ddconfig)
+        print(f"img_feat_dims: {img_feat_dims}")
         
         pose_config = {"img_feat_dims": img_feat_dims,
                        "pose_feat_dims": SE3_DIM}
@@ -59,7 +60,7 @@ class PoseAutoencoder(AutoencoderKL):
     def _get_img_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
         batch_size = 1
-        dummy_input = torch.randn(batch_size, ddconfig["z_channels"], ddconfig["img_size"], ddconfig["img_size"])
+        dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
         h = self.encoder(dummy_input)
         moments = self.quant_conv(h)
         posterior = DiagonalGaussianDistribution(moments)
@@ -134,4 +135,4 @@ class PoseAutoencoder(AutoencoderKL):
         # LDM repo legacy
         dec = pose_feat_map
         
-        return dec, posterior, feat_map_img_pose, pose_decoded
+        return dec, posterior#, feat_map_img_pose, pose_decoded
