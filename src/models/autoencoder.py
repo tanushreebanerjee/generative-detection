@@ -8,6 +8,7 @@ from src.modules.autoencodermodules.pose_decoder import PoseDecoder
 from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 import torch
+import pytorch_lightning as pl
 import math
 
 SE3_DIM = 16
@@ -32,7 +33,7 @@ class PoseAutoencoder(AutoencoderKL):
                  colorize_nlabels=None,
                  monitor=None,
                  ):
-        super().__init__(ddconfig, lossconfig, embed_dim, ckpt_path, ignore_keys, image_key, colorize_nlabels, monitor)
+        pl.LightningModule.__init__(self)
         self.image_key = image_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
