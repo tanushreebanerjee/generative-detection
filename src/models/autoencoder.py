@@ -137,6 +137,6 @@ class PoseAutoencoder(AutoencoderKL):
         pose_decoded = self.decode_pose(img_feat_map)
         pose_feat_map = self.encode_pose(pose_decoded)         
         feat_map_img_pose = img_feat_map + pose_feat_map        
-        pose_feat_map = self.decode(feat_map_img_pose)
+        dec = self.decode(feat_map_img_pose)
 
-        return pose_feat_map, posterior#, pose_decoded
+        return dec, posterior, pose_decoded
