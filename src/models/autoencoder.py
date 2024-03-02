@@ -8,7 +8,6 @@ from src.modules.autoencodermodules.pose_decoder import PoseDecoder
 from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 import torch
-import logging
 import math
 
 SE3_DIM = 16
