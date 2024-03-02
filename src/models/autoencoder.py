@@ -8,6 +8,7 @@ from src.modules.autoencodermodules.pose_decoder import PoseDecoder
 from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 import torch
+import logging
 
 SE3_DIM = 16
 
@@ -49,7 +50,6 @@ class PoseAutoencoder(AutoencoderKL):
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
         img_feat_dims = self._get_img_feat_dims(ddconfig)
-        print(f"img_feat_dims: {img_feat_dims}")
         
         feat_dim_config = {"img_feat_dims": img_feat_dims,
                        "pose_feat_dims": SE3_DIM}
@@ -66,6 +66,8 @@ class PoseAutoencoder(AutoencoderKL):
         posterior = DiagonalGaussianDistribution(moments)
         img_feat_map = posterior.sample()
         img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
+        logging.info(f"img_feat_map.size(): {img_feat_map.size()}")
+        logging.info(f"img_feat_map_flat.size(): {img_feat_map_flat.size()}")
         return img_feat_map_flat.size(1)
     
     def encode(self, x):
@@ -124,15 +126,22 @@ class PoseAutoencoder(AutoencoderKL):
             img_feat_map = posterior.sample()
         else:
             img_feat_map = posterior.mode()
-            
+        
+        logging.info(f"img_feat_map.size(): {img_feat_map.size()}")
         pose_decoded = self.decode_pose(img_feat_map)
+        logging.info(f"pose_decoded.size(): {pose_decoded.size()}")
         pose_encoded = self.encode_pose(pose_decoded)
+        logging.info(f"pose_encoded.size(): {pose_encoded.size()}")
          
         pose_feat_map = self.decode(pose_encoded)
-        
+        logging.info(f"pose_feat_map.size(): {pose_feat_map.size()}")
         feat_map_img_pose = img_feat_map + pose_feat_map
+        logging.info(f"feat_map_img_pose.size(): {feat_map_img_pose.size()}")
         
         # LDM repo legacy
-        dec = pose_feat_map
+        z = img_feat_map
+        logging.info(f"z.size(): {z.size()}")
+        dec = self.decode(z)
+        logging.info(f"dec.size(): {dec.size()}")
         
         return dec, posterior#, feat_map_img_pose, pose_decoded
