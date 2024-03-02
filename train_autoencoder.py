@@ -197,7 +197,7 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             }
         },
         "testtube": {
-            "target": "pytorch_lightning.loggers.TestTubeLogger",
+            "target": "pytorch_lightning.loggers.TensorBoardLogger",
             "params": {
                 "name": "testtube",
                 "save_dir": logdir,
