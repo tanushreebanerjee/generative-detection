@@ -31,7 +31,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             = super().forward(inputs, reconstructions, posteriors, optimizer_idx,
                 global_step, last_layer, cond, split,
                 weights)
-
+        logging.info("pose_inputs.shape: %s", pose_inputs.shape)
+        logging.info("pose_reconstructions.shape: %s", pose_reconstructions.shape)
         assert pose_inputs.shape == pose_reconstructions.shape
         assert pose_inputs.shape[1] == math.sqrt(SE3_DIM), pose_inputs.shape[2] == math.sqrt(SE3_DIM)
                 
