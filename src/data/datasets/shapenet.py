@@ -60,12 +60,10 @@ class ShapeNetBase(Dataset):
     def _output_profiler_logs(self, pr):
         s = io.StringIO()
         sortby = SortKey.CUMULATIVE
-        _ = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         profiler_logs_dir = f"logs/profiler_logs/{self.__class__.__name__}"
-        os.makedirs(profiler_logs_dir, exist_ok=True)
         profiler_logs_path = os.path.join(profiler_logs_dir, self.split + ".txt")
-        with open(profiler_logs_path, "w") as f:
-            f.write(s.getvalue())
+        ps.dump_stats(profiler_logs_path)
           
     def __len__(self):
         return len(self.data)
