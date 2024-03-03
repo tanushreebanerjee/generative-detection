@@ -118,7 +118,8 @@ class PoseAutoencoder(AutoencoderKL):
             pose_decoded = self._decode_pose(img_feat_map)
             pose_feat_map = self._encode_pose(pose_decoded)         
             feat_map_img_pose = img_feat_map + pose_feat_map
-            return feat_map_img_pose, pose_decoded
+            pose_decoded_reshaped = pose_decoded.view(pose_decoded.size(0), math.sqrt(SE3_DIM), math.sqrt(SE3_DIM))
+            return feat_map_img_pose, pose_decoded_reshaped
     
     def forward(self, input, sample_posterior=True):
         """
