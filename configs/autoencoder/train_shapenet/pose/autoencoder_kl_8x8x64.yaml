@@ -10,12 +10,12 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 0.3
+        pose_weight: 100
 
     ddconfig:
       double_z: True
       z_channels: 64
-      resolution: 64
+      resolution: 256
       in_channels: 3
       out_ch: 3
       ch: 128
@@ -33,11 +33,11 @@ data:
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
       params:
-        size: 64
+        size: 256
     validation:
       target: src.data.datasets.shapenet.ShapeNetPoseValidation
       params:
-        size: 64
+        size: 256
 
 lightning:
   callbacks:
