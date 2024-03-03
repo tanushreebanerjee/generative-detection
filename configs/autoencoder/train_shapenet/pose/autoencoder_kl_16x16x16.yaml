@@ -61,4 +61,4 @@ lightning:
     benchmark: True
     accumulate_grad_batches: 2
     profiler: advanced
-    max_epochs: 1
+    max_epochs: 1000
