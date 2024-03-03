@@ -11,7 +11,7 @@ DATASET=shapenet
 SCRIPT_NAME=${MODE}_${MODEL}.py
 
 CONFIG_DIR=configs
-CONFIG_SPEC=${MODEL}_kl_64x64x3
+CONFIG_SPEC=${MODEL}_kl_8x8x64
 
 echo "python $SCRIPT_NAME --base $CONFIG_DIR/$MODEL/$MODE_$DATASET/pose/$CONFIG_SPEC.yaml -t --gpus $GPUS"
 python $SCRIPT_NAME --base $CONFIG_DIR/$MODEL/$MODE\_$DATASET/pose/$CONFIG_SPEC.yaml -t --gpus $GPUS
