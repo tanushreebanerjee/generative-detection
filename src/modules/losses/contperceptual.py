@@ -31,7 +31,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 global_step, last_layer, cond, split,
                 weights)
         assert pose_inputs.shape == pose_reconstructions.shape
-        assert pose_inputs.shape[1] == math.sqrt(SE3_DIM), pose_inputs.shape[2] == math.sqrt(SE3_DIM)
+        assert pose_inputs.shape[1] == int(math.sqrt(SE3_DIM)), pose_inputs.shape[2] == int(math.sqrt(SE3_DIM))
                 
         # x_in, y_in, z_in, roll_in, pitch_in, yaw_in = T2xyzrpy(pose_inputs)
         # x_dec, y_dec, z_dec, roll_dec, pitch_dec, yaw_dec = T2xyzrpy(pose_reconstructions)
