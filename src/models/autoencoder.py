@@ -10,7 +10,6 @@ from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 import torch
 import pytorch_lightning as pl
 import math
-import logging
 
 SE3_DIM = 16
 
@@ -149,8 +148,6 @@ class PoseAutoencoder(AutoencoderKL):
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
-        logging.info(f"Pose input: {x}")
-        logging.info(f"Pose input shape: {x.size()}")
         x = x.to(memory_format=torch.contiguous_format).float()
         return x
     
