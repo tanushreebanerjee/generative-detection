@@ -7,6 +7,7 @@ from src.modules.autoencodermodules.pose_encoder import PoseEncoder
 from src.modules.autoencodermodules.pose_decoder import PoseDecoder
 from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
+from se3.homtrans3d import xyzrpy2T, T2xyzrpy
 import torch
 import pytorch_lightning as pl
 import math
@@ -205,14 +206,42 @@ class PoseAutoencoder(AutoencoderKL):
         opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
+    
+    def _perturb_angle(self, angle, perturb_angle=15):
+        return math.radians(math.degrees(angle) + perturb_angle)
+    
+    def _perturb_poses(self, pose_inputs, perturb_dims=["p", "y"], perturb_angle=15):
+        x, y, z, r, p, y = T2xyzrpy(pose_inputs)
+        if "p" in perturb_dims:
+            p = self._perturb_angle(p, perturb_angle)
+        if "y" in perturb_dims:
+            y = self._perturb_angle(y, perturb_angle)
+        T_perturbed = torch.tensor(xyzrpy2T(x, y, z, r, p, y), dtype=torch.float32)
+        return T_perturbed
 
+    def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
+            pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
+            feat_map_img_pose = img_feat_map + pose_feat_map
+            return feat_map_img_pose
+    
+    def _perturbed_pose_forward(self, posterior, pose_decoded, sample_posterior=True):
+        if sample_posterior:
+            z = posterior.sample()
+        else:
+            z = posterior.mode()
+        pose_decoded_perturbed = self._perturb_poses(pose_decoded)
+        z = self._get_feat_map_img_perturbed_pose(z, pose_decoded_perturbed)
+        dec = self.decode(z)
+        return dec
+            
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         x = self.get_input(batch, self.image_key)
         x = x.to(self.device)
         if not only_inputs:
-            xrec, posterior, _ = self(x)
+            xrec, posterior, pose_decoded = self(x)
+            xrec_perturbed_pose = self._perturbed_pose_forward(posterior, pose_decoded)
             if x.shape[1] > 3:
                 # colorize with random projection
                 assert xrec.shape[1] > 3
@@ -220,5 +249,6 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec = self.to_rgb(xrec)
             log["samples"] = self.decode(torch.randn_like(posterior.sample()))
             log["reconstructions"] = xrec
+            log["perturbed_pose_reconstructions"] = xrec_perturbed_pose
         log["inputs"] = x
         return log
