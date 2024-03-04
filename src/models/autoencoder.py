@@ -11,6 +11,7 @@ from se3.homtrans3d import xyzrpy2T, T2xyzrpy
 import torch
 import pytorch_lightning as pl
 import math
+import random
 
 SE3_DIM = 16
 
@@ -207,15 +208,12 @@ class PoseAutoencoder(AutoencoderKL):
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
     
-    def _perturb_angle(self, angle, perturb_angle=15):
-        return math.radians(math.degrees(angle) + perturb_angle)
-    
-    def _perturb_poses(self, pose_inputs, perturb_dims=["p", "y"], perturb_angle=15):
-        x, y, z, r, p, y = T2xyzrpy(pose_inputs)
-        if "p" in perturb_dims:
-            p = self._perturb_angle(p, perturb_angle)
-        if "y" in perturb_dims:
-            y = self._perturb_angle(y, perturb_angle)
+    def _perturb_poses(self, pose_inputs, p_max=360, y_max=30):
+        x, y, z, r, _, _ = T2xyzrpy(pose_inputs)
+        
+        p = math.radians(random.uniform(0, p_max))
+        y = math.radians(random.uniform(0, y_max))
+        
         T_perturbed = torch.tensor(xyzrpy2T(x, y, z, r, p, y), dtype=torch.float32)
         return T_perturbed
 
