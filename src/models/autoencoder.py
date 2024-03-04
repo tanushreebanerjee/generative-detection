@@ -12,6 +12,7 @@ import torch
 import pytorch_lightning as pl
 import math
 import random
+import logging
 
 SE3_DIM = 16
 
@@ -208,13 +209,17 @@ class PoseAutoencoder(AutoencoderKL):
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
     
-    def _perturb_poses(self, pose_inputs, p_max=360, y_max=30):
-        x, y, z, r, _, _ = T2xyzrpy(pose_inputs.cpu().numpy())
-        
-        p = math.radians(random.uniform(0, p_max))
-        y = math.radians(random.uniform(0, y_max))
-        
-        T_perturbed = torch.tensor(xyzrpy2T(x, y, z, r, p, y), dtype=torch.float32)
+    def _perturb_poses(self, pose_inputs, pitch_max=360, yaw_max=30):
+        logging.info("pose_inputs shape: ", pose_inputs.shape)
+        x, y, z, roll, pitch, yaw = T2xyzrpy(pose_inputs.cpu().numpy())
+        logging.info(f"pitch, yaw before: {pitch, yaw}")
+        pitch = math.radians(random.uniform(0, pitch_max))
+        yaw = math.radians(random.uniform(0, yaw_max))
+        logging.info(f"pitch, yaw after: {pitch, yaw}")
+        T_perturbed = torch.tensor(xyzrpy2T(x, y, z, roll, pitch, yaw), dtype=torch.float32) ##
+        logging.info(f"T_perturbed shape before: {T_perturbed.shape}")
+        T_perturbed = T_perturbed.view(T_perturbed.size(0), -1)
+        logging.info(f"T_perturbed shape after: {T_perturbed.shape}")
         return T_perturbed
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
