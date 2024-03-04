@@ -209,7 +209,7 @@ class PoseAutoencoder(AutoencoderKL):
         return [opt_ae, opt_disc], []
     
     def _perturb_poses(self, pose_inputs, p_max=360, y_max=30):
-        x, y, z, r, _, _ = T2xyzrpy(pose_inputs)
+        x, y, z, r, _, _ = T2xyzrpy(pose_inputs.cpu().numpy())
         
         p = math.radians(random.uniform(0, p_max))
         y = math.radians(random.uniform(0, y_max))
