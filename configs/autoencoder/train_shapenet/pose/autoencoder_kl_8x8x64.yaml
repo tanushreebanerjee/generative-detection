@@ -28,7 +28,7 @@ data:
   data_root: data/processed/shapenet/processed_get3d
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 12
+    batch_size: 6
     wrap: True
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
