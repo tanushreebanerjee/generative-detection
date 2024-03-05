@@ -11,7 +11,6 @@ import torch
 import pytorch_lightning as pl
 import math
 import random
-import logging
 from math import radians
 import se3
 
@@ -213,23 +212,15 @@ class PoseAutoencoder(AutoencoderKL):
         return [opt_ae, opt_disc], []
     
     def _perturb_poses(self, pose_inputs, pitch_max=PITCH_MAX, yaw_max=YAW_MAX):
-        logging.info(f"pose_inputs shape: {pose_inputs.shape}")
-        batch_size = pose_inputs.size(0)
-        logging.info(f"batch_size: {batch_size}")
-        
-        rotation_deg = torch.tensor([random.uniform(0, pitch_max) for i in range(batch_size)])
-        elevation_deg = torch.tensor([random.uniform(0, yaw_max) for i in range(batch_size)])
-        logging.info(f"rotation_deg shape: {rotation_deg.shape}, elevation_deg shape: {elevation_deg.shape}")
-        
+        batch_size = pose_inputs.size(0)        
+        rotation_deg = torch.tensor([random.uniform(0, pitch_max) for _ in range(batch_size)])
+        elevation_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
         rotation_rad = torch.tensor([radians(i) for i in rotation_deg]) 
         elevation_rad = torch.tensor([radians(i) for i in elevation_deg])
-        logging.info(f"rotation_rad shape: {rotation_rad.shape}, elevation_rad shape: {elevation_rad.shape}")
-
-        obj_pose_T = torch.empty((batch_size, 4, 4), dtype=torch.float32)
+        obj_pose_T = torch.empty(batch_size, int(math.sqrt(SE3_DIM)), int(math.sqrt(SE3_DIM)), dtype=torch.float32)
         for idx in range(batch_size):
             se3_pose = se3.SE3(0, 0, 0, 0, elevation_rad[idx], rotation_rad[idx])
             obj_pose_T[idx] = torch.tensor(se3_pose.T, dtype=torch.float32)
-        logging.info(f"obj_pose_T shape: {obj_pose_T.shape}")
         assert obj_pose_T.shape == pose_inputs.shape, f"obj_pose_T shape: {obj_pose_T.shape}, pose_inputs shape: {pose_inputs.shape}"
         return obj_pose_T.to(self.device)
 
@@ -243,7 +234,7 @@ class PoseAutoencoder(AutoencoderKL):
             z = posterior.sample()
         else:
             z = posterior.mode()
-        pose_decoded_perturbed = self._perturb_poses(pose_decoded)
+        pose_decoded_perturbed = self._perturb_poses(pose_decoded).reshape(-1, SE3_DIM)
         z = self._get_feat_map_img_perturbed_pose(z, pose_decoded_perturbed)
         dec = self.decode(z)
         return dec
