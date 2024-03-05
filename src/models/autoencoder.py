@@ -231,7 +231,7 @@ class PoseAutoencoder(AutoencoderKL):
             obj_pose_T[idx] = torch.tensor(se3_pose.T, dtype=torch.float32)
         logging.info(f"obj_pose_T shape: {obj_pose_T.shape}")
         assert obj_pose_T.shape == pose_inputs.shape, f"obj_pose_T shape: {obj_pose_T.shape}, pose_inputs shape: {pose_inputs.shape}"
-        return obj_pose_T
+        return obj_pose_T.to(self.device)
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
             pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
