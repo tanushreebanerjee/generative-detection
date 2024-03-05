@@ -32,14 +32,12 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 weights)
         assert pose_inputs.shape == pose_reconstructions.shape
         assert pose_inputs.shape[1] == int(math.sqrt(SE3_DIM)), pose_inputs.shape[2] == int(math.sqrt(SE3_DIM))
-                
-        # x_in, y_in, z_in, roll_in, pitch_in, yaw_in = T2xyzrpy(pose_inputs)
-        # x_dec, y_dec, z_dec, roll_dec, pitch_dec, yaw_dec = T2xyzrpy(pose_reconstructions)
-        # logging.info("pose_input (xyzrpy): %f %f %f %f %f %f", x_in, y_in, z_in, roll_in, pitch_in, yaw_in)
-        # logging.info("pose_decoded (xyzrpy): %f %f %f %f %f %f", x_dec, y_dec, z_dec, roll_dec, pitch_dec, yaw_dec)
+
         pose_loss = self.compute_pose_loss(pose_inputs, pose_reconstructions)
         weighted_pose_loss = self.pose_weight * pose_loss
-           
+        print("total loss without pose loss: ", loss)
+        print("pose loss: ", pose_loss)
+        print("weighted pose loss: ", weighted_pose_loss)
         loss += weighted_pose_loss 
         
         log["{}/pose_loss".format(split)] = pose_loss.clone().detach().mean()
