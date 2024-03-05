@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateMonitor, TQDMProgressBar, DeviceStatsMonitor
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_info
 from omegaconf import OmegaConf
+import logging
 
 class SetupCallback(Callback):
     """Setup callback for the project. This callback is responsible for creating the
@@ -39,7 +40,7 @@ class SetupCallback(Callback):
     def on_exception(self, trainer, pl_module):
         """Callback method triggered when a keyboard interrupt occurs during training."""
         if trainer.global_rank == 0:
-            print("Summoning checkpoint.")
+            logging.info("Summoning checkpoint.")
             ckpt_path = os.path.join(self.ckptdir, "last.ckpt")
             trainer.save_checkpoint(ckpt_path)
 
@@ -54,13 +55,12 @@ class SetupCallback(Callback):
             if "callbacks" in self.lightning_config:
                 if 'metrics_over_trainsteps_checkpoint' in self.lightning_config['callbacks']:
                     os.makedirs(os.path.join(self.ckptdir, 'trainstep_checkpoints'), exist_ok=True)
-            print("Project config")
-            print(OmegaConf.to_yaml(self.config))
+            logging.info("Project config")
+            logging.info(OmegaConf.to_yaml(self.config))
             OmegaConf.save(self.config,
                            os.path.join(self.cfgdir, "{}-project.yaml".format(self.now)))
-
-            print("Lightning config")
-            print(OmegaConf.to_yaml(self.lightning_config))
+            logging.info("Lightning config")
+            logging.info(OmegaConf.to_yaml(self.lightning_config))
             OmegaConf.save(OmegaConf.create({"lightning": self.lightning_config}),
                            os.path.join(self.cfgdir, "{}-lightning.yaml".format(self.now)))
 
@@ -197,7 +197,7 @@ class ImageLogger(Callback):
             try:
                 self.log_steps.pop(0)
             except IndexError as e:
-                print(e)
+                logging.info(e)
                 pass
             return True
         return False
