@@ -225,13 +225,11 @@ class ShapeNetTest(ShapeNetBase):
 class ShapeNetPose(Dataset):
     def __init__(self, size=None):
         """
-        ShapeNet Super-Resolution Dataset
-        Performs following ops in order:
-        1.  resizes crop to size with cv2.area_interpolation
-        
-        :param size: resizing to size after cropping
-        """    
-        
+        Initialize the ShapeNet dataset.
+
+        Args:
+            size (int): The maximum size of the images after rescaling.
+        """
         self.base = self.get_base()
         
         assert size is not None, "size must be specified"
