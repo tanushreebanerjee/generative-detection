@@ -7,12 +7,13 @@ from src.modules.autoencodermodules.pose_encoder import PoseEncoder
 from src.modules.autoencodermodules.pose_decoder import PoseDecoder
 from ldm.util import instantiate_from_config
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
-from se3.homtrans3d import xyzrpy2T, T2xyzrpy
 import torch
 import pytorch_lightning as pl
 import math
 import random
 import logging
+from math import radians
+import se3
 
 SE3_DIM = 16
 
@@ -211,16 +212,23 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _perturb_poses(self, pose_inputs, pitch_max=360, yaw_max=30):
         logging.info("pose_inputs shape: ", pose_inputs.shape)
-        x, y, z, roll, pitch, yaw = T2xyzrpy(pose_inputs.cpu().numpy())
-        logging.info(f"pitch, yaw before: {pitch, yaw}")
-        pitch = math.radians(random.uniform(0, pitch_max))
-        yaw = math.radians(random.uniform(0, yaw_max))
-        logging.info(f"pitch, yaw after: {pitch, yaw}")
-        T_perturbed = torch.tensor(xyzrpy2T(x, y, z, roll, pitch, yaw), dtype=torch.float32) ##
-        logging.info(f"T_perturbed shape before: {T_perturbed.shape}")
-        T_perturbed = T_perturbed.view(T_perturbed.size(0), -1)
-        logging.info(f"T_perturbed shape after: {T_perturbed.shape}")
-        return T_perturbed
+        batch_size = pose_inputs.size(0)
+        logging.info("batch_size: ", batch_size)
+        # draw random rot and elev angles (rot max 360, elev max 30) for each pose in batch
+        rotation_deg = torch.tensor([random.uniform(0, pitch_max) for i in range(batch_size)])
+        elevation_deg = torch.tensor([random.uniform(0, yaw_max) for i in range(batch_size)])
+        logging.info("rotation_deg shape: ", rotation_deg.shape, "elevation_deg shape: ", elevation_deg.shape)
+        
+        # Convert degrees to radians for each pose in batch
+        rotation_rad = torch.tensor([radians(i) for i in rotation_deg]) 
+        elevation_rad = torch.tensor([radians(i) for i in elevation_deg])
+        logging.info("rotation_rad shape: ", rotation_rad.shape, "elevation_rad shape: ", elevation_rad.shape)
+
+        # Construct SE3 transformation matrix for each pose in batch        
+        object_pose_se3 = torch.tensor(se3.SE3(0, 0, 0, 0, elevation_rad_i, rotation_rad_i) for elevation_rad_i, rotation_rad_i in zip(elevation_rad, rotation_rad))
+        obj_pose_T = torch.tensor(object_pose_se3_i.T for object_pose_se3_i in object_pose_se3)
+        logging.info("obj_pose_T shape: ", obj_pose_T.shape)
+        return obj_pose_T
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
             pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
