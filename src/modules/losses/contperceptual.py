@@ -28,12 +28,11 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 weights=None):
         
         assert pose_inputs.shape == pose_reconstructions.shape, f"pose_inputs.shape: {pose_inputs.shape}, pose_reconstructions.shape: {pose_reconstructions.shape}"
-        assert pose_inputs.shape[1] == int(math.sqrt(SE3_DIM)), pose_inputs.shape[2] == int(math.sqrt(SE3_DIM)), f"pose_inputs.shape: {pose_inputs.shape}"
+        assert pose_inputs.shape[1] == int(math.sqrt(SE3_DIM))
+        assert pose_inputs.shape[2] == int(math.sqrt(SE3_DIM))
 
         pose_loss = self.compute_pose_loss(pose_inputs, pose_reconstructions)
         weighted_pose_loss = self.pose_weight * pose_loss
-        print("pose loss: ", pose_loss)
-        print("weighted pose loss: ", weighted_pose_loss)
         
         rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
         if self.perceptual_weight > 0:
@@ -81,7 +80,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                    "{}/pose_loss".format(split): pose_loss.detach().mean(),
                    "{}/weighted_pose_loss".format(split): weighted_pose_loss.detach().mean()
                    }
-            print("loss: ", loss)
             return loss, log
 
         if optimizer_idx == 1:
