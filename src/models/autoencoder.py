@@ -228,7 +228,7 @@ class PoseAutoencoder(AutoencoderKL):
         obj_pose_T = torch.empty((batch_size, 4, 4), dtype=torch.float32)
         for idx in range(batch_size):
             se3_pose = se3.SE3(0, 0, 0, 0, elevation_rad[idx], rotation_rad[idx])
-            obj_pose_T.append(se3_pose.T)
+            obj_pose_T[idx] = se3_pose.T
         logging.info(f"obj_pose_T shape: {obj_pose_T.shape}")
         assert obj_pose_T.shape == pose_inputs.shape, f"obj_pose_T shape: {obj_pose_T.shape}, pose_inputs shape: {pose_inputs.shape}"
         return obj_pose_T
