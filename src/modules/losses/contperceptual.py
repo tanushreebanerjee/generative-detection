@@ -21,32 +21,51 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
 
     def compute_pose_loss(self, pred, gt):
         return self.pose_loss(pred, gt)
-            
-    def forward(self, inputs, reconstructions, pose_inputs, pose_reconstructions,
-                posteriors, optimizer_idx, global_step, 
-                last_layer=None, cond=None, split="train",
-                weights=None):
-        
-        assert pose_inputs.shape == pose_reconstructions.shape, f"pose_inputs.shape: {pose_inputs.shape}, pose_reconstructions.shape: {pose_reconstructions.shape}"
-        assert pose_inputs.shape[1] == int(math.sqrt(SE3_DIM))
-        assert pose_inputs.shape[2] == int(math.sqrt(SE3_DIM))
 
-        pose_loss = self.compute_pose_loss(pose_inputs, pose_reconstructions)
-        weighted_pose_loss = self.pose_weight * pose_loss
-        
+    def _get_rec_loss(self, inputs, reconstructions):
         rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
         if self.perceptual_weight > 0:
             p_loss = self.perceptual_loss(inputs.contiguous(), reconstructions.contiguous())
             rec_loss = rec_loss + self.perceptual_weight * p_loss
+        return rec_loss
 
+    def _get_nll_loss(self, rec_loss, weights=None):
         nll_loss = rec_loss / torch.exp(self.logvar) + self.logvar
         weighted_nll_loss = nll_loss
         if weights is not None:
             weighted_nll_loss = weights*nll_loss
         weighted_nll_loss = torch.sum(weighted_nll_loss) / weighted_nll_loss.shape[0]
         nll_loss = torch.sum(nll_loss) / nll_loss.shape[0]
+        return nll_loss, weighted_nll_loss
+    
+    def _get_kl_loss(self, posteriors):
         kl_loss = posteriors.kl()
         kl_loss = torch.sum(kl_loss) / kl_loss.shape[0]
+        return kl_loss
+    
+    def forward(self, inputs1, inputs2, 
+                reconstructions1, reconstructions2, 
+                pose_inputs1, pose_reconstructions1,
+                posteriors1, optimizer_idx, global_step, 
+                last_layer=None, cond=None, split="train",
+                weights=None):
+        
+        assert pose_inputs1.shape == pose_reconstructions1.shape, \
+            f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
+        assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
+        assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
+
+        inputs = torch.cat((inputs1, inputs2), dim=0)
+        reconstructions = torch.cat((reconstructions1, reconstructions2), dim=0)
+        
+        pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
+        weighted_pose_loss = self.pose_weight * pose_loss
+        
+        rec_loss = self._get_rec_loss(inputs, reconstructions)
+        
+        nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
+        
+        kl_loss = self._get_kl_loss(posteriors1)
 
         # now the GAN part
         if optimizer_idx == 0:

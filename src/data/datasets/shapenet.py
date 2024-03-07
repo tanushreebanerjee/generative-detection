@@ -275,9 +275,23 @@ class ShapeNetPose(Dataset):
 
         image = self.image_rescaler(image=image)["image"]
 
-        example["image"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["object_pose"] = self._get_object_pose_as_se3(i)
-
+        example["image1"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
+        example["pose1"] = self._get_object_pose_as_se3(i)
+        
+        # Get a random example of the same object but with a different pose
+        class_label = example["class_label"]
+        class_label_idx = self.base.class_label2idx[class_label]
+        same_object_indices = np.where(self.base.class_labels == class_label_idx)[0]
+        same_object_indices = same_object_indices[same_object_indices != i]
+        random_idx = np.random.choice(same_object_indices)
+        random_example = self.base[random_idx]
+        random_image = Image.open(random_example["file_path_"])
+        if not random_image.mode == "RGB":
+            random_image = random_image.convert("RGB")
+        random_image = np.array(random_image).astype(np.uint8)
+        random_image = self.image_rescaler(image=random_image)["image"]
+        example["image2"] = (random_image/127.5 - 1.0).astype(np.float32)
+        example["pose2"] = self._get_object_pose_as_se3(random_idx)
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):
