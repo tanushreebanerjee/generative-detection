@@ -280,8 +280,7 @@ class ShapeNetPose(Dataset):
         
         # Get a random example of the same object but with a different pose
         class_label = example["class_label"]
-        class_label_idx = self.base.class_label2idx[class_label]
-        same_object_indices = np.where(self.base.class_labels == class_label_idx)[0]
+        same_object_indices = np.where(self.base.class_label == class_label)[0]
         same_object_indices = same_object_indices[same_object_indices != i]
         random_idx = np.random.choice(same_object_indices)
         random_example = self.base[random_idx]
