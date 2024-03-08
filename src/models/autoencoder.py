@@ -212,11 +212,11 @@ class PoseAutoencoder(AutoencoderKL):
             return discloss
     
     def validation_step(self, batch, batch_idx):
-        inputs_1 = self.get_input(batch, self.image_key1)
-        pose_inputs_1 = self.get_pose_input(batch, self.pose_key1)
+        inputs_1 = self.get_input(batch, self.image1_key)
+        pose_inputs_1 = self.get_pose_input(batch, self.pose1_key)
         
-        inputs_2 = self.get_input(batch, self.image_key2)
-        pose_inputs_2 = self.get_pose_input(batch, self.pose_key2)
+        inputs_2 = self.get_input(batch, self.image2_key)
+        pose_inputs_2 = self.get_pose_input(batch, self.pose2_key)
         
         reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs_1, pose_inputs_2)
         
@@ -281,8 +281,8 @@ class PoseAutoencoder(AutoencoderKL):
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
-        x1 = self.get_input(batch, self.image_key1)
-        pose2 = self.get_pose_input(batch, self.pose_key2)
+        x1 = self.get_input(batch, self.image1_key)
+        pose2 = self.get_pose_input(batch, self.pose2_key)
         x1 = x1.to(self.device)
         pose2 = pose2.to(self.device)
         if not only_inputs:
