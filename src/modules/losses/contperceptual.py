@@ -4,7 +4,7 @@ from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWit
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
 import math
-
+import logging
 SE3_DIM = 16
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
@@ -49,14 +49,20 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 posteriors1, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
-        
+        logging.info(f"loss forward: inputs1.shape: {inputs1.shape}, inputs2.shape: {inputs2.shape}, reconstructions1.shape: {reconstructions1.shape}, reconstructions2.shape: {reconstructions2.shape}")
         assert pose_inputs1.shape == pose_reconstructions1.shape, \
             f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
         assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
         assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
 
-        inputs = torch.cat((inputs1, inputs2), dim=0)
-        reconstructions = torch.cat((reconstructions1, reconstructions2), dim=0)
+        logging.info(f"combining inputs and reconstructions...")
+        batch_size = inputs1.shape[0]
+        inputs = torch.empty(batch_size*2, inputs1.shape[1], inputs1.shape[2], inputs1.shape[3], device=inputs1.device)
+        reconstructions = torch.empty(batch_size*2, reconstructions1.shape[1], reconstructions1.shape[2], reconstructions1.shape[3], device=reconstructions1.device)
+        inputs[:batch_size] = inputs1
+        inputs[batch_size:] = inputs2
+        reconstructions[:batch_size] = reconstructions1
+        reconstructions[batch_size:] = reconstructions2
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss

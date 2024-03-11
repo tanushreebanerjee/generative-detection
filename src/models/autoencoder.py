@@ -264,9 +264,9 @@ class PoseAutoencoder(AutoencoderKL):
         return obj_pose_T.to(self.device)
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
-            pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
-            feat_map_img_pose = img_feat_map + pose_feat_map
-            return feat_map_img_pose
+        pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
+        feat_map_img_pose = img_feat_map + pose_feat_map
+        return feat_map_img_pose
     
     def _perturbed_pose_forward(self, posterior, pose_decoded, sample_posterior=True):
         if sample_posterior:
@@ -288,14 +288,14 @@ class PoseAutoencoder(AutoencoderKL):
         if not only_inputs:
             xrec1, xrec2, posterior1, pose_decoded1 = self(x1, pose2)
             xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
-            if x.shape[1] > 3:
+            if x1.shape[1] > 3:
                 # colorize with random projection
                 assert xrec.shape[1] > 3
-                x = self.to_rgb(x)
+                x1 = self.to_rgb(x1)
                 xrec = self.to_rgb(xrec)
             log["samples"] = self.decode(torch.randn_like(posterior1.sample()))
             log["reconstructions1"] = xrec1
             log["reconstructions2"] = xrec2
             log["perturbed_pose_reconstructions"] = xrec1_perturbed_pose
-        log["inputs"] = x
+        log["inputs"] = x1
         return log
