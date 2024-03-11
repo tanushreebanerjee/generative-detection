@@ -282,20 +282,27 @@ class PoseAutoencoder(AutoencoderKL):
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         x1 = self.get_input(batch, self.image1_key)
+        x2 = self.get_input(batch, self.image2_key)
         pose2 = self.get_pose_input(batch, self.pose2_key)
         x1 = x1.to(self.device)
+        x2 = x2.to(self.device)
         pose2 = pose2.to(self.device)
         if not only_inputs:
             xrec1, xrec2, posterior1, pose_decoded1 = self(x1, pose2)
             xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
             if x1.shape[1] > 3:
                 # colorize with random projection
-                assert xrec.shape[1] > 3
+                assert xrec1.shape[1] > 3
                 x1 = self.to_rgb(x1)
-                xrec = self.to_rgb(xrec)
-            log["samples"] = self.decode(torch.randn_like(posterior1.sample()))
+                x2 = self.to_rgb(x2)
+                xrec1 = self.to_rgb(xrec1)
+                xrec2 = self.to_rgb(xrec2)
+                xrec_perturbed_pose = self.to_rgb(xrec_perturbed_pose)
+                
+            log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
             log["reconstructions1"] = xrec1
             log["reconstructions2"] = xrec2
             log["perturbed_pose_reconstructions"] = xrec1_perturbed_pose
-        log["inputs"] = x1
+        log["inputs1"] = x1
+        log["inputs2"] = x2
         return log
