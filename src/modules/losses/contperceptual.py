@@ -54,12 +54,16 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
 
         batch_size = inputs1.shape[0]
-        inputs = torch.empty(batch_size*2, inputs1.shape[1], inputs1.shape[2], inputs1.shape[3], device=inputs1.device)
-        reconstructions = torch.empty(batch_size*2, reconstructions1.shape[1], reconstructions1.shape[2], reconstructions1.shape[3], device=reconstructions1.device)
-        inputs[:batch_size] = inputs1
-        inputs[batch_size:] = inputs2
-        reconstructions[:batch_size] = reconstructions1
-        reconstructions[batch_size:] = reconstructions2
+        inputs = torch.empty(batch_size, inputs1.shape[1], inputs1.shape[2], inputs1.shape[3], device=inputs1.device)
+        reconstructions = torch.empty(batch_size, reconstructions1.shape[1], reconstructions1.shape[2], reconstructions1.shape[3], device=reconstructions1.device)
+        # for each item in batch, randomly pick one of the two inputs and corresponding reconstructions
+        for i in range(batch_size):
+            if torch.rand(1) < 0.5:
+                inputs[i] = inputs1[i]
+                reconstructions[i] = reconstructions1[i]
+            else:
+                inputs[i] = inputs2[i]
+                reconstructions[i] = reconstructions2[i]
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss
