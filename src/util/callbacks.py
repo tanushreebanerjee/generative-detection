@@ -183,7 +183,6 @@ class ImageLogger(Callback):
                         images[k] = torch.clamp(images[k], -1., 1.)
 
             if not self.disable_local_logging:
-                logging.info(f"Logging images for {split} split locally.")
                 self.log_local(pl_module.logger.save_dir, split, images,
                                pl_module.global_step, pl_module.current_epoch, batch_idx)
 
@@ -208,13 +207,11 @@ class ImageLogger(Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Callback function called at the end of each training batch."""
         if not self.disabled and (pl_module.global_step > 0 or self.log_first_step):
-            logging.info(f"Logging images for train split at batch {batch_idx}.")
             self.log_img(pl_module, batch, batch_idx, split="train")
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Callback function called at the end of each validation batch."""
         if not self.disabled and pl_module.global_step > 0:
-            logging.info(f"Logging images for val split at batch {batch_idx}.")
             self.log_img(pl_module, batch, batch_idx, split="val")
         if hasattr(pl_module, 'calibrate_grad_norm'):
             if (pl_module.calibrate_grad_norm and batch_idx % 25 == 0) and batch_idx > 0:
