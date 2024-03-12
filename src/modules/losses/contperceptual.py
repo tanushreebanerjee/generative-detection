@@ -4,7 +4,6 @@ from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWit
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
 import math
-import logging
 
 SE3_DIM = 16
 
@@ -44,7 +43,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         kl_loss = torch.sum(kl_loss) / kl_loss.shape[0]
         return kl_loss
     
-    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, reconstructions1, reconstructions2, optimizer_idx, global_step):
+    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, reconstructions1, reconstructions2, global_step):
         """
         Get the combined inputs and reconstructions based on the global step and optimizer index.
 
@@ -61,11 +60,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             reconstructions: The selected reconstructions.
         """
         if global_step % 2 == 0:
-            logging.info(f"Using inputs1 and reconstructions1 for global step {global_step} and optimizer_idx {optimizer_idx}")
             inputs = inputs1
             reconstructions = reconstructions1
         else:
-            logging.info(f"Using inputs2 and reconstructions2 for global step {global_step} and optimizer_idx {optimizer_idx}")
             inputs = inputs2
             reconstructions = reconstructions2
         return inputs, reconstructions
@@ -81,7 +78,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
         assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
 
-        inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2, optimizer_idx, global_step)
+        inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2, global_step)
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss
