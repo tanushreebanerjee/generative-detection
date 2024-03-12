@@ -107,7 +107,7 @@ class ImageLogger(Callback):
     """
     def __init__(self, batch_frequency, max_images, clamp=True, increase_log_steps=True,
                  rescale=True, disabled=False, log_on_batch_idx=False, log_first_step=False,
-                 log_images_kwargs=None):
+                 log_images_kwargs=None, disable_local_logging=False):
         super().__init__()
         self.rescale = rescale
         self.batch_freq = batch_frequency
@@ -123,6 +123,7 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
+        self.disable_local_logging = disable_local_logging
 
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
@@ -181,8 +182,10 @@ class ImageLogger(Callback):
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
 
-            self.log_local(pl_module.logger.save_dir, split, images,
-                           pl_module.global_step, pl_module.current_epoch, batch_idx)
+            if not self.disable_local_logging:
+                logging.info(f"Logging images for {split} split locally.")
+                self.log_local(pl_module.logger.save_dir, split, images,
+                               pl_module.global_step, pl_module.current_epoch, batch_idx)
 
             logger_log_images = self.logger_log_images.get(logger, lambda *args, **kwargs: None)
             logger_log_images(pl_module, images, pl_module.global_step, split)
@@ -205,11 +208,13 @@ class ImageLogger(Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Callback function called at the end of each training batch."""
         if not self.disabled and (pl_module.global_step > 0 or self.log_first_step):
+            logging.info(f"Logging images for train split at batch {batch_idx}.")
             self.log_img(pl_module, batch, batch_idx, split="train")
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Callback function called at the end of each validation batch."""
         if not self.disabled and pl_module.global_step > 0:
+            logging.info(f"Logging images for val split at batch {batch_idx}.")
             self.log_img(pl_module, batch, batch_idx, split="val")
         if hasattr(pl_module, 'calibrate_grad_norm'):
             if (pl_module.calibrate_grad_norm and batch_idx % 25 == 0) and batch_idx > 0:

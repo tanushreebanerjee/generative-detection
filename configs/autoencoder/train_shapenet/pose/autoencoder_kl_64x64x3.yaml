@@ -47,6 +47,7 @@ lightning:
         batch_frequency: 1000
         max_images: 8
         increase_log_steps: True
+        disable_local_logging: False
 
     progress_bar:
       target: src.util.callbacks.TQDMProgressBar

@@ -42,17 +42,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         kl_loss = torch.sum(kl_loss) / kl_loss.shape[0]
         return kl_loss
     
-    def forward(self, inputs1, inputs2, 
-                reconstructions1, reconstructions2, 
-                pose_inputs1, pose_reconstructions1,
-                posteriors1, optimizer_idx, global_step, 
-                last_layer=None, cond=None, split="train",
-                weights=None):
-        assert pose_inputs1.shape == pose_reconstructions1.shape, \
-            f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
-        assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
-        assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
-
+    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, reconstructions1, reconstructions2):
         batch_size = inputs1.shape[0]
         inputs = torch.empty(batch_size, inputs1.shape[1], inputs1.shape[2], inputs1.shape[3], device=inputs1.device)
         reconstructions = torch.empty(batch_size, reconstructions1.shape[1], reconstructions1.shape[2], reconstructions1.shape[3], device=reconstructions1.device)
@@ -64,6 +54,20 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             else:
                 inputs[i] = inputs2[i]
                 reconstructions[i] = reconstructions2[i]
+        return inputs, reconstructions
+    
+    def forward(self, inputs1, inputs2, 
+                reconstructions1, reconstructions2, 
+                pose_inputs1, pose_reconstructions1,
+                posteriors1, optimizer_idx, global_step, 
+                last_layer=None, cond=None, split="train",
+                weights=None):
+        assert pose_inputs1.shape == pose_reconstructions1.shape, \
+            f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
+        assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
+        assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
+
+        inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2)
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss
