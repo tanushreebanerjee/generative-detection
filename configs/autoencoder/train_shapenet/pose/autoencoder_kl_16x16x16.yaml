@@ -28,7 +28,7 @@ data:
   data_root: data/processed/shapenet/processed_get3d
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 6
+    batch_size: 3
     wrap: True
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
@@ -61,13 +61,5 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: 
-      target: pytorch_lightning.profiler.PyTorchProfiler
-      params:
-        filename: pytorch_profiler_output
-        group_by_input_shapes: True
-        emit_nvtx: True
-        export_to_chrome: True
-        sort_by_key: self_cuda_memory_usage
-        record_module_names: True
+    profiler: pytorch
     max_epochs: 1000
