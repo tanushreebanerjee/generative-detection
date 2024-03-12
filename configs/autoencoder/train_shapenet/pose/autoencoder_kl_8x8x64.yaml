@@ -61,5 +61,13 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: advanced
+    profiler: 
+      target: pytorch_lightning.profiler.PyTorchProfiler
+      params:
+        filename: pytorch_profiler_output
+        group_by_input_shapes: True
+        emit_nvtx: True
+        export_to_chrome: True
+        sort_by_key: self_cuda_memory_usage
+        record_module_names: True
     max_epochs: 1000
