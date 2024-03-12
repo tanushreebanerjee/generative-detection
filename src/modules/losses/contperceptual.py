@@ -101,8 +101,10 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             disc_factor = adopt_weight(self.disc_factor, global_step, threshold=self.discriminator_iter_start)
             loss = weighted_pose_loss + weighted_nll_loss + self.kl_weight * kl_loss + d_weight * disc_factor * g_loss
 
-            log = {"{}/total_loss".format(split): loss.clone().detach().mean(), "{}/logvar".format(split): self.logvar.detach(),
-                   "{}/kl_loss".format(split): kl_loss.detach().mean(), "{}/nll_loss".format(split): nll_loss.detach().mean(),
+            log = {"{}/total_loss".format(split): loss.clone().detach().mean(), 
+                   "{}/logvar".format(split): self.logvar.detach(),
+                   "{}/kl_loss".format(split): kl_loss.detach().mean(), 
+                   "{}/nll_loss".format(split): nll_loss.detach().mean(),
                    "{}/weighted_nll_loss".format(split): weighted_nll_loss.detach().mean(),
                    "{}/rec_loss".format(split): rec_loss.detach().mean(),
                    "{}/d_weight".format(split): d_weight.detach(),
