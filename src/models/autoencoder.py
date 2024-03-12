@@ -34,14 +34,18 @@ class PoseAutoencoder(AutoencoderKL):
                  embed_dim,
                  ckpt_path=None,
                  ignore_keys=[],
-                 image_key="image",
-                 pose_key="object_pose",
+                 image1_key="image1",
+                 pose1_key="pose1",
+                 image2_key="image2",
+                 pose2_key="pose2",
                  colorize_nlabels=None,
                  monitor=None,
                  ):
         pl.LightningModule.__init__(self)
-        self.image_key = image_key
-        self.pose_key = pose_key
+        self.image1_key = image1_key
+        self.pose1_key = pose1_key
+        self.image2_key = image2_key
+        self.pose2_key = pose2_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
         self.loss = instantiate_from_config(lossconfig)
@@ -125,7 +129,24 @@ class PoseAutoencoder(AutoencoderKL):
             pose_decoded_reshaped = pose_decoded.reshape(pose_decoded.size(0), int(math.sqrt(SE3_DIM)), int(math.sqrt(SE3_DIM)))
             return feat_map_img_pose, pose_decoded_reshaped
     
-    def forward(self, input, sample_posterior=True):
+    def _get_img2_reconstruction(self, pose2, z1):
+            """
+            Reconstructs the second image based on the given pose and latent code.
+
+            Args:
+                pose2 (Tensor): The pose of the second image.
+                z1 (Tensor): The latent code of the first image.
+
+            Returns:
+                Tensor: The reconstructed second image.
+            """
+            pose2 = pose2.reshape(pose2.size(0), -1)
+            pose_feat_map = self._encode_pose(pose2)         
+            feat_map_img_pose = z1 + pose_feat_map
+            dec2 = self.decode(feat_map_img_pose)
+            return dec2
+    
+    def forward(self, input1, pose2, sample_posterior=True):
         """
         Forward pass of the autoencoder.
         
@@ -139,17 +160,19 @@ class PoseAutoencoder(AutoencoderKL):
                 - posterior: Posterior distribution.
                 - pose_decoded: Decoded pose tensor.
         """
-        posterior = self.encode(input)
+        posterior1 = self.encode(input1)
         if sample_posterior:
-            z = posterior.sample()
+            img_feat_map1 = posterior1.sample()
         else:
-            z = posterior.mode()
+            img_feat_map1 = posterior1.mode()
         
-        z, pose_decoded = self._get_feat_map_img_pose(z)
+        dec2 = self._get_img2_reconstruction(pose2, img_feat_map1)
+        
+        feat_map_img_pose1, pose_decoded1 = self._get_feat_map_img_pose(img_feat_map1)
             
-        dec = self.decode(z)
-
-        return dec, posterior, pose_decoded
+        dec1 = self.decode(feat_map_img_pose1)
+        
+        return dec1, dec2, posterior1, pose_decoded1
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
@@ -157,15 +180,20 @@ class PoseAutoencoder(AutoencoderKL):
         return x
     
     def training_step(self, batch, batch_idx, optimizer_idx):
-        inputs = self.get_input(batch, self.image_key)
-        pose_inputs = self.get_pose_input(batch, self.pose_key)
+        inputs1 = self.get_input(batch, self.image1_key)
+        pose_inputs1 = self.get_pose_input(batch, self.pose1_key)
         
-        reconstructions, posterior, pose_reconstructions = self(inputs)
+        inputs2 = self.get_input(batch, self.image2_key)
+        pose_inputs2 = self.get_pose_input(batch, self.pose2_key)
+        
+        reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1, pose_inputs2)
         
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
-            aeloss, log_dict_ae = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
-                                            posterior, optimizer_idx, self.global_step,
+            aeloss, log_dict_ae = self.loss(inputs1, inputs2, 
+                                            reconstructions1, reconstructions2, 
+                                            pose_inputs1, pose_reconstructions1,
+                                            posterior1, optimizer_idx, self.global_step,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -173,8 +201,10 @@ class PoseAutoencoder(AutoencoderKL):
 
         if optimizer_idx == 1:
             # train the discriminator
-            discloss, log_dict_disc = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
-                                                posterior, optimizer_idx, self.global_step,
+            discloss, log_dict_disc = self.loss(inputs1, inputs2, 
+                                                reconstructions1, reconstructions2, 
+                                                pose_inputs1, pose_reconstructions1,
+                                                posterior1, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
 
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -182,16 +212,25 @@ class PoseAutoencoder(AutoencoderKL):
             return discloss
     
     def validation_step(self, batch, batch_idx):
-        inputs = self.get_input(batch, self.image_key)
-        pose_inputs = self.get_pose_input(batch, self.pose_key)
-        reconstructions, posterior, pose_reconstructions = self(inputs)
-        _, log_dict_ae = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
-                                        posterior, 0, self.global_step,
-                                        last_layer=self.get_last_layer(), split="val")
+        inputs_1 = self.get_input(batch, self.image1_key)
+        pose_inputs_1 = self.get_pose_input(batch, self.pose1_key)
+        
+        inputs_2 = self.get_input(batch, self.image2_key)
+        pose_inputs_2 = self.get_pose_input(batch, self.pose2_key)
+        
+        reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs_1, pose_inputs_2)
+        
+        _, log_dict_ae = self.loss(inputs_1, inputs_2, 
+                                   reconstructions1, reconstructions2, 
+                                   pose_inputs_1, pose_reconstructions1,
+                                   posterior1, 0, self.global_step,
+                                   last_layer=self.get_last_layer(), split="val")
 
-        _, log_dict_disc = self.loss(inputs, reconstructions, pose_inputs, pose_reconstructions,
-                                            posterior, 1, self.global_step,
-                                            last_layer=self.get_last_layer(), split="val")
+        _, log_dict_disc = self.loss(inputs_1, inputs_2, 
+                                     reconstructions1, reconstructions2, 
+                                     pose_inputs_1, pose_reconstructions1,
+                                     posterior1, 1, self.global_step,
+                                     last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
         self.log_dict(log_dict_ae)
@@ -225,9 +264,9 @@ class PoseAutoencoder(AutoencoderKL):
         return obj_pose_T.to(self.device)
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
-            pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
-            feat_map_img_pose = img_feat_map + pose_feat_map
-            return feat_map_img_pose
+        pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
+        feat_map_img_pose = img_feat_map + pose_feat_map
+        return feat_map_img_pose
     
     def _perturbed_pose_forward(self, posterior, pose_decoded, sample_posterior=True):
         if sample_posterior:
@@ -242,18 +281,28 @@ class PoseAutoencoder(AutoencoderKL):
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
-        x = self.get_input(batch, self.image_key)
-        x = x.to(self.device)
+        x1 = self.get_input(batch, self.image1_key)
+        x2 = self.get_input(batch, self.image2_key)
+        pose2 = self.get_pose_input(batch, self.pose2_key)
+        x1 = x1.to(self.device)
+        x2 = x2.to(self.device)
+        pose2 = pose2.to(self.device)
         if not only_inputs:
-            xrec, posterior, pose_decoded = self(x)
-            xrec_perturbed_pose = self._perturbed_pose_forward(posterior, pose_decoded)
-            if x.shape[1] > 3:
+            xrec1, xrec2, posterior1, pose_decoded1 = self(x1, pose2)
+            xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
+            if x1.shape[1] > 3:
                 # colorize with random projection
-                assert xrec.shape[1] > 3
-                x = self.to_rgb(x)
-                xrec = self.to_rgb(xrec)
-            log["samples"] = self.decode(torch.randn_like(posterior.sample()))
-            log["reconstructions"] = xrec
-            log["perturbed_pose_reconstructions"] = xrec_perturbed_pose
-        log["inputs"] = x
+                assert xrec1.shape[1] > 3
+                x1 = self.to_rgb(x1)
+                x2 = self.to_rgb(x2)
+                xrec1 = self.to_rgb(xrec1)
+                xrec2 = self.to_rgb(xrec2)
+                xrec_perturbed_pose = self.to_rgb(xrec_perturbed_pose)
+                
+            log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
+            log["reconstructions1"] = xrec1
+            log["reconstructions2"] = xrec2
+            log["perturbed_pose_reconstructions"] = xrec1_perturbed_pose
+        log["inputs1"] = x1
+        log["inputs2"] = x2
         return log
