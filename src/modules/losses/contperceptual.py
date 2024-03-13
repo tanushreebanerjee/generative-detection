@@ -84,7 +84,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
         assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
 
-        inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2, global_step)
+        inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2)
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss
