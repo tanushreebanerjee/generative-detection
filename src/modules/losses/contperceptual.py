@@ -43,7 +43,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         kl_loss = torch.sum(kl_loss) / kl_loss.shape[0]
         return kl_loss
     
-    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, reconstructions1, reconstructions2, global_step):
+    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, reconstructions1, reconstructions2):
         """
         Get the combined inputs and reconstructions based on the global step and optimizer index.
 
@@ -59,12 +59,18 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             inputs: The selected inputs.
             reconstructions: The selected reconstructions.
         """
-        if global_step % 2 == 0:
-            inputs = inputs1
-            reconstructions = reconstructions1
-        else:
-            inputs = inputs2
-            reconstructions = reconstructions2
+        
+        batch_size = inputs1.shape[0]
+        inputs = torch.empty(batch_size, inputs1.shape[1], inputs1.shape[2], inputs1.shape[3], device=inputs1.device)
+        reconstructions = torch.empty(batch_size, reconstructions1.shape[1], reconstructions1.shape[2], reconstructions1.shape[3], device=reconstructions1.device)
+        # for each item in batch, randomly pick one of the two inputs and corresponding reconstructions
+        for i in range(batch_size):
+            if torch.rand(1) < 0.5:
+                inputs[i] = inputs1[i]
+                reconstructions[i] = reconstructions1[i]
+            else:
+                inputs[i] = inputs2[i]
+                reconstructions[i] = reconstructions2[i]
         return inputs, reconstructions
     
     def forward(self, inputs1, inputs2, 
