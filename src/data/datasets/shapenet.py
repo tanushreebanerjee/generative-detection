@@ -11,8 +11,8 @@ from taming.data.imagenet import retrieve, ImagePaths
 import logging
 import cProfile, pstats, io
 from pstats import SortKey
-import se3
 from math import radians
+from src.util.misc import euler_translation_to_screw
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -240,15 +240,15 @@ class ShapeNetPose(Dataset):
     def __len__(self):
         return len(self.base)
     
-    def _get_object_pose_as_se3(self, idx):
+    def _get_object_pose_as_screw_params(self, idx):
             """
-            Get the pose of the object at the given index as a 3D transformation matrix.
+            Get the pose of the object at the given index as screw parameters.
 
             Parameters:
                 idx (int): The index of the object.
 
             Returns:
-                object_pose (se3.SE3): The pose of the object as a 3D transformation matrix.
+                object_pose (np.ndarray): The pose of the object as screw parameters.
             """
             # Assuming rotation and elevation are given in degrees
             rotation_deg = self.base.rotations[idx]
@@ -258,11 +258,11 @@ class ShapeNetPose(Dataset):
             rotation_rad = radians(rotation_deg)
             elevation_rad = radians(elevation_deg)
 
-            # Construct SE3 transformation matrix
-            object_pose_se3 = se3.SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
-            
-            obj_pose_T = object_pose_se3.T
-            return obj_pose_T
+            # Convert the Euler angles and translation to screw parameters
+            euler_angles = np.array([0, elevation_rad, rotation_rad])
+            translation = np.array([0, 0, 0])
+            object_pose_screw = euler_translation_to_screw(euler_angles, translation)
+            return object_pose_screw
     
     def __getitem__(self, i):
         example = self.base[i]
@@ -276,7 +276,7 @@ class ShapeNetPose(Dataset):
         image = self.image_rescaler(image=image)["image"]
 
         example["image1"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["pose1"] = self._get_object_pose_as_se3(i)
+        example["pose1"] = self._get_object_pose_as_screw_params(i)
         
         # Get a random example of the same object but with a different pose
         class_label = example["class_label"]
@@ -290,7 +290,7 @@ class ShapeNetPose(Dataset):
         random_image = np.array(random_image).astype(np.uint8)
         random_image = self.image_rescaler(image=random_image)["image"]
         example["image2"] = (random_image/127.5 - 1.0).astype(np.float32)
-        example["pose2"] = self._get_object_pose_as_se3(random_idx)
+        example["pose2"] = self._get_object_pose_as_screw_params(random_idx)
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):

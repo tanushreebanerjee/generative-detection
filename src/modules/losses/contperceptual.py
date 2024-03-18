@@ -3,9 +3,6 @@ import torch.nn as nn
 from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWithDiscriminator_LDM
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
-import math
-
-SE3_DIM = 16
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
@@ -81,8 +78,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 weights=None):
         assert pose_inputs1.shape == pose_reconstructions1.shape, \
             f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
-        assert pose_inputs1.shape[1] == int(math.sqrt(SE3_DIM))
-        assert pose_inputs1.shape[2] == int(math.sqrt(SE3_DIM))
 
         inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2)
         
