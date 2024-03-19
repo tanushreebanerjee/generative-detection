@@ -12,7 +12,7 @@ import logging
 import cProfile, pstats, io
 from pstats import SortKey
 from math import radians
-from src.util.misc import euler_translation_to_screw
+from src.util.transforms import euler_translation_to_screw
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")

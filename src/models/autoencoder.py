@@ -12,7 +12,7 @@ import pytorch_lightning as pl
 import math
 import random
 from math import radians
-from src.util.misc import euler_translation_to_screw
+from src.util.transforms import euler_translation_to_screw
 
 SCREW_PARAMS_DIM = 6
 PITCH_MAX = 360

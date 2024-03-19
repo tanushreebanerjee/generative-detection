@@ -11,3 +11,6 @@
 [submodule "submodules/se3"]
 	path = submodules/se3
 	url = https://github.com/ccorcos/se3.git
+[submodule "submodules/pytransform3d"]
+	path = submodules/pytransform3d
+	url = https://github.com/dfki-ric/pytransform3d.git
