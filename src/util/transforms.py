@@ -5,7 +5,7 @@ def euler_translation_to_screw(euler_angles, translation):
     """Convert Euler angles and translation to screw."""
     
     # compute active rotation matrix from any Euler angles
-    R = conversions.matrix_from_euler(euler_angles, axes="sxyz")
+    R = conversions.matrix_from_euler(euler_angles, 0, 1, 2, True)
 
     # Make transformation from rotation matrix and translation.
     transform = transform_from(R, translation)
