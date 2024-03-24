@@ -1,5 +1,9 @@
 import numpy as np
-from src.transforms.utils import check_transform_batch
+from src.transforms.utils import batch_check_transform, batch_quaternion_from_matrix, batch_concatenate_quaternions
+
+# Source:
+# Code adapted from https://github.com/dfki-ric/pytransform3d
+
 ROT_MATRIX_SHAPE = (3, 3)
 
 def check_axis_index(name, i):
@@ -21,7 +25,7 @@ def check_axis_index(name, i):
     if i not in [0, 1, 2]:
         raise ValueError("Axis index %s (%d) must be in [0, 1, 2]" % (name, i))
 
-def active_matrix_from_angle_batch(basis, angle):
+def batch_active_matrix_from_angle(basis, angle):
     """
     Compute active rotation matrix from rotation about basis vector.
 
@@ -100,7 +104,7 @@ def active_matrix_from_angle_batch(basis, angle):
     
     return R
     
-def matrix_from_euler_batch(e, i, j, k, extrinsic):
+def batch_matrix_from_euler(e, i, j, k, extrinsic):
     """
     General method to compute active rotation matrix from any Euler angles.
 
@@ -147,22 +151,22 @@ def matrix_from_euler_batch(e, i, j, k, extrinsic):
         i, k = k, i
         alpha, gamma = gamma, alpha
 
-    R = active_matrix_from_angle_batch(k, gamma).dot(
-        active_matrix_from_angle_batch(j, beta)).dot(
-        active_matrix_from_angle_batch(i, alpha))
+    R = batch_active_matrix_from_angle(k, gamma).dot(
+        batch_active_matrix_from_angle(j, beta)).dot(
+        batch_active_matrix_from_angle(i, alpha))
 
     return R
 
-def translate_transform_batch(A2B, p, strict_check=True, check=True):
+def batch_translate_transform(A2B, p, strict_check=True, check=True):
     """Sets the translation of a transform.
 
     Parameters
     ----------
-    A2B : array-like, shape (4, 4)
-        Transform from frame A to frame B
+    A2B : array-like, shape (batch_size, 4, 4)
+        Batched transforms from frame A to frame B
 
-    p : array-like, shape (3,)
-        Translation
+    p : array-like, shape (batch_size, 3)
+        Batched translations
 
     strict_check : bool, optional (default: True)
         Raise a ValueError if the transformation matrix is not numerically
@@ -174,17 +178,17 @@ def translate_transform_batch(A2B, p, strict_check=True, check=True):
 
     Returns
     -------
-    A2B : array, shape (4, 4)
-        Transform from frame A to frame B
+    A2B : array, shape (batch_size, 4, 4)
+        Batched transforms from frame A to frame B
     """
     if check:
-        A2B = check_transform_batch(A2B, strict_check=strict_check)
+        A2B = batch_check_transform(A2B, strict_check=strict_check)
     out = A2B.copy()
-    out[:3, -1] = p
+    out[:, :3, -1] = p
     return out
 
-def transform_from_batch(R, p, strict_check=True):
-    r"""Make transformation from rotation matrix and translation.
+def batch_transform_from(R, p, strict_check=True):
+    """Make batched transforms from rotation matrices and translations.
 
     .. math::
 
@@ -197,11 +201,11 @@ def transform_from_batch(R, p, strict_check=True):
 
     Parameters
     ----------
-    R : array-like, shape (3, 3)
-        Rotation matrix
+    R : array-like, shape (batch_size, 3, 3)
+        Batched rotation matrices
 
-    p : array-like, shape (3,)
-        Translation
+    p : array-like, shape (batch_size, 3)
+        Batched translations
 
     strict_check : bool, optional (default: True)
         Raise a ValueError if the transformation matrix is not numerically
@@ -210,26 +214,27 @@ def transform_from_batch(R, p, strict_check=True):
 
     Returns
     -------
-    A2B : array, shape (4, 4)
-        Transform from frame A to frame B
+    A2B : array, shape (batch_size, 4, 4)
+        Batched transforms from frame A to frame B
     """
-    A2B = rotate_transform_batch(
-        np.eye(4), R, strict_check=strict_check, check=False)
-    A2B = translate_transform_batch(
+    A2B = batch_rotate_transform(
+        np.tile(np.eye(4), (len(R), 1, 1)), R, strict_check=strict_check, check=False) 
+        # np.eye(4), R, strict_check=strict_check, check=False)
+    A2B = batch_translate_transform(
         A2B, p, strict_check=strict_check, check=False)
+        # A2B, p, strict_check=strict_check, check=False)
     return A2B
 
-
-def rotate_transform_batch(A2B, R, strict_check=True, check=True):
-    """Sets the rotation of a transform.
+def batch_rotate_transform(A2B, R, strict_check=True, check=True):
+    """Sets the rotation of a transform for batched inputs.
 
     Parameters
     ----------
-    A2B : array-like, shape (4, 4)
-        Transform from frame A to frame B
+    A2B : array-like, shape (batch_size, 4, 4)
+        Batched transforms from frame A to frame B
 
-    R : array-like, shape (3, 3)
-        Rotation matrix
+    R : array-like, shape (batch_size, 3, 3)
+        Batched rotation matrices
 
     strict_check : bool, optional (default: True)
         Raise a ValueError if the transformation matrix is not numerically
@@ -241,11 +246,85 @@ def rotate_transform_batch(A2B, R, strict_check=True, check=True):
 
     Returns
     -------
-    A2B : array, shape (4, 4)
-        Transform from frame A to frame B
+    A2B : array, shape (batch_size, 4, 4)
+        Transforms from frame A to frame B with rotated orientations
     """
     if check:
-        A2B = check_transform_batch(A2B, strict_check=strict_check)
+        A2B = batch_check_transform(A2B, strict_check=strict_check)
     out = A2B.copy()
-    out[:3, :3] = R
+    out[..., :3, :3] = R # out[:3, :3] = R
     return out
+
+def batch_dual_quaternion_from_transform(transform):
+    """Compute dual quaternion from transformation matrix.
+
+    Parameters
+    ----------
+    A2B : array-like, shape (batch_size, 4, 4)
+        Batched transforms from frame A to frame B
+
+    Returns
+    -------
+    dq : array, (batch_size, 8)
+        Unit dual quaternion to represent transform:
+        (pw, px, py, pz, qw, qx, qy, qz)
+    """
+    A2B = batch_check_transform(A2B)
+    real = batch_quaternion_from_matrix(A2B[..., :3, :3])
+    dual = 0.5 * batch_concatenate_quaternions(
+        np.hstack((np.zeros((len(real), 1)), A2B[..., :3, 3:])), real)
+        # np.r_[0, A2B[:3, 3]], real)
+    return np.hstack((real, dual))
+
+def batch_screw_parameters_from_dual_quaternion(dq):
+    pass
+
+def batch_screw_axis_from_screw_parameters(q, s_axis, h):
+    pass
+
+def batch_screw_axis_from_euler_angles_and_translation(euler_angles, translation):
+    """
+    Converts Euler angles and translation to screw axis representation. (in batches)
+    
+    Args: 
+        euler_angles : array-like, shape (N, 3)
+            Extracted rotation angles in radians about the axes i, j, k in this
+            order. The first and last angle are normalized to [-pi, pi]. The middle
+            angle is normalized to either [0, pi] (proper Euler angles) or
+            [-pi/2, pi/2] (Cardan / Tait-Bryan angles).
+        
+        translation : array-like, shape (N, 3)
+                Translation
+    
+    Returns:
+        screw_axis : array, shape (N, 6)
+            Screw axis described by 6 values
+            (omega_1, omega_2, omega_3, v_1, v_2, v_3),
+            where the first 3 components are related to rotation and the last 3
+            components are related to translation.
+    
+    Raises:
+        AssertionError: If the length of the screw axis tuple is not 6.
+    """
+    
+    # assert shape of inputs 
+    assert euler_angles.shape[1] == 3, f"Expected euler_angles to have shape (N, 3), but got {euler_angles.shape}"
+    assert translation.shape[1] == 3, f"Expected translation to have shape (N, 3), but got {translation.shape}"
+    
+    # compute active rotation matrix from any Euler angles
+    R = batch_matrix_from_euler(e=euler_angles, i=0, j=1, k=2, extrinsic=True)
+
+    # Make transformation from rotation matrix and translation.
+    transform = batch_transform_from(R, translation)
+    
+    # Compute dual quaternion from transformation matrix.
+    dq = batch_dual_quaternion_from_transform(transform)
+
+    # Compute screw parameters from dual quaternion.
+    
+    q, s_axis, h, _ = batch_screw_parameters_from_dual_quaternion(dq)
+    
+    screw_axis = batch_screw_axis_from_screw_parameters(q, s_axis, h)
+    
+    assert screw_axis.shape[1] == 6, f"Screw axis should be an array of 6 elements, but got {screw_axis} of length {screw_axis.shape[1]}"
+    return screw_axis
