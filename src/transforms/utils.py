@@ -3,7 +3,9 @@ import numpy as np
 # Source:
 # Code adapted from https://github.com/dfki-ric/pytransform3d
 
+# constants
 R_SHAPE = (3, 3)
+TWO_PI = 2.0 * np.pi
 
 def batch_check_matrix(R, tolerance=1e-6, strict_check=True):
     """Input validation of a rotation matrix.
@@ -280,3 +282,183 @@ def batch_concatenate_quaternions(Q1, Q2, out=None):
     # q12[1:] = q1[0] * q2[1:] + q2[0] * q1[1:] + np.cross(q1[1:], q2[1:])
     
     return out
+
+def batch_check_dual_quaternion(dq, unit=True):
+    """Input validation of dual quaternion representation.
+
+    See http://web.cs.iastate.edu/~cs577/handouts/dual-quaternion.pdf
+
+    A dual quaternion is defined as
+
+    .. math::
+
+        \\boldsymbol{\\sigma} = \\boldsymbol{p} + \\epsilon \\boldsymbol{q},
+
+    where :math:`\\boldsymbol{p}` and :math:`\\boldsymbol{q}` are both
+    quaternions and :math:`\\epsilon` is the dual unit with
+    :math:`\\epsilon^2 = 0`. The first quaternion is also called the real part
+    and the second quaternion is called the dual part.
+
+    Parameters
+    ----------
+    dq : array-like, shape (N, 8)
+        Dual quaternion to represent transform:
+        (pw, px, py, pz, qw, qx, qy, qz)
+
+    unit : bool, optional (default: True)
+        Normalize the dual quaternion so that it is a unit dual quaternion.
+        A unit dual quaternion has the properties
+        :math:`p_w^2 + p_x^2 + p_y^2 + p_z^2 = 1` and
+        :math:`p_w q_w + p_x q_x + p_y q_y + p_z q_z = 0`.
+
+    Returns
+    -------
+    dq : array, shape (N, 8)
+        Unit dual quaternion to represent transform:
+        (pw, px, py, pz, qw, qx, qy, qz)
+
+    Raises
+    ------
+    ValueError
+        If input is invalid
+    """
+    dq = np.asarray(dq, dtype=np.float64)
+    if dq.ndim != 2 or dq.shape[1] != 8:
+        raise ValueError("Expected dual quaternion with shape (N, 8), got "
+                         "array-like object with shape %s" % (dq.shape,))
+    if unit:
+        # Norm of a dual quaternion only depends on the real part because
+        # the dual part vanishes with epsilon ** 2 = 0.
+        real_norm = np.linalg.norm(dq[:, :4], axis=1)
+        mask_non_zero_norm = real_norm != 0.0  # if real_norm == 0.0:
+        dq[mask_non_zero_norm] /= real_norm[mask_non_zero_norm, np.newaxis] # return dq / real_norm
+        dq[~mask_non_zero_norm] = np.r_[1, 0, 0, 0, dq[~mask_non_zero_norm, 4:]] # return np.r_[1, 0, 0, 0, dq[4:]]  
+    return dq
+
+def batch_norm_angle(a):
+    """Normalize angle to (-pi, pi].
+
+    It is worth noting that using `numpy.ceil` to normalize angles will lose
+    more digits of precision as angles going larger but can keep more digits
+    of precision when angles are around zero. In common use cases, for example,
+    -10.0*pi to 10.0*pi, it performs well.
+
+    For more discussions on numerical precision:
+    https://github.com/dfki-ric/pytransform3d/pull/263
+
+    Parameters
+    ----------
+    a : float or array-like, shape (n,)
+        Angle(s) in radians
+
+    Returns
+    -------
+    a_norm : float or array, shape (n,)
+        Normalized angle(s) in radians
+    """
+    a = np.asarray(a, dtype=np.float64)
+    return a - (np.ceil((a + np.pi) / TWO_PI) - 1.0) * TWO_PI
+
+def batch_norm_vector(v):
+    """Normalize vector.
+
+    Parameters
+    ----------
+    v : array-like, shape (n,)
+        nd vector
+
+    Returns
+    -------
+    u : array, shape (n,)
+        nd unit vector with norm 1 or the zero vector
+    """
+    norm = np.linalg.norm(v, axis=1, keepdims=True)
+    mask_non_zero_norm = norm != 0.0 # if norm == 0.0:
+    v[mask_non_zero_norm] /= norm[mask_non_zero_norm]
+    return v # np.asarray(v) / norm
+
+def batch_check_quaternion(q, unit=True):
+    """Input validation of quaternion representation.
+
+    Parameters
+    ----------
+    q : array-like, shape (4,)
+        Quaternion to represent rotation: (w, x, y, z)
+
+    unit : bool, optional (default: True)
+        Normalize the quaternion so that it is a unit quaternion
+
+    Returns
+    -------
+    q : array-like, shape (4,)
+        Validated quaternion to represent rotation: (w, x, y, z)
+
+    Raises
+    ------
+    ValueError
+        If input is invalid
+    """
+    q = np.asarray(q, dtype=np.float64)
+    if q.ndim != 2 or q.shape[1] != 4:
+        raise ValueError("Expected quaternions with shape (N, 4), got "
+                         "array-like object with shape %s" % (q.shape,))
+    if unit:
+        return batch_norm_vector(q)
+    return q
+
+def batch_norm_axis_angle(a):
+    """Normalize axis-angle representation.
+
+    Parameters
+    ----------
+    a : array-like, shape (4,)
+        Axis of rotation and rotation angle: (x, y, z, angle)
+
+    Returns
+    -------
+    a : array, shape (4,)
+        Axis of rotation and rotation angle: (x, y, z, angle). The length
+        of the axis vector is 1 and the angle is in [0, pi). No rotation
+        is represented by [1, 0, 0, 0].
+    """
+    
+    a = np.asarray(a, dtype=np.float64)
+    angle = a[:, 3]
+    norm = np.linalg.norm(a[:, :3], axis=1)
+    
+    mask_non_zero_norm = norm != 0.0
+    mask_non_zero_angle = angle != 0.0
+
+    res = np.empty_like(a)
+    
+    # if angle == 0.0 or norm == 0.0:
+    mask_x = ~mask_non_zero_angle | ~mask_non_zero_norm
+    res[mask_x] = np.array([1.0, 0.0, 0.0, 0.0])  # return np.array([1.0, 0.0, 0.0, 0.0])
+    
+    
+    res[mask_non_zero_norm, :3] = a[mask_non_zero_norm, :3] / norm[mask_non_zero_norm, None] # res[:3] = a[:3] / norm
+    
+    angle = batch_norm_angle(angle)
+    
+    mask_negative_angle = angle < 0.0  # if angle < 0.0:
+    
+    angle[mask_negative_angle] *= -1.0     #     angle *= -1.0
+
+    res[mask_non_zero_norm][:, 3] *= -1.0     #     res[:3] *= -1.0
+    
+    res[:, 3] = angle     # res[3] = angle
+    
+    # if angle == 0.0 or norm == 0.0:
+    #     return np.array([1.0, 0.0, 0.0, 0.0])
+
+    # res = np.empty(4)
+    # res[:3] = a[:3] / norm
+
+    # angle = batch_norm_angle(angle)
+    # if angle < 0.0:
+    #     angle *= -1.0
+    #     res[:3] *= -1.0
+
+    # res[3] = angle
+
+    return res

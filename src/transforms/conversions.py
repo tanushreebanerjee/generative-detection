@@ -1,5 +1,6 @@
 import numpy as np
-from src.transforms.utils import batch_check_transform, batch_quaternion_from_matrix, batch_concatenate_quaternions
+from src.transforms.utils import batch_check_transform, batch_quaternion_from_matrix, \
+    batch_concatenate_quaternions, batch_check_dual_quaternion, batch_norm_axis_angle, batch_check_quaternion
 
 # Source:
 # Code adapted from https://github.com/dfki-ric/pytransform3d
@@ -276,15 +277,166 @@ def batch_dual_quaternion_from_transform(transform):
         # np.r_[0, A2B[:3, 3]], real)
     return np.hstack((real, dual))
 
+def batch_axis_angle_from_quaternion(q):
+    """Compute axis-angle from quaternion.
+
+    This operation is called logarithmic map.
+
+    We usually assume active rotations.
+
+    Parameters
+    ----------
+    q : array-like, shape (4,)
+        Unit quaternion to represent rotation: (w, x, y, z)
+
+    Returns
+    -------
+    a : array-like, shape (4,)
+        Axis of rotation and rotation angle: (x, y, z, angle). The angle is
+        constrained to [0, pi) so that the mapping is unique.
+    """
+    q = batch_check_quaternion(q)
+    p = q[:, 1:]
+    p_norm = np.linalg.norm(p, axis=1)
+    
+    res = np.zeros((q.shape[0], 4), dtype=np.float64)
+    mask_zero_norm = p_norm < np.finfo(float).eps # if p_norm < np.finfo(float).eps:
+    
+    # return np.array([1.0, 0.0, 0.0, 0.0])
+
+    res[mask_zero_norm] = np.array([1.0, 0.0, 0.0, 0.0])
+    
+    axis = p / p_norm[:, None]
+    
+    w_clamped = np.clip(q[:, 0], -1.0, 1.0)
+    angle = 2.0 * np.arccos(w_clamped)
+    
+    res[~mask_zero_norm] = batch_norm_axis_angle(np.hstack((axis, angle[:, None])))
+    
+    # if p_norm < np.finfo(float).eps:
+    #     return np.array([1.0, 0.0, 0.0, 0.0])
+
+    # axis = p / p_norm
+    # w_clamped = max(min(q[0], 1.0), -1.0)
+    # angle = (2.0 * np.arccos(w_clamped),)
+    # return batch_norm_axis_angle(np.hstack((axis, angle)))
+    return res
+    
+def batch_q_conj(Q):
+    """Conjugate of quaternions.
+
+    The conjugate of a unit quaternion inverts the rotation represented by
+    this unit quaternion. The conjugate of a quaternion q is often denoted
+    as q*.
+
+    Parameters
+    ----------
+    Q : array-like, shape (..., 4)
+        Unit quaternions to represent rotations: (w, x, y, z)
+
+    Returns
+    -------
+    Q_c : array, shape (..., 4,)
+        Conjugates (w, -x, -y, -z)
+    """
+    Q = np.asarray(Q)
+    out = np.empty_like(Q)
+    out[..., 0] = Q[..., 0]
+    out[..., 1:] = -Q[..., 1:]
+    return out
+
 def batch_screw_parameters_from_dual_quaternion(dq):
-    pass
+    """Compute screw parameters from dual quaternion.
+
+    Parameters
+    ----------
+    dq : array-like, shape (8,)
+        Unit dual quaternion to represent transform:
+        (pw, px, py, pz, qw, qx, qy, qz)
+
+    Returns
+    -------
+    q : array, shape (3,)
+        Vector to a point on the screw axis
+
+    s_axis : array, shape (3,)
+        Direction vector of the screw axis
+
+    h : float
+        Pitch of the screw. The pitch is the ratio of translation and rotation
+        of the screw axis. Infinite pitch indicates pure translation.
+
+    theta : float
+        Parameter of the transformation: theta is the angle of rotation
+        and h * theta the translation.
+    """
+    dq = batch_check_dual_quaternion(dq, unit=True)
+    q = np.zeros((dq.shape[0], 3))
+    s_axis = np.zeros((dq.shape[0], 3))
+    h = np.zeros(dq.shape[0])
+    theta = np.zeros(dq.shape[0])
+    moment = np.zeros((dq.shape[0], 3))
+    distance = np.zeros(dq.shape[0])
+    
+    real = dq[:, :4]
+    dual = dq[:, 4:]
+    
+    a = batch_axis_angle_from_quaternion(real)
+    s_axis = a[:, :3]
+    theta = a[:, 3]
+
+    translation = 2 * batch_concatenate_quaternions(dual, batch_q_conj(real))[:, 1:]
+    
+    #     if abs(theta) < np.finfo(float).eps:
+    mask_abs_theta_neg = np.abs(theta) < np.finfo(float).eps # pure translation
+    d = np.linalg.norm(translation, axis=1)
+    # if d < np.finfo(float).eps:
+    mask_d_neg = d < np.finfo(float).eps 
+    mask_curr = mask_abs_theta_neg & mask_d_neg
+    s_axis[mask_curr] = np.array([1, 0, 0])
+    
+    # else:
+    mask_curr = mask_abs_theta_neg & ~mask_d_neg
+    s_axis[mask_curr] = translation[mask_curr] / d[mask_curr][:, None]
+    
+    
+    q[mask_abs_theta_neg] = np.zeros(3)
+    dual[mask_abs_theta_neg] = q[mask_abs_theta_neg]
+    theta[mask_abs_theta_neg] = d[mask_abs_theta_neg]
+    h[mask_abs_theta_neg] = np.inf 
+    
+    distance[~mask_abs_theta_neg] = np.dot(translation[~mask_abs_theta_neg], s_axis[~mask_abs_theta_neg])
+    moment[~mask_abs_theta_neg] = 0.5 * (np.cross(translation[~mask_abs_theta_neg], s_axis[~mask_abs_theta_neg]) +
+                                            (translation[~mask_abs_theta_neg] - distance[~mask_abs_theta_neg][:, None] * s_axis[~mask_abs_theta_neg])
+                                            / np.tan(0.5 * theta[~mask_abs_theta_neg]))
+    dual[~mask_abs_theta_neg] = np.cross(s_axis[~mask_abs_theta_neg], moment[~mask_abs_theta_neg])
+    h[~mask_abs_theta_neg] = distance[~mask_abs_theta_neg] / theta[~mask_abs_theta_neg]
+
+    # if abs(theta) < np.finfo(float).eps:
+    #     # pure translation
+    #     d = np.linalg.norm(translation)
+    #     if d < np.finfo(float).eps:
+    #         s_axis = np.array([1, 0, 0])
+    #     else:
+    #         s_axis = translation / d
+    #     q = np.zeros(3)
+    #     theta = d
+    #     h = np.inf
+    #     return q, s_axis, h, theta
+
+    # distance = np.dot(translation, s_axis)
+    # moment = 0.5 * (np.cross(translation, s_axis) +
+    #                 (translation - distance * s_axis)
+    #                 / np.tan(0.5 * theta))
+    # dual = np.cross(s_axis, moment)
+    # h = distance / theta
+    return dual, s_axis, h, theta
 
 def batch_screw_axis_from_screw_parameters(q, s_axis, h):
     pass
 
 def batch_screw_axis_from_euler_angles_and_translation(euler_angles, translation):
-    """
-    Converts Euler angles and translation to screw axis representation. (in batches)
+    """ Converts Euler angles and translation to screw axis representation. (in batches)
     
     Args: 
         euler_angles : array-like, shape (N, 3)
