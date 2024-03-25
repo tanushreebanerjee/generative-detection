@@ -462,3 +462,54 @@ def batch_norm_axis_angle(a):
     # res[3] = angle
 
     return res
+
+def batch_check_screw_parameters(q, s_axis, h):
+    r"""Input validation of screw parameters.
+
+    The parameters :math:`(\boldsymbol{q}, \hat{\boldsymbol{s}}, h)`
+    describe a screw.
+
+    Parameters
+    ----------
+    q : array-like, shape (3,)
+        Vector to a point on the screw axis
+
+    s_axis : array-like, shape (3,)
+        Direction vector of the screw axis
+
+    h : float
+        Pitch of the screw. The pitch is the ratio of translation and rotation
+        of the screw axis. Infinite pitch indicates pure translation.
+
+    Returns
+    -------
+    q : array, shape (3,)
+        Vector to a point on the screw axis. Will be set to zero vector when
+        pitch is infinite (pure translation).
+
+    s_axis : array, shape (3,)
+        Unit direction vector of the screw axis
+
+    h : float
+        Pitch of the screw. The pitch is the ratio of translation and rotation
+        of the screw axis. Infinite pitch indicates pure translation.
+
+    Raises
+    ------
+    ValueError
+        If input is invalid
+    """
+    s_axis = np.asarray(s_axis, dtype=np.float64)
+    if s_axis.ndim != 2 or s_axis.shape[1] != 3:
+        raise ValueError("Expected 3D vector with shape (B, 3), got array-like "
+                         "object with shape %s" % (s_axis.shape,))
+    if np.any(np.linalg.norm(s_axis, axis=1) == 0.0):
+        raise ValueError("s_axis must not have norm 0")
+
+    q = np.asarray(q, dtype=np.float64)
+    if q.ndim != 2 or q.shape[1] != 3:
+        raise ValueError("Expected 3D vector with shape (B, 3), got array-like "
+                         "object with shape %s" % (q.shape,))
+    q[np.isinf(h)] = 0.0  # Set q to zero for pure translation screws
+
+    return q, batch_norm_vector(s_axis), h

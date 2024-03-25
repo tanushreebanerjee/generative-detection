@@ -1,6 +1,7 @@
 import numpy as np
 from src.transforms.utils import batch_check_transform, batch_quaternion_from_matrix, \
-    batch_concatenate_quaternions, batch_check_dual_quaternion, batch_norm_axis_angle, batch_check_quaternion
+    batch_concatenate_quaternions, batch_check_dual_quaternion, batch_norm_axis_angle, \
+        batch_check_quaternion, batch_check_screw_parameters
 
 # Source:
 # Code adapted from https://github.com/dfki-ric/pytransform3d
@@ -433,10 +434,44 @@ def batch_screw_parameters_from_dual_quaternion(dq):
     return dual, s_axis, h, theta
 
 def batch_screw_axis_from_screw_parameters(q, s_axis, h):
-    pass
+    """Compute screw axis representation from screw parameters.
+
+    Parameters
+    ----------
+    q : array-like, shape (3,)
+        Vector to a point on the screw axis
+
+    s_axis : array-like, shape (3,)
+        Direction vector of the screw axis
+
+    h : float
+        Pitch of the screw. The pitch is the ratio of translation and rotation
+        of the screw axis. Infinite pitch indicates pure translation.
+
+    Returns
+    -------
+    screw_axis : array, shape (6,)
+        Screw axis described by 6 values
+        (omega_1, omega_2, omega_3, v_1, v_2, v_3),
+        where the first 3 components are related to rotation and the last 3
+        components are related to translation.
+    """
+    screw_axis = np.zeros((q.shape[0], 6))
+    q, s_axis, h = batch_check_screw_parameters(q, s_axis, h)
+
+    # if np.isinf(h):  # pure translation
+    mask_pure_translation = np.isinf(h) 
+    
+    #     return np.r_[0.0, 0.0, 0.0, s_axis]
+    screw_axis[mask_pure_translation, 3:] = s_axis[mask_pure_translation] 
+    
+    # return np.r_[s_axis, np.cross(q, s_axis) + h * s_axis]
+    screw_axis[~mask_pure_translation] = np.hstack((s_axis[~mask_pure_translation], np.cross(q[~mask_pure_translation], s_axis[~mask_pure_translation]) + h[~mask_pure_translation][:, np.newaxis] * s_axis[~mask_pure_translation]))
+    
+    return screw_axis
 
 def batch_screw_axis_from_euler_angles_and_translation(euler_angles, translation):
-    """ Converts Euler angles and translation to screw axis representation. (in batches)
+    """Compute screw axis representation from Euler angles and translation.
     
     Args: 
         euler_angles : array-like, shape (N, 3)
@@ -458,10 +493,13 @@ def batch_screw_axis_from_euler_angles_and_translation(euler_angles, translation
     Raises:
         AssertionError: If the length of the screw axis tuple is not 6.
     """
+    euler_angles = np.asarray(euler_angles)
+    translation = np.asarray(translation)
     
     # assert shape of inputs 
     assert euler_angles.shape[1] == 3, f"Expected euler_angles to have shape (N, 3), but got {euler_angles.shape}"
     assert translation.shape[1] == 3, f"Expected translation to have shape (N, 3), but got {translation.shape}"
+    assert euler_angles.shape[0] != translation.shape[0], f"Number of rows in euler_angles and translation must be the same."
     
     # compute active rotation matrix from any Euler angles
     R = batch_matrix_from_euler(e=euler_angles, i=0, j=1, k=2, extrinsic=True)
@@ -473,9 +511,9 @@ def batch_screw_axis_from_euler_angles_and_translation(euler_angles, translation
     dq = batch_dual_quaternion_from_transform(transform)
 
     # Compute screw parameters from dual quaternion.
-    
     q, s_axis, h, _ = batch_screw_parameters_from_dual_quaternion(dq)
     
+    # Compute screw axis representation from screw parameters.
     screw_axis = batch_screw_axis_from_screw_parameters(q, s_axis, h)
     
     assert screw_axis.shape[1] == 6, f"Screw axis should be an array of 6 elements, but got {screw_axis} of length {screw_axis.shape[1]}"
