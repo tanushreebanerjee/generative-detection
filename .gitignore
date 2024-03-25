@@ -1,3 +1,4 @@
+src/*.ipynb
 data/original
 data/processed
 scripts/slurm
