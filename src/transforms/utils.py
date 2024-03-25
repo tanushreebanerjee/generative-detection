@@ -5,6 +5,7 @@ import numpy as np
 
 # constants
 R_SHAPE = (3, 3)
+HOMOGENEOUS_SHAPE = (4, 4)
 TWO_PI = 2.0 * np.pi
 
 def batch_check_matrix(R, tolerance=1e-6, strict_check=True):
@@ -97,7 +98,7 @@ def batch_check_transform(A2B, strict_check=True):
         If input is invalid
     """
     A2B = np.asarray(A2B, dtype=np.float64)
-    if A2B.ndim != 3 or A2B.shape[1:] != (4, 4):
+    if A2B.ndim != 3 or A2B.shape[1:] != HOMOGENEOUS_SHAPE:
         raise ValueError("Expected homogeneous transformation matrices with "
                          "shape (batch_size, 4, 4), got array-like object with shape %s"
                          % (A2B.shape,))
