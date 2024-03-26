@@ -14,3 +14,6 @@
 [submodule "submodules/pytransform3d"]
 	path = submodules/pytransform3d
 	url = https://github.com/dfki-ric/pytransform3d.git
+[submodule "submodules/pytorch3d"]
+	path = submodules/pytorch3d
+	url = https://github.com/facebookresearch/pytorch3d.git
