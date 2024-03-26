@@ -17,3 +17,9 @@
 [submodule "submodules/pytorch3d"]
 	path = submodules/pytorch3d
 	url = https://github.com/facebookresearch/pytorch3d.git
+[submodule "submodules/mmdetection3d"]
+	path = submodules/mmdetection3d
+	url = https://github.com/open-mmlab/mmdetection3d.git
+[submodule "submodules/mmcv"]
+	path = submodules/mmcv
+	url = https://github.com/open-mmlab/mmcv.git
