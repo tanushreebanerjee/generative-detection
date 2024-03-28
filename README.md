@@ -41,10 +41,10 @@ Please follow instructions in the [GET3D repository](https://github.com/nv-tlabs
 
 The code we used to generate our ShapeNet dataset train, validation and test splits is in `src/data/datasets/shapenet.py` in the `create_splits` function. We set the `numpy` random seed as `23` to generate these splits.
 
-## Prepare nuScenes Dataset
+## Prepare nuScenes Dataset [2]
 > TODO
 
-## Prepare the Waymo Open Dataset
+## Prepare the Waymo Open Dataset [3]
 > TODO
 
 ## Training
@@ -97,3 +97,5 @@ The code in this repository is released under the [MIT License](LICENSE). We wel
 [2] nuScenes: [ArXiv](https://arxiv.org/abs/1903.11027)
 
 [3] Waymo Open Dataset: [ArXiv](https://arxiv.org/abs/1912.04838)
+
+[4] ShapeNet: [ArXiv](https://arxiv.org/abs/1512.03012)
