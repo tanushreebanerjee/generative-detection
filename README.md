@@ -5,6 +5,8 @@ This repository is the official implementation of [Generative Detection via Inve
 
 > TODO: Demo link
 
+> TODO: BibTex
+
 ## Requirements
 
 To install requirements:
@@ -36,7 +38,7 @@ git submodule update --init --recursive
 pip install -e .
 ```
 
-## Prepare ShapeNet Dataset
+## Prepare ShapeNet Dataset [4]
 Please follow instructions in the [GET3D repository](https://github.com/nv-tlabs/GET3D/blob/master/render_shapenet_data/README.md) to download and render the ShapeNet dataset. Save this processed dataset at `ROOT/data/processed/shapenet/processed_get3d`.
 
 The code we used to generate our ShapeNet dataset train, validation and test splits is in `src/data/datasets/shapenet.py` in the `create_splits` function. We set the `numpy` random seed as `23` to generate these splits.
@@ -49,7 +51,7 @@ The code we used to generate our ShapeNet dataset train, validation and test spl
 
 ## Training
 
-To train the model(s) in the paper, run this command:
+To train the model in the paper, run this command:
 ```train
 python train.py --base configs/autoencoder/pose/autoencoder_kl_8x8x64.yaml -t --gpus 0,
 ```
