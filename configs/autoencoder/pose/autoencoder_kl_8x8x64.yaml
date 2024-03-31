@@ -19,7 +19,7 @@ model:
       z_channels: 64
       resolution: 64
       in_channels: 3
-      out_ch: 3
+      out_ch: 4
       ch: 128
       ch_mult: [ 1,1,2,2,4,4]  # num_down = len(ch_mult)-1
       num_res_blocks: 2
