@@ -12,9 +12,9 @@ import pytorch_lightning as pl
 import math
 import random
 from math import radians
-from src.util.transforms import euler_translation_to_screw
+from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
-SCREW_PARAMS_DIM = 6
+POSE_6D_DIM = 6
 PITCH_MAX = 360
 YAW_MAX = 30
 
@@ -32,6 +32,7 @@ class PoseAutoencoder(AutoencoderKL):
                  ddconfig,
                  lossconfig,
                  embed_dim,
+                 euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
                  image1_key="image1",
@@ -64,11 +65,12 @@ class PoseAutoencoder(AutoencoderKL):
         img_feat_dims = self._get_img_feat_dims(ddconfig)
         
         feat_dim_config = {"img_feat_dims": img_feat_dims,
-                       "pose_feat_dims": SCREW_PARAMS_DIM}
+                       "pose_feat_dims": POSE_6D_DIM}
                 
         self.pose_decoder = PoseDecoder(**feat_dim_config)
         self.pose_encoder = PoseEncoder(**feat_dim_config)
         self.z_channels = ddconfig["z_channels"]
+        self.euler_convention=euler_convention
     
     def _get_img_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
@@ -250,7 +252,7 @@ class PoseAutoencoder(AutoencoderKL):
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
     
-    def _perturb_poses(self, pose_inputs, pitch_max=PITCH_MAX, yaw_max=YAW_MAX):
+    def _perturb_poses(self, pose_inputs, convention, pitch_max=PITCH_MAX, yaw_max=YAW_MAX):
         batch_size = pose_inputs.size(0)        
         rotation_deg = torch.tensor([random.uniform(0, pitch_max) for _ in range(batch_size)])
         elevation_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
@@ -259,8 +261,8 @@ class PoseAutoencoder(AutoencoderKL):
         
         euler_angles = torch.stack([torch.zeros(batch_size), rotation_rad, elevation_rad], dim=1)
         translation = torch.zeros(batch_size, 3)
-        screw_params = euler_translation_to_screw(euler_angles, translation)
-        return screw_params.to(self.device)
+        pose_6d = euler_angles_translation2se3_log_map(euler_angles, translation, self.euler_convention)
+        return pose_6d.to(self.device)
 
     def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
         pose_feat_map = self._encode_pose(pose_decoded_perturbed)         

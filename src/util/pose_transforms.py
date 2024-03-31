@@ -14,9 +14,9 @@ def euler_angles_translation2transformation_matrix(euler_angle, translation, con
     
     return transformation
 
-def euler_angles_translation2se3_log_map(translation, euler_angle, convention):
+def euler_angles_translation2se3_log_map(euler_angle, translation, convention):
     """
-    Convert euler angles and translation to  to a batch of 6-dimensional SE(3) logarithms of the SE(3) matrices.
+    Convert euler angles and translation to a batch of 6-dimensional SE(3) logarithms of the SE(3) matrices.
     
     """
     transformation = euler_angles_translation2transformation_matrix(euler_angle, translation, convention)    
@@ -32,8 +32,9 @@ def transformation_matrix2euler_angles_translation(transformation, convention):
     R = transformation[:, :3, :3].permute(0, 2, 1)
     t = transformation.permute(0, 2, 1)[:, :3, 3]
 
-    euler_angle = matrix_to_euler_angles(R, convention)   # 
-    return euler_angle, t
+    euler_angle = matrix_to_euler_angles(R, convention)
+    translation = t
+    return euler_angle, translation
 
 def se3_log_map2euler_angles_translation(se3_log, convention, angle_max=-torch.pi, angle_min=torch.pi):
     """
@@ -48,5 +49,5 @@ def se3_log_map2euler_angles_translation(se3_log, convention, angle_max=-torch.p
     # make all angles be in the range [angle_min, angle_max]
     euler_angle = torch.where(euler_angle > angle_max, euler_angle - 2 * torch.pi, euler_angle)
     euler_angle = torch.where(euler_angle < angle_min, euler_angle + 2 * torch.pi, euler_angle)
-    
-    return euler_angle, t
+    translation = t
+    return euler_angle, translation

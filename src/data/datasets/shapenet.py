@@ -12,7 +12,7 @@ import logging
 import cProfile, pstats, io
 from pstats import SortKey
 from math import radians
-from src.util.transforms import euler_translation_to_screw
+from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
@@ -223,7 +223,7 @@ class ShapeNetTest(ShapeNetBase):
         self.random_crop = retrieve(self.config, "random_crop", default=False)
     
 class ShapeNetPose(Dataset):
-    def __init__(self, size=None):
+    def __init__(self, size=None, euler_convention=None):
         """
         Initialize the ShapeNet dataset.
 
@@ -235,12 +235,16 @@ class ShapeNetPose(Dataset):
         assert size is not None, "size must be specified"
         self.size = size
         
+        assert euler_convention is not None, "euler_angle_convention must be specified"
+        assert euler_convention in ["XYZ", "ZYX"], f"Invalid euler_angle_convention {euler_convention}. Must be 'XYZ' or 'ZYX'."
+        self.euler_convention = euler_convention
+        
         self.image_rescaler = albumentations.SmallestMaxSize(max_size=size, interpolation=cv2.INTER_AREA)
 
     def __len__(self):
         return len(self.base)
     
-    def _get_object_pose_as_screw_params(self, idx):
+    def _get_object_pose_6d(self, idx):
             """
             Get the pose of the object at the given index as screw parameters.
 
@@ -259,9 +263,20 @@ class ShapeNetPose(Dataset):
             elevation_rad = radians(elevation_deg)
 
             # Convert the Euler angles and translation to screw parameters
-            euler_angles = np.array([0, elevation_rad, rotation_rad])
+            roll = 0
+            pitch = elevation_rad
+            yaw = rotation_rad
+            
+            # set euler angles in order based on convention
+            if self.euler_convention == "XYZ":
+                euler_angle = np.array([roll, pitch, yaw])
+            elif self.euler_convention == "ZYX":
+                euler_angle = np.array([yaw, pitch, roll])
+            else:
+                raise ValueError(f"Invalid convention {self.euler_convention}. Must be 'XYZ' or 'ZYX'.")
+            
             translation = np.array([0, 0, 0])
-            object_pose_screw = euler_translation_to_screw(euler_angles, translation)
+            object_pose_screw = euler_angles_translation2se3_log_map(euler_angle, translation, self.euler_convention)
             return object_pose_screw
     
     def __getitem__(self, i):
@@ -276,7 +291,7 @@ class ShapeNetPose(Dataset):
         image = self.image_rescaler(image=image)["image"]
 
         example["image1"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["pose1"] = self._get_object_pose_as_screw_params(i)
+        example["pose1"] = self._get_object_pose_6d(i)
         
         # Get a random example of the same object but with a different pose
         class_label = example["class_label"]
@@ -290,7 +305,7 @@ class ShapeNetPose(Dataset):
         random_image = np.array(random_image).astype(np.uint8)
         random_image = self.image_rescaler(image=random_image)["image"]
         example["image2"] = (random_image/127.5 - 1.0).astype(np.float32)
-        example["pose2"] = self._get_object_pose_as_screw_params(random_idx)
+        example["pose2"] = self._get_object_pose_6d(random_idx)
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):
