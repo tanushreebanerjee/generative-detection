@@ -6,6 +6,7 @@ export CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
 GPUS=0,
 
 MODEL=autoencoder
+MODE=train
 SCRIPT_NAME=${MODE}.py
 
 CONFIG_DIR=configs
