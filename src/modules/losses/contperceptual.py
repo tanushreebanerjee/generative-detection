@@ -11,11 +11,18 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, pose_weight=1.0, *args, **kwargs):
+    def __init__(self, pose_weight=1.0, poss_loss_fn=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_weight = pose_weight
-        self.pose_loss = nn.MSELoss()
-
+        assert poss_loss_fn is not None, "Please provide a pose loss function."
+        assert poss_loss_fn in ["l1", "l2", "mse"], "Please provide a valid pose loss function in ['l1', 'l2', 'mse']."
+        if poss_loss_fn == "l1":
+            self.pose_loss = nn.L1Loss()
+        elif poss_loss_fn == "l2" or poss_loss_fn == "mse":
+            self.pose_loss = nn.MSELoss()
+        else:
+            raise ValueError("Invalid pose loss function. Please provide a valid pose loss function in ['l1', 'l2', 'mse'].")
+        
     def compute_pose_loss(self, pred, gt):
         return self.pose_loss(pred, gt)
 
