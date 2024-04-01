@@ -301,33 +301,34 @@ class PoseAutoencoder(AutoencoderKL):
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
-        x1 = self.get_input(batch, self.image1rgb_key)
-        x2 = self.get_input(batch, self.image2rgb_key)
+        x1_rgb = self.get_input(batch, self.image1rgb_key)
+        x2_rgb = self.get_input(batch, self.image2rgb_key)
         x1_mask = self.get_input(batch, self.image1mask_key)
         x2_mask = self.get_input(batch, self.image2mask_key)
         pose2 = self.get_pose_input(batch, self.pose2_key)
-        x1 = x1.to(self.device)
-        x2 = x2.to(self.device)
+        x1_rgb = x1_rgb.to(self.device)
+        x2_rgb = x2_rgb.to(self.device)
         pose2 = pose2.to(self.device)
         if not only_inputs:
-            xrec1, xrec2, posterior1, pose_decoded1 = self(x1, pose2)
+            xrec1, xrec2, posterior1, pose_decoded1 = self(x1_rgb, pose2)
             xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
-            if x1.shape[1] > 3:
+            if x1_rgb.shape[1] > 3:
                 # colorize with random projection
                 assert xrec1.shape[1] > 3
-                x1_rgb = self.to_rgb(x1)
-                x2_rgb = self.to_rgb(x2)
-                xrec1_rgb = self.to_rgb(xrec1)
-                xrec2_rgb = self.to_rgb(xrec2)
-                xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose)
+                x1_rgb = self.to_rgb(x1_rgb)
+                x2_rgb = self.to_rgb(x2_rgb)
+            
+            xrec1_rgb = self.to_rgb(xrec1)
+            xrec2_rgb = self.to_rgb(xrec2)
+            xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose)
                 
-                if xrec1.shape[1] == 4:
-                    xrec1_mask = self.to_mask(xrec1)
-                    xrec2_mask = self.to_mask(xrec2)
-                    xrec1_perturbed_pose_mask = self.to_mask(xrec1_perturbed_pose)
-                    log["reconstructions1_mask"] = xrec1_mask
-                    log["reconstructions2_mask"] = xrec2_mask
-                    log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
+            if xrec1.shape[1] == 4: # alpha channel prediction loggging
+                xrec1_mask = self.to_mask(xrec1)
+                xrec2_mask = self.to_mask(xrec2)
+                xrec1_perturbed_pose_mask = self.to_mask(xrec1_perturbed_pose)
+                log["reconstructions1_mask"] = xrec1_mask
+                log["reconstructions2_mask"] = xrec2_mask
+                log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
                 
             log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
             log["reconstructions1_rgb"] = xrec1_rgb
