@@ -14,39 +14,22 @@ def euler_angles_translation2transformation_matrix(euler_angle, translation, con
     translation = translation.reshape(-1, 3)
     
     batch_size = euler_angle.shape[0] 
-    logging.info(f"euler_angle shape: {euler_angle.shape}, translation shape: {translation.shape}") # torch.Size([1, 3]), torch.Size([1, 3])
-    logging.info(f"batch_size: {batch_size}")
     R = euler_angles_to_matrix(euler_angle, convention) # R shape: torch.Size([1, 3, 3])
-    logging.info(f"R shape: {R.shape}") 
     t = translation # t shape: torch.Size([1, 3])
-    logging.info(f"t shape: {t.shape}")
-    
     transformation = torch.eye(4).unsqueeze(0).repeat(batch_size, 1, 1) # transformation shape: torch.Size([1, 4, 4])
-    logging.info(f"transformation shape: {transformation.shape}")
     transformation[:, :3, :3] = R
-    logging.info(f"transformation shape: {transformation.shape}")
     transformation[:, :3, 3] = t
-    logging.info(f"transformation shape: {transformation.shape}")
     return transformation
 
 def euler_angles_translation2se3_log_map(euler_angle, translation, convention):
     """
     Convert euler angles and translation to a batch of 6-dimensional SE(3) logarithms of the SE(3) matrices.
     
-    """
-    logging.info(f"euler_angle shape: {euler_angle.shape}, translation shape: {translation.shape}")
-    
+    """    
     transformation = euler_angles_translation2transformation_matrix(euler_angle, translation, convention)    
-    logging.info(f"transformation shape: {transformation.shape}")
-    transformation_t = transformation.permute(0, 2, 1)
-    logging.info(f"transformation_t shape: {transformation_t.shape}")
-    
-    se3_log = se3_log_map(transformation_t)
-    logging.info(f"se3_log shape: {se3_log.shape}")
-   
-    se3_log = torch.tensor(se3_log, dtype=torch.float32)
-    logging.info(f"se3_log shape: {se3_log.shape}")
-    
+    transformation_t = transformation.permute(0, 2, 1)    
+    se3_log = se3_log_map(transformation_t)   
+    se3_log = torch.tensor(se3_log, dtype=torch.float32)    
     return se3_log
 
 def transformation_matrix2euler_angles_translation(transformation, convention):
