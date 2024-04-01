@@ -14,7 +14,6 @@ import math
 import random
 from math import radians
 import numpy as np
-import logging
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
 POSE_6D_DIM = 6
@@ -330,26 +329,24 @@ class PoseAutoencoder(AutoencoderKL):
             xrec1_rgb = xrec1[:, :3, :, :]
             xrec2_rgb = xrec2[:, :3, :, :]
             xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
-            logging.info(f"xrec1_rgb shape: {xrec1_rgb.shape}, xrec2_rgb shape: {xrec2_rgb.shape}, xrec1_perturbed_pose_rgb shape: {xrec1_perturbed_pose_rgb.shape}")
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
                 
                 xrec1_mask = np.array(xrec1[:, 3, :, :].cpu())
                 xrec2_mask = np.array(xrec2[:, 3, :, :].cpu())
                 xrec1_perturbed_pose_mask = np.array(xrec1_perturbed_pose[:, 3, :, :].cpu())
-                logging.info(f"xrec1_mask shape: {xrec1_mask.shape}, xrec2_mask shape: {xrec2_mask.shape}, xrec1_perturbed_pose_mask shape: {xrec1_perturbed_pose_mask.shape}")
 
                 # convert to uint8, in height, width format (gray scale) for PIL
-                xrec1_mask = np.clip(xrec1_mask.cpu().numpy(), 0., 1.)
-                xrec2_mask = np.clip(xrec2_mask.cpu().numpy(), 0., 1.)
-                xrec1_perturbed_pose_mask = np.clip(xrec1_perturbed_pose_mask.cpu().numpy(), 0., 1.)
+                xrec1_mask = np.clip(xrec1_mask, 0., 1.)
+                xrec2_mask = np.clip(xrec2_mask, 0., 1.)
+                xrec1_perturbed_pose_mask = np.clip(xrec1_perturbed_pose_mask, 0., 1.)
                 
                 xrec1_mask = (xrec1_mask * 255).astype(np.uint8).transpose(1, 2, 0)
                 xrec2_mask = (xrec2_mask * 255).astype(np.uint8).transpose(1, 2, 0)
                 xrec1_perturbed_pose_mask = (xrec1_perturbed_pose_mask * 255).astype(np.uint8).transpose(1, 2, 0)
-                logging.info(f"xrec1_mask shape: {xrec1_mask.shape}, xrec2_mask shape: {xrec2_mask.shape}, xrec1_perturbed_pose_mask shape: {xrec1_perturbed_pose_mask.shape}")
-                log["reconstructions1_mask"] = xrec1_mask
-                log["reconstructions2_mask"] = xrec2_mask
-                log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
+                
+                # log["reconstructions1_mask"] = torch.tensor(xrec1_mask)
+                # log["reconstructions2_mask"] = torch.tensor(xrec2_mask)
+                # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec1_perturbed_pose_mask)
             
             if x1_rgb.shape[1] > 3:
                 # colorize with random projection
@@ -362,9 +359,9 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose_rgb)
 
             log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
-            log["reconstructions1_rgb"] = xrec1_rgb
-            log["reconstructions2_rgb"] = xrec2_rgb
-            log["perturbed_pose_reconstruction_rgb"] = xrec1_perturbed_pose_rgb
+            log["reconstructions1_rgb"] = torch.tensor(xrec1_rgb)
+            log["reconstructions2_rgb"] = torch.tensor(xrec2_rgb)
+            log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec1_perturbed_pose_rgb)
         
         log["inputs1_rgb"] = x1_rgb
         log["inputs2_rgb"] = x2_rgb
