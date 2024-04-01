@@ -8,8 +8,12 @@ def euler_angles_translation2transformation_matrix(euler_angle, translation, con
     if len(euler_angle.shape) == 1:
         euler_angle = euler_angle.unsqueeze(0)
         translation = translation.unsqueeze(0)
-
-    batch_size = euler_angle.shape[0] # 1
+        
+    # make sure euler_angles.dim() == 0 and euler_angles.shape[-1] != 3:
+    euler_angle = euler_angle.reshape(-1, 3)
+    translation = translation.reshape(-1, 3)
+    
+    batch_size = euler_angle.shape[0] 
     logging.info(f"euler_angle shape: {euler_angle.shape}, translation shape: {translation.shape}") # torch.Size([1, 3]), torch.Size([1, 3])
     logging.info(f"batch_size: {batch_size}")
     R = euler_angles_to_matrix(euler_angle, convention) # R shape: torch.Size([1, 3, 3])
