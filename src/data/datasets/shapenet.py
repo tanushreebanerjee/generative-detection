@@ -309,8 +309,6 @@ class ShapeNetPose(Dataset):
         example["image1_rgba"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
         example["image1_rgb"] = example["image1_rgba"][:, :, :3]
         example["image1_mask"] = example["image1_rgba"][:, :, 3]
-        
-        logging.info(f"test pose 1: {self._get_object_pose_6d(i)}")
         example["pose1"] = self._get_object_pose_6d(i).reshape(-1)
 
         # Get a random example of the same object but with a different pose

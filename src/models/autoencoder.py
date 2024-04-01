@@ -12,7 +12,6 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 import math
 import random
-import logging
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
@@ -112,10 +111,7 @@ class PoseAutoencoder(AutoencoderKL):
         Returns:
             Encoded pose feature map tensor.
         """
-        logging.info(f"x shape: {x.shape}")
-        flattened_encoded_pose_feat_map = self.pose_encoder(x)
-        logging.info(f"flattened_encoded_pose_feat_map shape: {flattened_encoded_pose_feat_map.shape}")
-        
+        flattened_encoded_pose_feat_map = self.pose_encoder(x)        
         return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)), 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)))
@@ -149,15 +145,10 @@ class PoseAutoencoder(AutoencoderKL):
             Returns:
                 Tensor: The reconstructed second image.
             """
-            logging.info(f"pose2 shape: {pose2.shape}, z1 shape: {z1.shape}")
             pose2 = pose2.reshape(pose2.size(0), -1)
-            logging.info(f"pose2 shape: {pose2.shape}")
             pose_feat_map = self._encode_pose(pose2)  
-            logging.info(f"pose_feat_map shape: {pose_feat_map.shape}")
             feat_map_img_pose = z1 + pose_feat_map
-            logging.info(f"feat_map_img_pose shape: {feat_map_img_pose.shape}")
             dec2 = self.decode(feat_map_img_pose)
-            logging.info(f"dec2 shape: {dec2.shape}")
             return dec2
     
     def forward(self, input1, pose2, sample_posterior=True):
@@ -180,7 +171,6 @@ class PoseAutoencoder(AutoencoderKL):
         else:
             img_feat_map1 = posterior1.mode()
         
-        logging.info(f"img_feat_map1 shape: {img_feat_map1.shape}")
         dec2 = self._get_img2_reconstruction(pose2, img_feat_map1)
         
         feat_map_img_pose1, pose_decoded1 = self._get_feat_map_img_pose(img_feat_map1)
@@ -196,15 +186,11 @@ class PoseAutoencoder(AutoencoderKL):
     
     def training_step(self, batch, batch_idx, optimizer_idx):
         inputs1_rgb = self.get_input(batch, self.image1rgb_key)
-        print("inputs1_rgb", inputs1_rgb.size())
         pose_inputs1 = self.get_pose_input(batch, self.pose1_key)
-        print("pose_inputs1", pose_inputs1.size())
         inputs1_mask = self.get_input(batch, self.image1mask_key)
         
         inputs2_rgb = self.get_input(batch, self.image2rgb_key)
-        print("inputs2_rgb", inputs2_rgb.size())
         pose_inputs2 = self.get_pose_input(batch, self.pose2_key)
-        print("pose_inputs2", pose_inputs2.size())
         inputs2_mask = self.get_input(batch, self.image2mask_key)
         
         reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1_rgb, pose_inputs2)
@@ -236,14 +222,10 @@ class PoseAutoencoder(AutoencoderKL):
     
     def validation_step(self, batch, batch_idx):
         inputs1_rgb = self.get_input(batch, self.image1rgb_key) # torch.Size([8, 3, 64, 64])
-        print("inputs1_rgb", inputs1_rgb.size())
         pose_inputs_1 = self.get_pose_input(batch, self.pose1_key) # torch.Size([8, 1, 6])
-        print("pose_inputs_1", pose_inputs_1.size())
         inputs1_mask = self.get_input(batch, self.image1mask_key)
         inputs2_rgb = self.get_input(batch, self.image2rgb_key)
-        print("inputs2_rgb", inputs2_rgb.size())
         pose_inputs_2 = self.get_pose_input(batch, self.pose2_key)
-        print("pose_inputs_2", pose_inputs_2.size())
         inputs2_mask = self.get_input(batch, self.image2mask_key)
         reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1_rgb, pose_inputs_2)
         
