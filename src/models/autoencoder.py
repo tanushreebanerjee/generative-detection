@@ -317,10 +317,12 @@ class PoseAutoencoder(AutoencoderKL):
                 assert xrec1.shape[1] > 3
                 x1_rgb = self.to_rgb(x1_rgb)
                 x2_rgb = self.to_rgb(x2_rgb)
-            
-            xrec1_rgb = self.to_rgb(xrec1)
-            xrec2_rgb = self.to_rgb(xrec2)
-            xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose)
+            xrec1_rgb = xrec1[:, :3, :, :]
+            xrec2_rgb = xrec2[:, :3, :, :]
+            xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
+            xrec1_rgb = self.to_rgb(xrec1_rgb)
+            xrec2_rgb = self.to_rgb(xrec2_rgb)
+            xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose_rgb)
                 
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
                 xrec1_mask = self.to_mask(xrec1)
@@ -352,22 +354,8 @@ class PoseAutoencoder(AutoencoderKL):
         return mask
     
     def to_rgb(self, x):
-        assert self.image_key == "segmentation"
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
-        
-        # Check if input tensor has 4 channels
-        if x.shape[1] == 4:
-            # Extract the first 3 channels (RGB) for colorization
-            x_rgb = x[:, :3, :, :]
-            # Convolution for colorization
-            x_rgb = F.conv2d(x_rgb, weight=self.colorize)
-            # Normalization
-            x_rgb = 2. * (x_rgb - x_rgb.min()) / (x_rgb.max() - x_rgb.min()) - 1.
-            return x_rgb
-        
-        else:
-            # Regular colorization process
-            x = F.conv2d(x, weight=self.colorize)
-            x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
-            return x
+        x = F.conv2d(x, weight=self.colorize)
+        x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
+        return x
