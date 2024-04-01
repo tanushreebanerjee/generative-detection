@@ -329,10 +329,10 @@ class PoseAutoencoder(AutoencoderKL):
             xrec1_rgb = xrec1[:, :3, :, :]
             xrec2_rgb = xrec2[:, :3, :, :]
             xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
-            if xrec1.shape[1] == 4: # alpha channel prediction loggging
-                xrec1_mask = xrec1[:, 3, :, :]
-                xrec2_mask = xrec2[:, 3, :, :]
-                xrec1_perturbed_pose_mask =xrec1_perturbed_pose[:, 3, :, :]
+            # if xrec1.shape[1] == 4: # alpha channel prediction loggging
+            #     xrec1_mask = xrec1[:, 3, :, :]
+            #     xrec2_mask = xrec2[:, 3, :, :]
+            #     xrec1_perturbed_pose_mask =xrec1_perturbed_pose[:, 3, :, :]
                 
                 # log["reconstructions1_mask"] = xrec1_mask
                 # log["reconstructions2_mask"] = xrec2_mask
