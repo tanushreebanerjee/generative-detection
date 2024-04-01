@@ -334,9 +334,9 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec2_mask = xrec2[:, 3, :, :]
                 xrec1_perturbed_pose_mask =xrec1_perturbed_pose[:, 3, :, :]
                 
-                log["reconstructions1_mask"] = xrec1_mask
-                log["reconstructions2_mask"] = xrec2_mask
-                log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
+                # log["reconstructions1_mask"] = xrec1_mask
+                # log["reconstructions2_mask"] = xrec2_mask
+                # log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
             
             if x1_rgb.shape[1] > 3:
                 # colorize with random projection
