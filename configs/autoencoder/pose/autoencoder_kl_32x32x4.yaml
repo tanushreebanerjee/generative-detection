@@ -13,6 +13,7 @@ model:
         disc_weight: 0.5
         pose_weight: 250000
         poss_loss_fn: "l2"
+        disc_in_channels: 4
 
     ddconfig:
       double_z: True
