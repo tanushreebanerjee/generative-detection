@@ -330,23 +330,13 @@ class PoseAutoencoder(AutoencoderKL):
             xrec2_rgb = xrec2[:, :3, :, :]
             xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
+                xrec1_mask = xrec1[:, 3, :, :]
+                xrec2_mask = xrec2[:, 3, :, :]
+                xrec1_perturbed_pose_mask =xrec1_perturbed_pose[:, 3, :, :]
                 
-                xrec1_mask = np.array(xrec1[:, 3, :, :].cpu())
-                xrec2_mask = np.array(xrec2[:, 3, :, :].cpu())
-                xrec1_perturbed_pose_mask = np.array(xrec1_perturbed_pose[:, 3, :, :].cpu())
-
-                # convert to uint8, in height, width format (gray scale) for PIL
-                xrec1_mask = np.clip(xrec1_mask, 0., 1.)
-                xrec2_mask = np.clip(xrec2_mask, 0., 1.)
-                xrec1_perturbed_pose_mask = np.clip(xrec1_perturbed_pose_mask, 0., 1.)
-                
-                xrec1_mask = (xrec1_mask * 255).astype(np.uint8).transpose(1, 2, 0)
-                xrec2_mask = (xrec2_mask * 255).astype(np.uint8).transpose(1, 2, 0)
-                xrec1_perturbed_pose_mask = (xrec1_perturbed_pose_mask * 255).astype(np.uint8).transpose(1, 2, 0)
-                
-                # log["reconstructions1_mask"] = torch.tensor(xrec1_mask)
-                # log["reconstructions2_mask"] = torch.tensor(xrec2_mask)
-                # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec1_perturbed_pose_mask)
+                log["reconstructions1_mask"] = xrec1_mask
+                log["reconstructions2_mask"] = xrec2_mask
+                log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
             
             if x1_rgb.shape[1] > 3:
                 # colorize with random projection
