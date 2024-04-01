@@ -301,57 +301,64 @@ class PoseAutoencoder(AutoencoderKL):
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
+        
+        # x = self.get_input(batch, self.image_key)
         x1_rgb = self.get_input(batch, self.image1rgb_key)
         x2_rgb = self.get_input(batch, self.image2rgb_key)
         x1_mask = self.get_input(batch, self.image1mask_key)
         x2_mask = self.get_input(batch, self.image2mask_key)
         pose2 = self.get_pose_input(batch, self.pose2_key)
+        
+        # x = x.to(self.device)
         x1_rgb = x1_rgb.to(self.device)
         x2_rgb = x2_rgb.to(self.device)
         pose2 = pose2.to(self.device)
+        x1_mask = x1_mask.to(self.device)
+        x2_mask = x2_mask.to(self.device)
+        # convert mask to float, 0.0, 1.0 if not already
+        if x1_mask.dtype != torch.float32:
+            x1_mask = x1_mask.float()
+        if x2_mask.dtype != torch.float32:
+            x2_mask = x2_mask.float()
+            
         if not only_inputs:
             xrec1, xrec2, posterior1, pose_decoded1 = self(x1_rgb, pose2)
             xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
-            if x1_rgb.shape[1] > 3:
-                # colorize with random projection
-                assert xrec1.shape[1] > 3
-                x1_rgb = self.to_rgb(x1_rgb)
-                x2_rgb = self.to_rgb(x2_rgb)
+            
             xrec1_rgb = xrec1[:, :3, :, :]
             xrec2_rgb = xrec2[:, :3, :, :]
             xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
-            xrec1_rgb = self.to_rgb(xrec1_rgb)
-            xrec2_rgb = self.to_rgb(xrec2_rgb)
-            xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose_rgb)
-                
+            
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
-                xrec1_mask = self.to_mask(xrec1)
-                xrec2_mask = self.to_mask(xrec2)
-                xrec1_perturbed_pose_mask = self.to_mask(xrec1_perturbed_pose)
+                
+                xrec1_mask = xrec1[:, 3, :, :]
+                xrec2_mask = xrec2[:, 3, :, :]
+                xrec1_perturbed_pose_mask = xrec1_perturbed_pose[:, 3, :, :]
+            
                 log["reconstructions1_mask"] = xrec1_mask
                 log["reconstructions2_mask"] = xrec2_mask
                 log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
+            
+            if x1_rgb.shape[1] > 3:
+                # colorize with random projection
+                assert xrec1_rgb.shape[1] > 3
+                x1_rgb = self.to_rgb(x1_rgb)
+                x2_rgb = self.to_rgb(x2_rgb)
                 
+                xrec1_rgb = self.to_rgb(xrec1_rgb)
+                xrec2_rgb = self.to_rgb(xrec2_rgb)
+                xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose_rgb)
+
             log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
             log["reconstructions1_rgb"] = xrec1_rgb
             log["reconstructions2_rgb"] = xrec2_rgb
             log["perturbed_pose_reconstruction_rgb"] = xrec1_perturbed_pose_rgb
+        
         log["inputs1_rgb"] = x1_rgb
         log["inputs2_rgb"] = x2_rgb
         log["inputs1_mask"] = x1_mask
         log["inputs2_mask"] = x2_mask
         return log
-    
-    def to_mask(self, x):
-        # Assuming input_tensor is a torch tensor with shape (batch_size, channels, height, width)
-        # Extract the 4th channel (index 3 since indexing starts from 0)
-        assert x.shape[1] == 4, f"Expected 4 channels, got {x.shape[1]}"
-        fourth_channel = x[:, 3, :, :]
-        
-        # Threshold the channel to create a binary mask
-        threshold = 0.5  # You can adjust this threshold based on your requirements
-        mask = torch.where(fourth_channel > threshold, torch.tensor(1), torch.tensor(0))
-        return mask
     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
