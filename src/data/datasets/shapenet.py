@@ -299,11 +299,7 @@ class ShapeNetPose(Dataset):
     
     def __getitem__(self, i):
         example = self.base[i]
-        image = Image.open(example["file_path_"])
-
-        
-        # get RGBA
-        
+        image = Image.open(example["file_path_"]) 
         if not image.mode == "RGBA":
             image = image.convert("RGBA")
 
@@ -311,8 +307,8 @@ class ShapeNetPose(Dataset):
 
         image = self.image_rescaler(image=image)["image"]
         example["image1_rgba"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["image1_rgb"] = example["image1"][:, :, :3]
-        example["image1_mask"] = example["image1"][:, :, 3]
+        example["image1_rgb"] = example["image1_rgba"][:, :, :3]
+        example["image1_mask"] = example["image1_rgba"][:, :, 3]
         
         logging.info(f"test pose 1: {self._get_object_pose_6d(i)}")
         example["pose1"] = self._get_object_pose_6d(i).reshape(-1)
@@ -324,14 +320,14 @@ class ShapeNetPose(Dataset):
         random_idx = np.random.choice(same_object_indices)
         random_example = self.base[random_idx]
         random_image = Image.open(random_example["file_path_"])
-        if not random_image.mode == "RGB":
-            random_image = random_image.convert("RGB")
+        if not random_image.mode == "RGBA":
+            random_image = random_image.convert("RGBA")
         random_image = np.array(random_image).astype(np.uint8)
         random_image = self.image_rescaler(image=random_image)["image"]
         example["image2_rgba"] = (random_image/127.5 - 1.0).astype(np.float32)
         example["pose2"] = self._get_object_pose_6d(random_idx).reshape(-1)
-        example["image2_rgb"] = example["image2"][:, :, :3]
-        example["image2_mask"] = example["image2"][:, :, 3] 
+        example["image2_rgb"] = example["image2_rgba"][:, :, :3]
+        example["image2_mask"] = example["image2_rgba"][:, :, 3] 
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):
