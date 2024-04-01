@@ -333,12 +333,16 @@ class PoseAutoencoder(AutoencoderKL):
             logging.info(f"xrec1_rgb shape: {xrec1_rgb.shape}, xrec2_rgb shape: {xrec2_rgb.shape}, xrec1_perturbed_pose_rgb shape: {xrec1_perturbed_pose_rgb.shape}")
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
                 
-                xrec1_mask = xrec1[:, 3, :, :]
-                xrec2_mask = xrec2[:, 3, :, :]
-                xrec1_perturbed_pose_mask = xrec1_perturbed_pose[:, 3, :, :]
+                xrec1_mask = np.array(xrec1[:, 3, :, :].cpu())
+                xrec2_mask = np.array(xrec2[:, 3, :, :].cpu())
+                xrec1_perturbed_pose_mask = np.array(xrec1_perturbed_pose[:, 3, :, :].cpu())
                 logging.info(f"xrec1_mask shape: {xrec1_mask.shape}, xrec2_mask shape: {xrec2_mask.shape}, xrec1_perturbed_pose_mask shape: {xrec1_perturbed_pose_mask.shape}")
-            
+
                 # convert to uint8, in height, width format (gray scale) for PIL
+                xrec1_mask = np.clip(xrec1_mask.cpu().numpy(), 0., 1.)
+                xrec2_mask = np.clip(xrec2_mask.cpu().numpy(), 0., 1.)
+                xrec1_perturbed_pose_mask = np.clip(xrec1_perturbed_pose_mask.cpu().numpy(), 0., 1.)
+                
                 xrec1_mask = (xrec1_mask * 255).astype(np.uint8).transpose(1, 2, 0)
                 xrec2_mask = (xrec2_mask * 255).astype(np.uint8).transpose(1, 2, 0)
                 xrec1_perturbed_pose_mask = (xrec1_perturbed_pose_mask * 255).astype(np.uint8).transpose(1, 2, 0)
