@@ -13,6 +13,8 @@ import pytorch_lightning as pl
 import math
 import random
 from math import radians
+import numpy as np
+import logging
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
 POSE_6D_DIM = 6
@@ -328,13 +330,19 @@ class PoseAutoencoder(AutoencoderKL):
             xrec1_rgb = xrec1[:, :3, :, :]
             xrec2_rgb = xrec2[:, :3, :, :]
             xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
-            
+            logging.info(f"xrec1_rgb shape: {xrec1_rgb.shape}, xrec2_rgb shape: {xrec2_rgb.shape}, xrec1_perturbed_pose_rgb shape: {xrec1_perturbed_pose_rgb.shape}")
             if xrec1.shape[1] == 4: # alpha channel prediction loggging
                 
                 xrec1_mask = xrec1[:, 3, :, :]
                 xrec2_mask = xrec2[:, 3, :, :]
                 xrec1_perturbed_pose_mask = xrec1_perturbed_pose[:, 3, :, :]
+                logging.info(f"xrec1_mask shape: {xrec1_mask.shape}, xrec2_mask shape: {xrec2_mask.shape}, xrec1_perturbed_pose_mask shape: {xrec1_perturbed_pose_mask.shape}")
             
+                # convert to uint8, in height, width format (gray scale) for PIL
+                xrec1_mask = (xrec1_mask * 255).astype(np.uint8).transpose(1, 2, 0)
+                xrec2_mask = (xrec2_mask * 255).astype(np.uint8).transpose(1, 2, 0)
+                xrec1_perturbed_pose_mask = (xrec1_perturbed_pose_mask * 255).astype(np.uint8).transpose(1, 2, 0)
+                logging.info(f"xrec1_mask shape: {xrec1_mask.shape}, xrec2_mask shape: {xrec2_mask.shape}, xrec1_perturbed_pose_mask shape: {xrec1_perturbed_pose_mask.shape}")
                 log["reconstructions1_mask"] = xrec1_mask
                 log["reconstructions2_mask"] = xrec2_mask
                 log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
