@@ -33,7 +33,7 @@ data:
     batch_size: 8
     wrap: True
     train:
-      target: src.data.datasets.shapenet.ShapeNetPoseTrain
+      target: src.data.datasets.shapenet.ShapeNetPoseTrainMini
       params:
         size: 64
         euler_convention: "XYZ"

@@ -77,7 +77,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 reconstructions[i] = reconstructions2[i]
         return inputs, reconstructions
     
-    def forward(self, inputs1, inputs2, 
+    def forward(self, inputs1_rgb, inputs2_rgb, 
+                inputs1_mask, inputs2_mask,
                 reconstructions1, reconstructions2, 
                 pose_inputs1, pose_reconstructions1,
                 posteriors1, optimizer_idx, global_step, 
@@ -86,14 +87,28 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         assert pose_inputs1.shape == pose_reconstructions1.shape, \
             f"pose_inputs.shape: {pose_inputs1.shape}, pose_reconstructions.shape: {pose_reconstructions1.shape}"
 
+        inputs1 = torch.cat((inputs1_rgb, inputs1_mask), dim=1)
+        inputs2 = torch.cat((inputs2_rgb, inputs2_mask), dim=1)
         inputs, reconstructions = self._get_combined_inputs_reconstructions(inputs1, inputs2, reconstructions1, reconstructions2)
+        
+        inputs_rgb = inputs[:, :3, :, :]
+        inputs_mask = inputs[:, 3:, :, :]
+        
+        reconstructions_rgb = reconstructions[:, :3, :, :]
+        reconstructions_mask = reconstructions[:, 3:, :, :]
         
         pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
         weighted_pose_loss = self.pose_weight * pose_loss
         
-        rec_loss = self._get_rec_loss(inputs, reconstructions)
+        rec_loss_rgb = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
+        rec_loss_mask = self._get_rec_loss(inputs_mask, reconstructions_mask)
+        rec_loss = rec_loss_rgb + rec_loss_mask
         
-        nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
+        nll_loss_rgb, weighted_nll_loss_rgb = self._get_nll_loss(rec_loss_rgb, weights)
+        nll_loss_mask, weighted_nll_loss_mask = self._get_nll_loss(rec_loss_mask, weights)
+        
+        nll_loss = torch.sum(nll_loss_rgb + nll_loss_mask)
+        weighted_nll_loss = torch.sum(weighted_nll_loss_rgb + weighted_nll_loss_mask)
         
         kl_loss = self._get_kl_loss(posteriors1)
 
@@ -124,8 +139,14 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                    "{}/logvar".format(split): self.logvar.detach(),
                    "{}/kl_loss".format(split): kl_loss.detach().mean(), 
                    "{}/nll_loss".format(split): nll_loss.detach().mean(),
+                   "{}/nll_loss_rgb".format(split): nll_loss_rgb.detach().mean(),
+                   "{}/nll_loss_mask".format(split): nll_loss_mask.detach().mean(),
+                   "{}/weighted_nll_loss_rgb".format(split): weighted_nll_loss_rgb.detach().mean(),
+                   "{}/weighted_nll_loss_mask".format(split): weighted_nll_loss_mask.detach().mean(),
                    "{}/weighted_nll_loss".format(split): weighted_nll_loss.detach().mean(),
                    "{}/rec_loss".format(split): rec_loss.detach().mean(),
+                   "{}/rec_loss_rgb".format(split): rec_loss_rgb.detach().mean(),
+                   "{}/rec_loss_mask".format(split): rec_loss_mask.detach().mean(),
                    "{}/d_weight".format(split): d_weight.detach(),
                    "{}/disc_factor".format(split): torch.tensor(disc_factor),
                    "{}/g_loss".format(split): g_loss.detach().mean(),

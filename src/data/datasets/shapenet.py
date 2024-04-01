@@ -3,6 +3,7 @@ import os
 import json
 import numpy as np
 import albumentations
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from omegaconf import OmegaConf
@@ -14,10 +15,16 @@ from pstats import SortKey
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
+TRAIN_MINI_NUM_OBJECTS = 10
+TRAIN_SPLIT = 0.8
+VALIDATION_SPLIT = 0.1
+TEST_SPLIT = 0.1
+POSE_6D_DIM = 6
+
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
     data_root = retrieve(config, "data_root", default="data/processed/shapenet/processed_get3d")
-    split_prop = retrieve(config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
+    split_prop = retrieve(config, "split", default={"train": TRAIN_SPLIT, "validation": VALIDATION_SPLIT, "test": TEST_SPLIT})
     shuffle = retrieve(config, "shuffle", default=True)
     
     synsets = os.listdir(os.path.join(data_root, "img"))
@@ -40,7 +47,7 @@ def create_splits(config):
         with open(os.path.join(splits_dir, f"{split}.txt"), "w") as f:
             for obj in objects:
                 f.write(obj + "\n")    
-    
+
     return split_objects            
     
 class ShapeNetBase(Dataset):
@@ -85,7 +92,7 @@ class ShapeNetBase(Dataset):
     def _filter_split(self, relpaths):
         """Filters the given list of relative paths based on the specified split percentages."""
         if self.split is not None:
-            assert self.split in ["train", "validation", "test"], f"Invalid split {self.split}."
+            assert self.split in ["train", "validation", "test", "train-mini"], f"Invalid split {self.split}."
             objects_in_split_path = os.path.join(self.config.get("splits_dir", "data/splits/shapenet"), f"{self.split}.txt")
             with open(objects_in_split_path, "r") as f:
                 objects_in_split = f.read().splitlines()
@@ -221,7 +228,17 @@ class ShapeNetTest(ShapeNetBase):
 
     def _prepare(self):
         self.random_crop = retrieve(self.config, "random_crop", default=False)
+
+class ShapeNetTrainMini(ShapeNetBase):
+    def __init__(self, process_images=True, data_root=None, **kwargs):
+        self.process_images = process_images
+        self.data_root = data_root
+        self.split = "train-mini"
+        super().__init__(**kwargs)
     
+    def _prepare(self):
+        self.random_crop = retrieve(self.config, "random_crop", default=False)
+
 class ShapeNetPose(Dataset):
     def __init__(self, size=None, euler_convention=None):
         """
@@ -269,30 +286,37 @@ class ShapeNetPose(Dataset):
             
             # set euler angles in order based on convention
             if self.euler_convention == "XYZ":
-                euler_angle = np.array([roll, pitch, yaw])
+                euler_angle = torch.tensor([roll, pitch, yaw])
             elif self.euler_convention == "ZYX":
-                euler_angle = np.array([yaw, pitch, roll])
+                euler_angle = torch.tensor([yaw, pitch, roll])
             else:
                 raise ValueError(f"Invalid convention {self.euler_convention}. Must be 'XYZ' or 'ZYX'.")
             
-            translation = np.array([0, 0, 0])
+            translation = torch.tensor([0, 0, 0])
             object_pose_screw = euler_angles_translation2se3_log_map(euler_angle, translation, self.euler_convention)
+            assert object_pose_screw.shape[1] == POSE_6D_DIM, f"Expected 6D pose, got {object_pose_screw.shape[1]}D pose."
             return object_pose_screw
     
     def __getitem__(self, i):
         example = self.base[i]
         image = Image.open(example["file_path_"])
 
-        if not image.mode == "RGB":
-            image = image.convert("RGB")
+        
+        # get RGBA
+        
+        if not image.mode == "RGBA":
+            image = image.convert("RGBA")
 
         image = np.array(image).astype(np.uint8)
 
         image = self.image_rescaler(image=image)["image"]
-
-        example["image1"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["pose1"] = self._get_object_pose_6d(i)
+        example["image1_rgba"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
+        example["image1_rgb"] = example["image1"][:, :, :3]
+        example["image1_mask"] = example["image1"][:, :, 3]
         
+        logging.info(f"test pose 1: {self._get_object_pose_6d(i)}")
+        example["pose1"] = self._get_object_pose_6d(i).reshape(-1)
+
         # Get a random example of the same object but with a different pose
         class_label = example["class_label"]
         same_object_indices = np.where(self.base.class_labels == class_label)[0]
@@ -304,8 +328,10 @@ class ShapeNetPose(Dataset):
             random_image = random_image.convert("RGB")
         random_image = np.array(random_image).astype(np.uint8)
         random_image = self.image_rescaler(image=random_image)["image"]
-        example["image2"] = (random_image/127.5 - 1.0).astype(np.float32)
-        example["pose2"] = self._get_object_pose_6d(random_idx)
+        example["image2_rgba"] = (random_image/127.5 - 1.0).astype(np.float32)
+        example["pose2"] = self._get_object_pose_6d(random_idx).reshape(-1)
+        example["image2_rgb"] = example["image2"][:, :, :3]
+        example["image2_mask"] = example["image2"][:, :, 3] 
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):
@@ -328,3 +354,10 @@ class ShapeNetPoseTest(ShapeNetPose):
         
     def get_base(self):
         return ShapeNetTest()
+
+class ShapeNetPoseTrainMini(ShapeNetPose):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+    def get_base(self):
+        return ShapeNetTrainMini()
