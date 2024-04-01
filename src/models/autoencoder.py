@@ -201,7 +201,7 @@ class PoseAutoencoder(AutoencoderKL):
         print("pose_inputs1", pose_inputs1.size())
         inputs1_mask = self.get_input(batch, self.image1mask_key)
         
-        inputs2_rgb = self.get_input(batch, self.image2_key)
+        inputs2_rgb = self.get_input(batch, self.image2rgb_key)
         print("inputs2_rgb", inputs2_rgb.size())
         pose_inputs2 = self.get_pose_input(batch, self.pose2_key)
         print("pose_inputs2", pose_inputs2.size())
@@ -240,7 +240,7 @@ class PoseAutoencoder(AutoencoderKL):
         pose_inputs_1 = self.get_pose_input(batch, self.pose1_key) # torch.Size([8, 1, 6])
         print("pose_inputs_1", pose_inputs_1.size())
         inputs1_mask = self.get_input(batch, self.image1mask_key)
-        inputs2_rgb = self.get_input(batch, self.image2_key)
+        inputs2_rgb = self.get_input(batch, self.image2rgb_key)
         print("inputs2_rgb", inputs2_rgb.size())
         pose_inputs_2 = self.get_pose_input(batch, self.pose2_key)
         print("pose_inputs_2", pose_inputs_2.size())
