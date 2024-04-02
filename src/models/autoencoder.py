@@ -13,7 +13,6 @@ import pytorch_lightning as pl
 import math
 import random
 from math import radians
-import numpy as np
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 
 POSE_6D_DIM = 6
@@ -195,7 +194,6 @@ class PoseAutoencoder(AutoencoderKL):
         inputs2_mask = self.get_input(batch, self.image2mask_key)
         
         reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1_rgb, pose_inputs2)
-        
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
             aeloss, log_dict_ae = self.loss(inputs1_rgb, inputs2_rgb,
@@ -216,7 +214,6 @@ class PoseAutoencoder(AutoencoderKL):
                                                 pose_inputs1, pose_reconstructions1,
                                                 posterior1, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
-
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return discloss
