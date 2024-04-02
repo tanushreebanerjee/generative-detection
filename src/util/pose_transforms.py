@@ -29,7 +29,9 @@ def euler_angles_translation2se3_log_map(euler_angle, translation, convention):
     transformation = euler_angles_translation2transformation_matrix(euler_angle, translation, convention)    
     transformation_t = transformation.permute(0, 2, 1)    
     se3_log = se3_log_map(transformation_t)   
-    se3_log = torch.tensor(se3_log, dtype=torch.float32)    
+    # if not a tensor make it one
+    if not torch.is_tensor(se3_log):
+        se3_log = torch.tensor(se3_log, dtype=torch.float32)
     return se3_log
 
 def transformation_matrix2euler_angles_translation(transformation, convention):

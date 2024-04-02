@@ -35,21 +35,38 @@ def patch_ndc2_full_ndc(patch_ndc_proj_matrix, patch_size, image_size, patch_cen
 
     """
     
-    patch_height, patch_width = patch_size[:, 0], patch_size[:, 1]
-    full_height, full_width = image_size[:, 0], image_size[:, 1]
+    # if no batch dim then add it
+    if len(patch_ndc_proj_matrix.shape) == 2:
+        patch_ndc_proj_matrix = patch_ndc_proj_matrix.unsqueeze(0) # shape: (1, 4, 4)
+    
+    if len(patch_size.shape) == 1:
+        patch_size = patch_size.unsqueeze(0)
+        # repeat patch size if one value is given
+        patch_size = patch_size.repeat(patch_ndc_proj_matrix.shape[0], 1) # shape: (batch_size, 2)
+    
+    if len(image_size.shape) == 1:
+        image_size = image_size.unsqueeze(0)
+        patch_size = patch_size.repeat(patch_ndc_proj_matrix.shape[0], 1) # shape: (batch_size, 2)
+    
+    if len(patch_center.shape) == 1:
+        patch_center = patch_center.unsqueeze(0)
+        patch_center = patch_center.repeat(patch_ndc_proj_matrix.shape[0], 1)
+        
+    H_patch, W_patch = patch_size[:, 0], patch_size[:, 1]
+    H_full, W_full = image_size[:, 0], image_size[:, 1]
         
     full_ndc_proj_matrix = torch.eye(4).unsqueeze(0).repeat(patch_ndc_proj_matrix.shape[0], 1, 1)
     
     # scaling
-    sx_scale = full_width / patch_width 
-    sy_scale = full_height / patch_height
+    sx_scale = W_full / W_patch 
+    sy_scale = H_full / H_patch
     
     full_ndc_proj_matrix[:, 0, 0] = sx_scale
     full_ndc_proj_matrix[:, 1, 1] = sy_scale
     
     # translation
-    full_ndc_proj_matrix[:, 0, 3] = (patch_center[:, 0] * sx_scale) - (full_width / 2)
-    full_ndc_proj_matrix[:, 1, 3] = (patch_center[:, 1] * sy_scale) - (full_height / 2)
+    full_ndc_proj_matrix[:, 0, 3] = (patch_center[:, 0] * sx_scale) - (W_full / 2)
+    full_ndc_proj_matrix[:, 1, 3] = (patch_center[:, 1] * sy_scale) - (H_full / 2)
     
     return full_ndc_proj_matrix
     

@@ -12,7 +12,9 @@ model:
         kl_weight: 0.000001
         disc_weight: 0.5
         pose_weight: 250000
-        poss_loss_fn: "l2"
+        pose_loss_fn: "l2"
+        mask_loss_weight: 0.5
+        mask_loss_fn: "l2"
         disc_in_channels: 4
 
     ddconfig:
