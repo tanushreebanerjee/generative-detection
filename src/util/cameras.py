@@ -1,5 +1,5 @@
 import torch
-from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType
+from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType, get_screen_to_ndc_transform
 from pytorch3d.common.datatypes import Device
 from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
@@ -63,48 +63,23 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         super().__init__(focal_length, principal_point, R, T, K, device, in_ndc, image_size)
         self.znear = znear
         self.zfar = zfar
-    
-    def get_ndc_camera_transform(self, **kwargs) -> Transform3d:
-        """
-        Screen --> NDC transform.
-        Returns the transform from camera projection space (screen or NDC) to NDC space.
-        If the camera is defined already in NDC space, the transform is identity.
-        For cameras defined in screen space, we adjust the principal point computation
-        which is defined in the image space (commonly) and scale the points to NDC space.
-
-        This transform leaves the depth unchanged.
-
-        Important: This transforms assumes PyTorch3D conventions for the input points,
-        i.e. +X left, +Y up.
-        """
-    
-        if self.in_ndc():
-            raise ValueError("Camera is already in NDC space.")
-            # patch_ndc_transform = Transform3d(device=self.device, dtype=torch.float32)
-        else:
-            # when cameras are defined in screen/image space, the principal point is
-            # provided in the (+X right, +Y down), aka image, coordinate system.
-            # Since input points are defined in the PyTorch3D system (+X left, +Y up),
-            # we need to adjust for the principal point transform.
-            pr_point_fix = torch.zeros(
-                (self._N, 4, 4), device=self.device, dtype=torch.float32
-            )
-            pr_point_fix[:, 0, 0] = 1.0
-            pr_point_fix[:, 1, 1] = 1.0
-            pr_point_fix[:, 2, 2] = 1.0
-            pr_point_fix[:, 3, 3] = 1.0
-            pr_point_fix[:, :2, 3] = -2.0 * self.get_principal_point(**kwargs)
-            pr_point_fix_transform = Transform3d(
-                matrix=pr_point_fix.transpose(1, 2).contiguous(), device=self.device
-            )
-            image_size = kwargs.get("image_size", self.get_image_size())
-            screen_to_patch_ndc_transform = get_screen_to_patch_ndc_transform(
-                self, with_xyflip=False, image_size=image_size
-            )
-            patch_ndc_transform = pr_point_fix_transform.compose(screen_to_patch_ndc_transform)
-
-        return patch_ndc_transform
-    
+        
+    def get_patch_ndc_camera_transform(self,
+                                        patch_size,
+                                 patch_center,
+                                 **kwargs):
+        # get_ndc_camera_transform  - Screen --> NDC transform.
+        # get_patch_ndc_to_ndc_transform - NDC --> patch
+        # overall: screen --> patch ndc
+        ndc_camera_transform = self.get_ndc_camera_transform(**kwargs)
+        patch_ndc_to_ndc_transform = get_patch_ndc_to_ndc_transform(
+            self, with_xyflip=False, image_size=self.get_image_size(),
+            patch_size=patch_size, patch_center=patch_center
+        )
+        
+        patch_ndc_camera_transform = ndc_camera_transform.compose(patch_ndc_to_ndc_transform)
+        return patch_ndc_camera_transform
+        
     def transform_points_ndc( self, points, eps: Optional[float] = None, **kwargs) -> torch.Tensor:
         """
         Camera --> NDC Patch
@@ -150,7 +125,7 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         
         return 0.5 * (z + 1) * (self.zfar - self.znear) + self.znear
     
-def get_patch_ndc_to_screen_transform(
+def get_patch_ndc_to_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -216,7 +191,7 @@ def get_patch_ndc_to_screen_transform(
 
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # We assume that the image is centered at the origin
-
+    # patch ndc --> ndc
     K[:, 0, 0] = patch_width / image_width
     K[:, 1, 1] = patch_height / image_height
     K[:, 0, 3] = (2.0 * cx_patch / image_width) - 1.0
@@ -241,7 +216,7 @@ def get_patch_ndc_to_screen_transform(
         transform = transform.compose(xyflip_transform)
     return transform
 
-def get_screen_to_patch_ndc_transform(
+def get_ndc_to_patch_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -271,7 +246,7 @@ def get_screen_to_patch_ndc_transform(
     ]
 
     """
-    transform = get_patch_ndc_to_screen_transform(
+    transform = get_patch_ndc_to_ndc_transform(
         cameras,
         with_xyflip=with_xyflip,
         image_size=image_size,
