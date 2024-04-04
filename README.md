@@ -1,11 +1,13 @@
 # Generative Detection via Inverse Neural Rendering
 This repository is the official implementation of [Generative Detection via Inverse Neural Rendering]().
 
+> TODO: [Arxiv]() | [BibTex]()
+
 > TODO: Method figure
 
-> TODO: Demo link
-
-> TODO: BibTex
+[Generative Detection via Inverse Neural Rendering]()
+> TODO: [Anonymous Author(s)]()
+> TODO: [Demo link]()
 
 ## Requirements
 
@@ -19,7 +21,7 @@ git clone REPOSITORY_URL
 ```setup
 cd generative-detection
 ```
-3. Create a new conda environment with the provided environment file:
+3. Create a new conda environment named `gen-detection` with the provided environment file:
 ```setup
 conda env create -f environment.yml
 ```
@@ -73,6 +75,7 @@ python eval.py --model-file gendetect3d.pth --benchmark waymo
 You can download our pretrained model here:
 - [GenDetect3D]() trained on the nuScenes dataset [2] and the Waymo Open Dataset [3] using parameters TODO.
 
+If you use any of these models in your work, we are always happy to receive a [citation]().
 ## Results
 
 Our model achieves the following performance on :
@@ -92,6 +95,12 @@ Our model achieves the following performance on :
 
 ## Contributing
 The code in this repository is released under the [MIT License](LICENSE). We welcome any contributions to our repository via pull requests. 
+
+## Comments
+- Our codebase for the architecture of training of the VAW builds heavily on [Latent Diffusion Models](https://github.com/CompVis/latent-diffusion/tree/a506df5756472e2ebaf9078affdde2c4f1502cd4). Thanks for open-sourcing!
+
+## BibTeX
+> TODO
 
 ## References
 [1] Latent Diffusion Models: [ArXiv](https://arxiv.org/abs/2112.10752) | [GitHub](https://github.com/CompVis/latent-diffusion)
