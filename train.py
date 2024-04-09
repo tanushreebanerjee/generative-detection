@@ -403,11 +403,11 @@ def main():
     4. Trains the model if specified.
     5. Tests the model if specified.
     """
-    # Allow other computers to attach to ptvsd at this IP address and port.
-    ptvsd.enable_attach(address=('1.2.3.4', 3000), redirect_output=True)
+    # # Allow other computers to attach to ptvsd at this IP address and port.
+    # ptvsd.enable_attach(address=('1.2.3.4', 3000), redirect_output=True)
 
-    # Pause the program until a remote debugger is attached
-    ptvsd.wait_for_attach()
+    # # Pause the program until a remote debugger is attached
+    # ptvsd.wait_for_attach()
     
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     sys.path.append(os.getcwd())

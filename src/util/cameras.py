@@ -1,5 +1,5 @@
 import torch
-from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType, get_screen_to_ndc_transform
+from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType, get_screen_to_ndc_transform, get_ndc_to_screen_transform
 from pytorch3d.common.datatypes import Device
 from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
@@ -63,41 +63,58 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         super().__init__(focal_length, principal_point, R, T, K, device, in_ndc, image_size)
         self.znear = znear
         self.zfar = zfar
-        
+     
+    def get_patch_projection_transform(self, patch_size, patch_center, **kwargs):
+        world_to_proj_transform = self.get_full_projection_transform(**kwargs) # camera --> screen
+        screen_to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) # screen --> patch ndc
+        world_to_patch_ndc_transform = world_to_proj_transform.compose(screen_to_patch_ndc_transform) # camera --> patch ndc
+        return world_to_patch_ndc_transform
+    
+    def transform_points_patch_ndc(self, points, 
+                                   patch_size, 
+                                   patch_center,
+                                   eps: Optional[float] = None, **kwargs) -> torch.Tensor:
+        world_to_ndc_transform = self.get_full_projection_transform(**kwargs) # camera --> screen/ndc
+        if not self.in_ndc():
+            to_ndc_transform = self.get_ndc_camera_transform(**kwargs) # screen/ndc --> ndc
+            world_to_ndc_transform = world_to_ndc_transform.compose(to_ndc_transform) # camera --> screen/ndc
+            
+        to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) # screen/ndc --> patch ndc
+        world_to_patch_ndc_transform = world_to_ndc_transform.compose(to_patch_ndc_transform) # camera --> patch ndc
+    
+        return world_to_patch_ndc_transform.transform_points(points, eps=eps)
+    
     def get_patch_ndc_camera_transform(self,
                                         patch_size,
-                                 patch_center,
-                                 **kwargs):
-        # get_ndc_camera_transform  - Screen --> NDC transform.
-        # get_patch_ndc_to_ndc_transform - NDC --> patch
-        # overall: screen --> patch ndc
-        ndc_camera_transform = self.get_ndc_camera_transform(**kwargs)
-        patch_ndc_to_ndc_transform = get_patch_ndc_to_ndc_transform(
-            self, with_xyflip=False, image_size=self.get_image_size(),
-            patch_size=patch_size, patch_center=patch_center
+                                        patch_center,
+                                        **kwargs):
+        """
+        Returns the transform from camera projection space (screen or NDC) to Patch NDC space.
+
+        This transform leaves the depth unchanged.
+
+        Important: This transforms assumes PyTorch3D conventions for the input points,
+        i.e. +X left, +Y up.
+
+        Args:
+            patch_size (tuple): The size of the patch in pixels.
+            patch_center (tuple): The center of the patch in pixels.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            patch_ndc_transform (Transform): The camera transform from screen coordinates to patch NDC coordinates.
+        """
+                
+        ndc_transform = self.get_ndc_camera_transform(**kwargs) # screen/ndc --> ndc
+        image_size = kwargs.get("image_size", self.get_image_size())
+        
+        ndc_to_patch_ndc_transform = get_ndc_to_patch_ndc_transform( # ndc --> patch ndc
+            self, with_xyflip=False, image_size=image_size, patch_size=patch_size, patch_center=patch_center
         )
         
-        patch_ndc_camera_transform = ndc_camera_transform.compose(patch_ndc_to_ndc_transform)
-        return patch_ndc_camera_transform
-        
-    def transform_points_ndc( self, points, eps: Optional[float] = None, **kwargs) -> torch.Tensor:
-        """
-        Camera --> NDC Patch
-        Transforms points from PyTorch3D world/camera space to NDC patch space.
-        Scales z values from camera space to NDC space.
-        """
-        world_to_ndc_transform = self.get_full_projection_transform(**kwargs)
-        if not self.in_ndc():
-            to_ndc_transform = self.get_ndc_camera_transform(**kwargs)
-            world_to_ndc_transform = world_to_ndc_transform.compose(to_ndc_transform)
-            
-        new_points = world_to_ndc_transform.transform_points(points, eps=eps)
-        
-        # scale z values from camera space to NDC space
-        z = new_points[..., 2]
-        new_points[..., 2] = self.z_camera_to_ndc(z)
-        
-        return new_points
+        patch_ndc_transform = ndc_transform.compose(ndc_to_patch_ndc_transform) # screen/ndc --> patch ndc
+
+        return patch_ndc_transform
     
     def z_camera_to_ndc(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -124,8 +141,12 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         """
         
         return 0.5 * (z + 1) * (self.zfar - self.znear) + self.znear
-    
-def get_patch_ndc_to_ndc_transform(
+
+################################################
+# Helper functions for patch perspective cameras
+################################################
+
+def get_ndc_to_patch_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -133,6 +154,7 @@ def get_patch_ndc_to_ndc_transform(
     patch_center: Optional[Union[List, Tuple, torch.Tensor]] = None,
     ) -> Transform3d:
     """
+    NDC --> Patch NDC
     PyTorch3D patch NDC to screen conversion.
     Conversion from PyTorch3D's patch NDC space (+X left, +Y up) to screen/image space
     (+X right, +Y down, origin top left).
@@ -180,28 +202,34 @@ def get_patch_ndc_to_ndc_transform(
         
     # pyre-fixme[16]: Item `List` of `Union[List[typing.Any], Tensor, Tuple[Any,
     #  ...]]` has no attribute `view`.
-    image_size = image_size.view(-1, 2)  # of shape (1 or B)x2
-    image_height, image_width = image_size.unbind(1)
+    # b, h, w - shape of the imagesize patchsize and patchcenter
+    batch_size = image_size.shape[0]
+    image_sizes = image_size.view(batch_size, 1, 2)
+    image_heights, image_widths = image_sizes[..., 0], image_sizes[..., 1]
     
-    patch_size = patch_size.view(-1, 2)  # of shape (1 or B)x2
-    patch_height, patch_width = patch_size.unbind(1)
+    patch_size = patch_size.view(batch_size, 1, 2)
+    patch_height, patch_width = patch_size[..., 0], patch_size[..., 1]
     
-    patch_center = patch_center.view(-1, 2)  # of shape (1 or B)x2
-    cx_patch, cy_patch = patch_center.unbind(1)
+    patch_center = patch_center.view(batch_size, 1, 2)
+    cx_patch, cy_patch = patch_center[..., 0], patch_center[..., 1]
 
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # We assume that the image is centered at the origin
     # patch ndc --> ndc
-    K[:, 0, 0] = patch_width / image_width
-    K[:, 1, 1] = patch_height / image_height
-    K[:, 0, 3] = (2.0 * cx_patch / image_width) - 1.0
-    K[:, 1, 3] = (2.0 * cy_patch / image_height) - 1.0
+    K[:, 0, 0] = patch_width.view(-1) / image_widths.view(-1)    
+    K[:, 1, 1] = patch_height.view(-1) / image_heights.view(-1)
+    K[:, 0, 3] = (2.0 * cx_patch.view(-1) / image_widths.view(-1)) - 1.0
+    K[:, 1, 3] = (2.0 * cy_patch.view(-1) / image_heights.view(-1)) - 1.0
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
-
-    # Transpose the projection matrix as PyTorch3D transforms use row vectors.
+    
+    # # Transpose the projection matrix as PyTorch3D transforms use row vectors.
+    # transform = Transform3d(
+    #     matrix=K.transpose(1, 2).contiguous(), device=cameras.device
+    # )
+    
     transform = Transform3d(
-        matrix=K.transpose(1, 2).contiguous(), device=cameras.device
+        matrix=K.contiguous(), device=cameras.device
     )
 
     if with_xyflip:
@@ -216,7 +244,7 @@ def get_patch_ndc_to_ndc_transform(
         transform = transform.compose(xyflip_transform)
     return transform
 
-def get_ndc_to_patch_ndc_transform(
+def get_patch_ndc_to_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -224,6 +252,7 @@ def get_ndc_to_patch_ndc_transform(
     patch_center: Optional[Union[List, Tuple, torch.Tensor]] = None,
 ) -> Transform3d:
     """
+    Patch --> NDC
     Screen to PyTorch3D Patch NDC conversion (inverse of NDC to screen conversion).
     Conversion from screen/image space (+X right, +Y down, origin top left)
     to PyTorch3D's NDC space (+X left, +Y up) with respect to the patch.
@@ -246,7 +275,7 @@ def get_ndc_to_patch_ndc_transform(
     ]
 
     """
-    transform = get_patch_ndc_to_ndc_transform(
+    transform = get_ndc_to_patch_ndc_transform(
         cameras,
         with_xyflip=with_xyflip,
         image_size=image_size,
