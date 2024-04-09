@@ -146,7 +146,7 @@ class PatchPerspectiveCameras(PerspectiveCameras):
 # Helper functions for patch perspective cameras
 ################################################
 
-def get_ndc_to_patch_ndc_transform(
+def get_patch_ndc_to_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -154,7 +154,7 @@ def get_ndc_to_patch_ndc_transform(
     patch_center: Optional[Union[List, Tuple, torch.Tensor]] = None,
     ) -> Transform3d:
     """
-    NDC --> Patch NDC
+    Patch NDC --> NDC 
     PyTorch3D patch NDC to screen conversion.
     Conversion from PyTorch3D's patch NDC space (+X left, +Y up) to screen/image space
     (+X right, +Y down, origin top left).
@@ -244,7 +244,7 @@ def get_ndc_to_patch_ndc_transform(
         transform = transform.compose(xyflip_transform)
     return transform
 
-def get_patch_ndc_to_ndc_transform(
+def get_ndc_to_patch_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
