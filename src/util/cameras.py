@@ -223,14 +223,14 @@ def get_patch_ndc_to_ndc_transform(
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
-    # # Transpose the projection matrix as PyTorch3D transforms use row vectors.
-    # transform = Transform3d(
-    #     matrix=K.transpose(1, 2).contiguous(), device=cameras.device
-    # )
-    
+    # Transpose the projection matrix as PyTorch3D transforms use row vectors.
     transform = Transform3d(
-        matrix=K.contiguous(), device=cameras.device
+        matrix=K.transpose(1, 2).contiguous(), device=cameras.device
     )
+    
+    # transform = Transform3d(
+    #     matrix=K.contiguous(), device=cameras.device
+    # )
 
     if with_xyflip:
         # flip x, y axis
@@ -275,7 +275,7 @@ def get_ndc_to_patch_ndc_transform(
     ]
 
     """
-    transform = get_ndc_to_patch_ndc_transform(
+    transform = get_patch_ndc_to_ndc_transform(
         cameras,
         with_xyflip=with_xyflip,
         image_size=image_size,
