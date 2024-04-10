@@ -34,6 +34,7 @@ data:
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 8
+    num_workers: 10
     wrap: True
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
@@ -68,5 +69,6 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: advanced
+    profiler: simple
     max_epochs: 1000
+    strategy: ddp
