@@ -1,5 +1,5 @@
 #!/bin/bash
-source ~/.bashrc && conda activate gen-detection
+source ~/.bashrc && conda activate gendetect2
 
 CUDA_VISIBLE_DEVICES=0 #,1,2,3
 export CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES

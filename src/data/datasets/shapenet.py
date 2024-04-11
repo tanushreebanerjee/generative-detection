@@ -147,7 +147,7 @@ class ShapeNetBase(Dataset):
         return self.relpaths
                     
     def _load(self):
-        self.data_root = self.config.get("data_root", "data/processed/shapenet/processed_get3d")
+        self.data_root = self.config.get("data_root", "data/shapenet/processed_get3d")
         img_dir = os.path.join(self.data_root, "img")
         self._load_imgs(img_dir)                 
         l1 = len(self.relpaths)

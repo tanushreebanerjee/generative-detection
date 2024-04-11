@@ -102,6 +102,13 @@ The code in this repository is released under the [MIT License](LICENSE). We wel
 ## BibTeX
 > TODO
 
+
+## FAQ
+- Downgrade MKL library to 2024.0.0 in case running `import torch` raises `undefined symbol: iJIT_NotifyEvent` from `torch/lib/libtorch_cpu.so`:
+```bash
+pip install mkl==2024.0.0
+```
+
 ## References
 [1] Latent Diffusion Models: [ArXiv](https://arxiv.org/abs/2112.10752) | [GitHub](https://github.com/CompVis/latent-diffusion)
 

@@ -1,7 +1,7 @@
 src/*.ipynb
 !src/test.ipynb
-data/original
-data/processed
+data
+!data/splits
 scripts/slurm
 
 taming
