@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import json
+import torch
 
 def log_opts(opts):
     """Log the options."""

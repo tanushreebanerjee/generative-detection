@@ -1,0 +1,13 @@
+{
+    "name": "Python: Remote Attach",
+    "type": "python",
+    "request": "attach",
+    "port": 54321, 
+    "host": "node300", 
+    "pathMappings": [
+        {
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "${workspaceFolder}"
+        }
+    ]
+}

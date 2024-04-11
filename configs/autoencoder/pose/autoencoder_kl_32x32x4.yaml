@@ -3,7 +3,8 @@ model:
   target: src.models.autoencoder.PoseAutoencoder
   params:
     monitor: "val/rec_loss"
-    embed_dim: 16
+    embed_dim: 4
+    euler_convention: "XYZ"
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
@@ -11,33 +12,40 @@ model:
         kl_weight: 0.000001
         disc_weight: 0.5
         pose_weight: 250000
+        pose_loss_fn: "l2"
+        mask_loss_weight: 1000
+        mask_loss_fn: "l2"
+        disc_in_channels: 4
 
     ddconfig:
       double_z: True
-      z_channels: 16
-      resolution: 256
+      z_channels: 4
+      resolution: 64
       in_channels: 3
-      out_ch: 3
+      out_ch: 4
       ch: 128
-      ch_mult: [ 1,1,2,2,4]  # num_down = len(ch_mult)-1
+      ch_mult: [ 1,2,4,4 ]  # num_down = len(ch_mult)-1
       num_res_blocks: 2
-      attn_resolutions: [16]
+      attn_resolutions: [ ]
       dropout: 0.0
 
 data:
   data_root: data/processed/shapenet/processed_get3d
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 6
+    batch_size: 8
+    num_workers: 10
     wrap: True
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
       params:
-        size: 256
+        size: 64
+        euler_convention: "XYZ"
     validation:
       target: src.data.datasets.shapenet.ShapeNetPoseValidation
       params:
-        size: 256
+        size: 64
+        euler_convention: "XYZ"
 
 lightning:
   callbacks:
@@ -47,6 +55,7 @@ lightning:
         batch_frequency: 1000
         max_images: 8
         increase_log_steps: True
+        disable_local_logging: False
 
     progress_bar:
       target: src.util.callbacks.TQDMProgressBar
@@ -54,11 +63,12 @@ lightning:
         refresh_rate: 1
         process_position: 0
 
-    device_stats_monitor:
+    device_stats_monitor: 
       target: src.util.callbacks.DeviceStatsMonitor
 
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: advanced
+    profiler: simple
     max_epochs: 1000
+    strategy: ddp

@@ -3,6 +3,7 @@ import os
 import json
 import numpy as np
 import albumentations
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from omegaconf import OmegaConf
@@ -11,13 +12,19 @@ from taming.data.imagenet import retrieve, ImagePaths
 import logging
 import cProfile, pstats, io
 from pstats import SortKey
-import se3
 from math import radians
+from src.util.pose_transforms import euler_angles_translation2se3_log_map
+
+TRAIN_MINI_NUM_OBJECTS = 10
+TRAIN_SPLIT = 0.8
+VALIDATION_SPLIT = 0.1
+TEST_SPLIT = 0.1
+POSE_6D_DIM = 6
 
 def create_splits(config):
     splits_dir = retrieve(config, "splits_dir", default="data/splits/shapenet")
     data_root = retrieve(config, "data_root", default="data/processed/shapenet/processed_get3d")
-    split_prop = retrieve(config, "split", default={"train": 0.8, "validation": 0.1, "test": 0.1})
+    split_prop = retrieve(config, "split", default={"train": TRAIN_SPLIT, "validation": VALIDATION_SPLIT, "test": TEST_SPLIT})
     shuffle = retrieve(config, "shuffle", default=True)
     
     synsets = os.listdir(os.path.join(data_root, "img"))
@@ -40,7 +47,7 @@ def create_splits(config):
         with open(os.path.join(splits_dir, f"{split}.txt"), "w") as f:
             for obj in objects:
                 f.write(obj + "\n")    
-    
+
     return split_objects            
     
 class ShapeNetBase(Dataset):
@@ -85,7 +92,7 @@ class ShapeNetBase(Dataset):
     def _filter_split(self, relpaths):
         """Filters the given list of relative paths based on the specified split percentages."""
         if self.split is not None:
-            assert self.split in ["train", "validation", "test"], f"Invalid split {self.split}."
+            assert self.split in ["train", "validation", "test", "train-mini"], f"Invalid split {self.split}."
             objects_in_split_path = os.path.join(self.config.get("splits_dir", "data/splits/shapenet"), f"{self.split}.txt")
             with open(objects_in_split_path, "r") as f:
                 objects_in_split = f.read().splitlines()
@@ -140,7 +147,7 @@ class ShapeNetBase(Dataset):
         return self.relpaths
                     
     def _load(self):
-        self.data_root = self.config.get("data_root", "data/processed/shapenet/processed_get3d")
+        self.data_root = self.config.get("data_root", "data/shapenet/processed_get3d")
         img_dir = os.path.join(self.data_root, "img")
         self._load_imgs(img_dir)                 
         l1 = len(self.relpaths)
@@ -221,9 +228,19 @@ class ShapeNetTest(ShapeNetBase):
 
     def _prepare(self):
         self.random_crop = retrieve(self.config, "random_crop", default=False)
+
+class ShapeNetTrainMini(ShapeNetBase):
+    def __init__(self, process_images=True, data_root=None, **kwargs):
+        self.process_images = process_images
+        self.data_root = data_root
+        self.split = "train-mini"
+        super().__init__(**kwargs)
     
+    def _prepare(self):
+        self.random_crop = retrieve(self.config, "random_crop", default=False)
+
 class ShapeNetPose(Dataset):
-    def __init__(self, size=None):
+    def __init__(self, size=None, euler_convention=None):
         """
         Initialize the ShapeNet dataset.
 
@@ -235,20 +252,24 @@ class ShapeNetPose(Dataset):
         assert size is not None, "size must be specified"
         self.size = size
         
+        assert euler_convention is not None, "euler_angle_convention must be specified"
+        assert euler_convention in ["XYZ", "ZYX"], f"Invalid euler_angle_convention {euler_convention}. Must be 'XYZ' or 'ZYX'."
+        self.euler_convention = euler_convention
+        
         self.image_rescaler = albumentations.SmallestMaxSize(max_size=size, interpolation=cv2.INTER_AREA)
 
     def __len__(self):
         return len(self.base)
     
-    def _get_object_pose_as_se3(self, idx):
+    def _get_object_pose_6d(self, idx):
             """
-            Get the pose of the object at the given index as a 3D transformation matrix.
+            Get the pose of the object at the given index as screw parameters.
 
             Parameters:
                 idx (int): The index of the object.
 
             Returns:
-                object_pose (se3.SE3): The pose of the object as a 3D transformation matrix.
+                object_pose (np.ndarray): The pose of the object as screw parameters.
             """
             # Assuming rotation and elevation are given in degrees
             rotation_deg = self.base.rotations[idx]
@@ -258,26 +279,38 @@ class ShapeNetPose(Dataset):
             rotation_rad = radians(rotation_deg)
             elevation_rad = radians(elevation_deg)
 
-            # Construct SE3 transformation matrix
-            object_pose_se3 = se3.SE3(0, 0, 0, 0, elevation_rad, rotation_rad)
+            # Convert the Euler angles and translation to screw parameters
+            roll = 0
+            pitch = elevation_rad
+            yaw = rotation_rad
             
-            obj_pose_T = object_pose_se3.T
-            return obj_pose_T
+            # set euler angles in order based on convention
+            if self.euler_convention == "XYZ":
+                euler_angle = torch.tensor([roll, pitch, yaw])
+            elif self.euler_convention == "ZYX":
+                euler_angle = torch.tensor([yaw, pitch, roll])
+            else:
+                raise ValueError(f"Invalid convention {self.euler_convention}. Must be 'XYZ' or 'ZYX'.")
+            
+            translation = torch.tensor([0, 0, 0])
+            object_pose_screw = euler_angles_translation2se3_log_map(euler_angle, translation, self.euler_convention)
+            assert object_pose_screw.shape[1] == POSE_6D_DIM, f"Expected 6D pose, got {object_pose_screw.shape[1]}D pose."
+            return object_pose_screw
     
     def __getitem__(self, i):
         example = self.base[i]
-        image = Image.open(example["file_path_"])
-
-        if not image.mode == "RGB":
-            image = image.convert("RGB")
+        image = Image.open(example["file_path_"]) 
+        if not image.mode == "RGBA":
+            image = image.convert("RGBA")
 
         image = np.array(image).astype(np.uint8)
 
         image = self.image_rescaler(image=image)["image"]
+        example["image1_rgba"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
+        example["image1_rgb"] = example["image1_rgba"][:, :, :3]
+        example["image1_mask"] = example["image1_rgba"][:, :, 3]
+        example["pose1"] = self._get_object_pose_6d(i).reshape(-1)
 
-        example["image1"] = (image/127.5 - 1.0).astype(np.float32) # normalize to [-1, 1]
-        example["pose1"] = self._get_object_pose_as_se3(i)
-        
         # Get a random example of the same object but with a different pose
         class_label = example["class_label"]
         same_object_indices = np.where(self.base.class_labels == class_label)[0]
@@ -285,12 +318,14 @@ class ShapeNetPose(Dataset):
         random_idx = np.random.choice(same_object_indices)
         random_example = self.base[random_idx]
         random_image = Image.open(random_example["file_path_"])
-        if not random_image.mode == "RGB":
-            random_image = random_image.convert("RGB")
+        if not random_image.mode == "RGBA":
+            random_image = random_image.convert("RGBA")
         random_image = np.array(random_image).astype(np.uint8)
         random_image = self.image_rescaler(image=random_image)["image"]
-        example["image2"] = (random_image/127.5 - 1.0).astype(np.float32)
-        example["pose2"] = self._get_object_pose_as_se3(random_idx)
+        example["image2_rgba"] = (random_image/127.5 - 1.0).astype(np.float32)
+        example["pose2"] = self._get_object_pose_6d(random_idx).reshape(-1)
+        example["image2_rgb"] = example["image2_rgba"][:, :, :3]
+        example["image2_mask"] = example["image2_rgba"][:, :, 3] 
         return example
         
 class ShapeNetPoseTrain(ShapeNetPose):
@@ -313,3 +348,10 @@ class ShapeNetPoseTest(ShapeNetPose):
         
     def get_base(self):
         return ShapeNetTest()
+
+class ShapeNetPoseTrainMini(ShapeNetPose):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+    def get_base(self):
+        return ShapeNetTrainMini()

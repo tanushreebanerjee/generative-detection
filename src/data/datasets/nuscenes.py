@@ -1,44 +1,122 @@
 # src/data/nuscenes.py
 
-from torch.utils.data import Dataset
+from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset as MMDetNuScenesDataset
+from mmdet3d.registry import DATASETS
 from omegaconf import OmegaConf
 
-class nuScenesBase(Dataset):
-    def __init__(self, config=None):
-        super().__init__()
-        self.config = config or OmegaConf.create()
-        if not type(self.config)==dict:
-            self.config = OmegaConf.to_container(self.config)
-            self.process_images = True  # if False we skip loading & processing images and self.data contains filepaths
-            self._prepare()
-            self._load()
+CLASSES = ('car'),      # , 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 
+                        #'motorcycle', 'pedestrian', 'traffic_cone', 'barrier'
+PALETTE = [
+            (255, 158, 0),  # Orange
+            (255, 99, 71),  # Tomato
+            (255, 140, 0),  # Darkorange
+            (255, 127, 80),  # Coral
+            (233, 150, 70),  # Darksalmon
+            (220, 20, 60),  # Crimson
+            (255, 61, 99),  # Red
+            (0, 0, 230),  # Blue
+            (47, 79, 79),  # Darkslategrey
+            (112, 128, 144),  # Slategrey
+        ]
+
+@DATASETS.register_module()
+class NuScenesBase(MMDetNuScenesDataset):
     
+    def __init__(self, config=None):
+        self.config = config or OmegaConf.create()
+        if not type(self.config) == dict:
+            self.config = OmegaConf.to_container(self.config)
+        
+        super().__init__(**self.config)  
+        assert box_type_3d.lower() == 'camera', 'Only camera box type is supported'
+        assert self.config["ann_file"] is not None, 'Annotation file is required'
     def __len__(self):
-        return len(self.data)
+        return super().__len__()
     
     def __getitem__(self, idx):
-        return self.data[idx]
+        return super().__getitem__(idx)
     
-    def _prepare(self):
-        raise NotImplementedError("Subclass must implement _prepare method")
-    
-    def _load(self):
-        raise NotImplementedError("_load method must be implemented")
+@DATASETS.register_module()
+class NuScenesTrain(NuScenesBase):
+    METAINFO = {
+        'classes': CLASSES,
+        'version': 'v1.0-trainval',
+        'palette': PALETTE,
+    }
+    def __init__(self, **kwargs):
+        self.split = "train"
+        super().__init__(**kwargs)
+        
+@DATASETS.register_module()     
+class NuScenesValidation(NuScenesBase):
+    METAINFO = {
+        'classes': CLASSES,
+        'version': 'v1.0-trainval',
+        'palette': PALETTE,
+    }
+    def __init__(self, **kwargs):
+        self.split = "validation"
+        super().__init__(**kwargs)
 
-class nuScenesTrain(nuScenesBase):
-    def __init__(self, process_images=True, data_root=None, **kwargs):
-        self.process_images = process_images
-        self.data_root = data_root
+@DATASETS.register_module()   
+class NuScenesTest(NuScenesBase):
+    METAINFO = {
+        'classes': CLASSES,
+        'version': 'v1.0-test',
+        'palette': PALETTE,
+    }
+    def __init__(self, **kwargs):
+        self.split = "test"
+        super().__init__(**kwargs)
+
+@DATASETS.register_module()
+class NuScenesMini(NuScenesBase):
+    METAINFO = {
+        'classes': CLASSES,
+        'version': 'v1.0-mini',
+        'palette': PALETTE,
+    }
+    def __init__(self, **kwargs):
+        self.split = "mini"
+        super().__init__(**kwargs)    
+    
+class NuScenesPatch(MMDetNuScenesDataset):
+    def __init__(self, **kwargs):
+        self.base = self.get_base()
+    
+    def __len__(self):
+        return len(self.base)
+    
+    def _get_object_pose_6d(self, idx):
+        raise NotImplementedError
+    
+    def __getitem__(self, idx):
+        raise NotImplementedError
+    
+class NuScenesPatchTrain(NuScenesPatch):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
-    def _prepare(self):
-        pass
-
-class nuScenesValidation(nuScenesBase):
-    def __init__(self, process_images=True, data_root=None, **kwargs):
-        self.process_images = process_images
-        self.data_root = data_root
+    def get_base(self):
+        return NuScenesTrain()
+    
+class NuScenesPatchValidation(NuScenesPatch):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
-    def _prepare(self):
-        pass
+    def get_base(self):
+        return NuScenesValidation()
+    
+class NuScenesPatchTest(NuScenesPatch):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def get_base(self):
+        return NuScenesTest()
+
+class NuScenesPatchMini(NuScenesPatch):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def get_base(self):
+        return NuScenesMini()

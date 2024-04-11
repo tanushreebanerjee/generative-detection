@@ -107,7 +107,7 @@ class ImageLogger(Callback):
     """
     def __init__(self, batch_frequency, max_images, clamp=True, increase_log_steps=True,
                  rescale=True, disabled=False, log_on_batch_idx=False, log_first_step=False,
-                 log_images_kwargs=None):
+                 log_images_kwargs=None, disable_local_logging=False):
         super().__init__()
         self.rescale = rescale
         self.batch_freq = batch_frequency
@@ -123,6 +123,7 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
+        self.disable_local_logging = disable_local_logging
 
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
@@ -181,8 +182,9 @@ class ImageLogger(Callback):
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
 
-            self.log_local(pl_module.logger.save_dir, split, images,
-                           pl_module.global_step, pl_module.current_epoch, batch_idx)
+            if not self.disable_local_logging:
+                self.log_local(pl_module.logger.save_dir, split, images,
+                               pl_module.global_step, pl_module.current_epoch, batch_idx)
 
             logger_log_images = self.logger_log_images.get(logger, lambda *args, **kwargs: None)
             logger_log_images(pl_module, images, pl_module.global_step, split)
