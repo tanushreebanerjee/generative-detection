@@ -4,6 +4,9 @@ from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset as MMDetNuScenesDa
 from mmdet3d.registry import DATASETS
 from omegaconf import OmegaConf
 
+
+NUM_CAMERAS = 6
+
 CLASSES = ('car'),      # , 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 
                         #'motorcycle', 'pedestrian', 'traffic_cone', 'barrier'
 PALETTE = [
@@ -35,6 +38,20 @@ class NuScenesBase(MMDetNuScenesDataset):
     
     def __getitem__(self, idx):
         return super().__getitem__(idx)
+   
+    def _load_relpaths(self):
+        data_list = self.load_data_list()
+        num_img_files = len(data_list) * NUM_CAMERAS
+        rel_paths = [None] * num_img_fileser
+        index = 0
+        for data_info in data_list:
+            rel_paths[index] = data_info['img_path']
+            index += 1
+        return rel_paths
+    
+    def _load(self):
+        self.rel_paths = self._load_relpaths()
+    
     
 @DATASETS.register_module()
 class NuScenesTrain(NuScenesBase):
