@@ -218,8 +218,8 @@ def get_patch_ndc_to_ndc_transform(
     # patch ndc --> ndc
     K[:, 0, 0] = patch_width.view(-1) / image_widths.view(-1)    
     K[:, 1, 1] = patch_height.view(-1) / image_heights.view(-1)
-    K[:, 0, 3] = (2.0 * cx_patch.view(-1) / image_widths.view(-1)) - 1.0
-    K[:, 1, 3] = (2.0 * cy_patch.view(-1) / image_heights.view(-1)) - 1.0
+    K[:, 0, 3] = -((2.0 * cx_patch.view(-1) / image_widths.view(-1)) - 1.0)
+    K[:, 1, 3] = -((2.0 * cy_patch.view(-1) / image_heights.view(-1)) - 1.0)
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
