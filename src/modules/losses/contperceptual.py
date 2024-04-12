@@ -11,11 +11,11 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, pose_weight=1.0, mask_loss_weight=1.0, pose_loss_fn=None, 
+    def __init__(self, pose_weight=1.0, mask_weight=1.0, pose_loss_fn=None, 
                  mask_loss_fn=None, use_mask_loss=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_weight = pose_weight
-        self.mask_loss_weight = mask_loss_weight
+        self.mask_weight = mask_weight
         self.use_mask_loss = use_mask_loss
         assert pose_loss_fn is not None, "Please provide a pose loss function."
         assert mask_loss_fn is not None, "Please provide a mask loss function."
@@ -62,68 +62,27 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         kl_loss = torch.sum(kl_loss) / kl_loss.shape[0]
         return kl_loss
     
-    def _get_combined_inputs_reconstructions(self, inputs1, inputs2, 
-                                             reconstructions1, reconstructions2):
-        """
-        Get the combined inputs and reconstructions based on the global step and optimizer index.
-
-        Args:
-            inputs1: The first set of inputs.
-            inputs2: The second set of inputs.
-            reconstructions1: The first set of reconstructions.
-            reconstructions2: The second set of reconstructions.
-            optimizer_idx: The index of the optimizer.
-            global_step: The global step.
-
-        Returns:
-            inputs: The selected inputs.
-            reconstructions: The selected reconstructions.
-        """
-        
-        batch_size = inputs1.shape[0]
-        inputs = torch.empty(batch_size, inputs1.shape[1], inputs1.shape[2], 
-                             inputs1.shape[3], device=inputs1.device)
-        reconstructions = torch.empty(batch_size, reconstructions1.shape[1], 
-                                      reconstructions1.shape[2], reconstructions1.shape[3], 
-                                      device=reconstructions1.device)
-        # for each item in batch, 
-        # randomly pick one of the two inputs and corresponding reconstructions
-        for i in range(batch_size):
-            if torch.rand(1) < 0.5:
-                inputs[i] = inputs1[i]
-                reconstructions[i] = reconstructions1[i]
-            else:
-                inputs[i] = inputs2[i]
-                reconstructions[i] = reconstructions2[i]
-        return inputs, reconstructions
-    
     def get_mask_loss(self, mask1, mask2):
         if self.use_mask_loss:
             mask_loss = self.mask_loss(mask1, mask2)
-            weighted_mask_loss = self.mask_loss_weight * mask_loss
+            weighted_mask_loss = self.mask_weight * mask_loss
         else:
             mask_loss = torch.tensor(0.0)
             weighted_mask_loss = torch.tensor(0.0)
         return mask_loss, weighted_mask_loss
     
-    def forward(self, inputs1_rgb, inputs2_rgb, 
-                inputs1_mask, inputs2_mask,
-                reconstructions1, reconstructions2, 
-                pose_inputs1, pose_reconstructions1,
-                posteriors1, optimizer_idx, global_step, 
+    def forward(self, 
+                rgb_gt, mask_gt, pose_gt
+                dec_obj, dec_pose
+                posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
         assert pose_inputs1.shape == pose_reconstructions1.shape, \
             f"pose_inputs.shape: {pose_inputs1.shape}, \
                 pose_reconstructions.shape: {pose_reconstructions1.shape}"
 
-        inputs1 = torch.cat((inputs1_rgb, inputs1_mask), dim=1)
-        inputs2 = torch.cat((inputs2_rgb, inputs2_mask), dim=1)
-        inputs, reconstructions = \
-            self._get_combined_inputs_reconstructions(inputs1,
-                                                      inputs2, 
-                                                      reconstructions1, 
-                                                      reconstructions2)
+        gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
+        inputs, reconstructions = gt_obj, dec_obj
         
         inputs_rgb = inputs[:, :3, :, :]
         inputs_mask = inputs[:, 3:, :, :]
@@ -138,12 +97,15 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             reconstructions_mask = torch.zeros_like(inputs_mask)
             self.use_mask_loss = False
 
-        pose_loss, weighted_pose_loss = self.compute_pose_loss(pose_inputs1, pose_reconstructions1)
+        pose_loss, weighted_pose_loss = self.compute_pose_loss(pose_gt, dec_pose)
         mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
         
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
         nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
-        kl_loss = self._get_kl_loss(posteriors1)
+        
+        kl_loss_obj = self._get_kl_loss(posterior_obj)
+        kl_loss_pose = self._get_kl_loss(posterior_pose)
+        kl_loss = kl_loss_obj + kl_loss_pose
 
         # now the GAN part
         if optimizer_idx == 0:
@@ -173,6 +135,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
 
             log = {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                    "{}/logvar".format(split): self.logvar.detach(),
+                   "{}/kl_loss_obj".format(split): kl_loss_obj.detach().mean(),
+                   "{}/kl_loss_pose".format(split): kl_loss_pose.detach().mean(),
                    "{}/kl_loss".format(split): kl_loss.detach().mean(), 
                    "{}/nll_loss".format(split): nll_loss.detach().mean(),
                    "{}/weighted_nll_loss".format(split): weighted_nll_loss.detach().mean(),

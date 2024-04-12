@@ -13,7 +13,7 @@ model:
         disc_weight: 0.5
         pose_weight: 250000
         pose_loss_fn: "l2"
-        mask_loss_weight: 1000
+        mask_weight: 1000
         mask_loss_fn: "l2"
         disc_in_channels: 4
 
