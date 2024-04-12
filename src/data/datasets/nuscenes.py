@@ -7,26 +7,20 @@ from src.util.misc import EasyDict as edict
 import cv2
 import os
 
-LABEL_ID2NAME = {
-    0: 'unlabeled',
-    1: 'barrier',
-    2: 'bicycle',
-    3: 'bus',
-    4: 'car',
-    5: 'construction-vehicle',
-    6: 'motorcycle',
-    7: 'pedestrian',
-    8: 'traffic-cone',
-    9: 'trailer',
-    10: 'truck',
-    11: 'driveable-surface',
-    12: 'other-ground',
-    13: 'sidewalk',
-    14: 'terrain',
-    15: 'manmade',
-    16: 'vegetation'
-}    
-LABEL_NAME2ID = {v: k for k, v in LABEL_ID2NAME.items()}
+LABEL_NAME2ID = {
+    'car': 0, 
+    'truck': 1,
+    'trailer': 2,
+    'bus': 3,
+    'construction_vehicle': 4,
+    'bicycle': 5,
+    'motorcycle': 6,
+    'pedestrian': 7,
+    'traffic_cone': 8,
+    'barrier': 9
+}
+
+LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
 
 CAM_NAMESPACE = 'CAM'
 CAMERAS = ["FRONT", "FRONT_RIGHT", "FRONT_LEFT", "BACK", "BACK_LEFT", "BACK_RIGHT"]
