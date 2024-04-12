@@ -142,6 +142,22 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         
         return 0.5 * (z + 1) * (self.zfar - self.znear) + self.znear
 
+    def z_patch_to_ndc(self, z_patch: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
+        """
+        Scale z values from patch space to NDC space to make the network aware of the patch size.
+        """
+        scale = min(patch_size) / min(image_size) 
+        z_ndc = z_patch * scale
+        return z_ndc
+    
+    def z_ndc_to_patch(self, z_ndc: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
+        """
+        Scale z values from NDC space to patch space.
+        """
+        scale = min(image_size) / min(patch_size)
+        z_patch = z_ndc * scale
+        return x_patch
+
 ################################################
 # Helper functions for patch perspective cameras
 ################################################
