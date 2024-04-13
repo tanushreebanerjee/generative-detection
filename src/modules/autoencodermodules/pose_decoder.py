@@ -6,17 +6,17 @@ class PoseDecoder(nn.Module):
     Decoder module for pose estimation.
     """
 
-    def __init__(self, img_feat_dims, pose_feat_dims):
+    def __init__(self, enc_feat_dims, pose_feat_dims):
         """
         Initialize the PoseDecoder module.
 
         Args:
-            img_feat_dims (int): The dimensionality of the input image features.
+            enc_feat_dims (int): The dimensionality of the input image features.
             pose_feat_dims (int): The dimensionality of the output pose features.
         """
         
         super(PoseDecoder, self).__init__()
-        self.fc = nn.Linear(img_feat_dims, pose_feat_dims)
+        self.fc = nn.Linear(enc_feat_dims, pose_feat_dims)
     
     def forward(self, x):
         """

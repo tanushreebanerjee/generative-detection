@@ -36,7 +36,7 @@ class PoseAutoencoder(AutoencoderKL):
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
-                 image_rgb_key="image1_rgb",
+                 image_rgb_key="image_rgb",
                  pose_key="pose",
                  image_mask_key="image_mask",
                  colorize_nlabels=None,
@@ -51,7 +51,7 @@ class PoseAutoencoder(AutoencoderKL):
         self.loss = instantiate_from_config(lossconfig)
         assert ddconfig["double_z"]
         self.quant_conv_obj = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1)
-        sefl.quant_conv_pose = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1) # TODO: Need to fix the dimensions
+        self.quant_conv_pose = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1) # TODO: Need to fix the dimensions
         self.post_quant_conv = torch.nn.Conv2d(embed_dim, ddconfig["z_channels"], 1)
         self.embed_dim = embed_dim
         if colorize_nlabels is not None:
@@ -62,9 +62,9 @@ class PoseAutoencoder(AutoencoderKL):
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
-        img_feat_dims = self._get_img_feat_dims(ddconfig)
+        enc_feat_dims = self._get_enc_feat_dims(ddconfig)
         
-        feat_dim_config = {"img_feat_dims": img_feat_dims,
+        feat_dim_config = {"enc_feat_dims": enc_feat_dims,
                        "pose_feat_dims": POSE_6D_DIM}
                 
         self.pose_decoder = PoseDecoder(**feat_dim_config)
@@ -72,12 +72,12 @@ class PoseAutoencoder(AutoencoderKL):
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
     
-    def _get_img_feat_dims(self, ddconfig):
+    def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
         batch_size = 1
         dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
         h = self.encoder(dummy_input)
-        moments = self.quant_conv(h)
+        moments = self.quant_conv_pose(h)
         posterior = DiagonalGaussianDistribution(moments)
         img_feat_map = posterior.sample()
         img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
@@ -119,7 +119,7 @@ class PoseAutoencoder(AutoencoderKL):
         posterior_pose = DiagonalGaussianDistribution(moments_pose)
         return posterior_obj, posterior_pose
     
-    def forward(self, input, sample_posterior=True):
+    def forward(self, input_im, sample_posterior=True):
             """
             Forward pass of the autoencoder model.
             
@@ -133,7 +133,7 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
-            posterior_obj, posterior_pose = self.encode(input1)
+            posterior_obj, posterior_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
                 z_pose = posterior_pose.sample()
@@ -163,8 +163,8 @@ class PoseAutoencoder(AutoencoderKL):
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
-            aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt
-                                            dec_obj, dec_pose
+            aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
+                                            dec_obj, dec_pose,
                                             posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -173,8 +173,8 @@ class PoseAutoencoder(AutoencoderKL):
 
         if optimizer_idx == 1:
             # train the discriminator
-            discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt
-                                                dec_obj, dec_pose
+            discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
+                                                dec_obj, dec_pose,
                                                 posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -190,13 +190,13 @@ class PoseAutoencoder(AutoencoderKL):
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
        
         
-        _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt
-                                      dec_obj, dec_pose
+        _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
+                                      dec_obj, dec_pose,
                                       posterior_obj, posterior_pose, 0, self.global_step,
                                       last_layer=self.get_last_layer(), split="val")
 
-        _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt
-                                        dec_obj, dec_pose
+        _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
+                                        dec_obj, dec_pose,
                                         posterior_obj, posterior_pose, 1, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 

@@ -6,16 +6,16 @@ class PoseEncoder(nn.Module):
     PoseEncoder is a module that encodes pose features into image features.
     """
 
-    def __init__(self, img_feat_dims, pose_feat_dims):
+    def __init__(self, enc_feat_dims, pose_feat_dims):
         """
         Initializes a new instance of the PoseEncoder class.
 
         Args:
-            img_feat_dims (int): Dimensionality of the image features.
+            enc_feat_dims (int): Dimensionality of the image features.
             pose_feat_dims (int): Dimensionality of the pose features.
         """
         super(PoseEncoder, self).__init__()
-        self.fc = nn.Linear(pose_feat_dims, img_feat_dims)
+        self.fc = nn.Linear(pose_feat_dims, enc_feat_dims)
     
     def forward(self, x):
         """

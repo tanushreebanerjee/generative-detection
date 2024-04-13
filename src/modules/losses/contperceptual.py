@@ -72,8 +72,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return mask_loss, weighted_mask_loss
     
     def forward(self, 
-                rgb_gt, mask_gt, pose_gt
-                dec_obj, dec_pose
+                rgb_gt, mask_gt, pose_gt,
+                dec_obj, dec_pose,
                 posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
