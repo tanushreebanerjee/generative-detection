@@ -77,9 +77,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
-        assert pose_inputs1.shape == pose_reconstructions1.shape, \
-            f"pose_inputs.shape: {pose_inputs1.shape}, \
-                pose_reconstructions.shape: {pose_reconstructions1.shape}"
+        assert pose_gt.shape == dec_pose.shape, \
+            f"pose_gt.shape: {pose_gt.shape}, \
+                dec_pose.shape: {dec_pose.shape}"
 
         gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
         inputs, reconstructions = gt_obj, dec_obj
