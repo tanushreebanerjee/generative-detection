@@ -14,6 +14,7 @@ import math
 import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
+import numpy as np
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
@@ -270,15 +271,20 @@ class PoseAutoencoder(AutoencoderKL):
             
         if not only_inputs:
             
-            xrec, poserec, posterior_obj, posterior_pose = self(x_rgb)
+            xrec, poserec, posterior_obj, posterior_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
             xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
             
-            xrec_rgb = xrec[:, :3, :, :]
+            xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
             xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :]
             
-            xrec_mask = xrec[:, 3, :, :]
-            xrec_perturbed_pose_mask = xrec_perturbed_pose[:, 3, :, :]
+            # xrec_mask = xrec[:, 3, :, :] # torch.Size([8, 64, 64])
+            # xrec_perturbed_pose_mask = xrec_perturbed_pose[:, 3, :, :]
             
+            # xrec_mask = (xrec_mask * 255).byte().cpu().numpy()
+            # xrec_mask = np.clip(xrec_mask, 0, 255).astype(np.uint8)
+            # xrec_perturbed_pose_mask = (xrec_perturbed_pose_mask * 255).byte().cpu().numpy()
+            # xrec_perturbed_pose_mask = np.clip(xrec_perturbed_pose_mask, 0, 255).astype(np.uint8)
+
             if x_rgb.shape[1] > 3:
                 # colorize with random projection
                 assert xrec_rgb.shape[1] > 3
@@ -296,7 +302,7 @@ class PoseAutoencoder(AutoencoderKL):
         log["inputs_rgb"] = x_rgb
         log["inputs_mask"] = x_mask
         return log
-    
+     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
