@@ -2,6 +2,7 @@
 import argparse, os, sys, datetime, glob
 import pytorch_lightning as pl
 import logging
+import torch
 
 import signal
 from packaging import version
