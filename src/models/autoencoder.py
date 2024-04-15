@@ -275,6 +275,10 @@ class PoseAutoencoder(AutoencoderKL):
             
             xrec_rgb = xrec[:, :3, :, :]
             xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :]
+            
+            xrec_mask = xrec[:, 3, :, :]
+            xrec_perturbed_pose_mask = xrec_perturbed_pose[:, 3, :, :]
+            
             if x_rgb.shape[1] > 3:
                 # colorize with random projection
                 assert xrec_rgb.shape[1] > 3
@@ -282,6 +286,8 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec_rgb = self.to_rgb(xrec_rgb)
                 xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
 
+            log["reconstructions_mask"] = torch.tensor(xrec_mask)
+            log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
             log["samples_obj"] = self.decode(torch.randn_like(posterior_obj.sample()))
             log["samples_pose"] = self._decode_pose(torch.randn_like(posterior_pose.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
