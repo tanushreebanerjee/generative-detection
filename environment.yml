@@ -1,4 +1,4 @@
-name: inrdetect
+name: inrdetect4
 channels:
   - pytorch3d
   - bottler
@@ -150,7 +150,6 @@ dependencies:
   - python-dateutil=2.9.0=pyhd8ed1ab_0
   - python_abi=3.10=4_cp310
   - pytorch=1.12.0=py3.10_cuda11.6_cudnn8.3.2_0
-  - pytorch-lightning=2.1.4=pyhd8ed1ab_0
   - pytorch-mutex=1.0=cuda
   - pytorch3d=0.7.5=py310_cu116_pyt1120
   - pyyaml=6.0.1=py310h2372a71_1
@@ -165,7 +164,6 @@ dependencies:
   - termcolor=2.4.0=pyhd8ed1ab_0
   - tk=8.6.13=noxft_h4845f30_101
   - torchaudio=0.12.0=py310_cu116
-  - torchmetrics=1.1.2=py310h06a4308_0
   - torchvision=0.13.0=py310_cu116
   - tornado=6.4=py310h2372a71_0
   - tqdm=4.66.2=pyhd8ed1ab_0
@@ -187,6 +185,12 @@ dependencies:
   - pip:
       - absl-py==2.1.0
       - addict==2.4.0
+      - aiohttp==3.9.4
+      - aiosignal==1.3.1
+      - albumentations==0.4.3
+      - antlr4-python3-runtime==4.9.3
+      - astunparse==1.6.3
+      - async-timeout==4.0.3
       - attrs==23.2.0
       - black==24.4.0
       - blinker==1.7.0
@@ -200,13 +204,22 @@ dependencies:
       - dash-html-components==2.0.0
       - dash-table==5.0.0
       - descartes==1.1.0
+      - einops==0.7.0
       - fastjsonschema==2.19.1
+      - filelock==3.13.4
       - fire==0.6.0
       - flake8==7.0.0
       - flask==3.0.3
+      - flatbuffers==24.3.25
       - fonttools==4.51.0
+      - frozenlist==1.4.1
+      - gast==0.5.4
+      - google-pasta==0.2.0
       - grpcio==1.62.1
+      - h5py==3.11.0
+      - huggingface-hub==0.22.2
       - imageio==2.34.0
+      - imgaug==0.2.6
       - iniconfig==2.0.0
       - ipywidgets==8.1.2
       - itsdangerous==2.1.2
@@ -215,8 +228,11 @@ dependencies:
       - jsonschema==4.21.1
       - jsonschema-specifications==2023.12.1
       - jupyterlab-widgets==3.0.10
+      - keras==3.2.1
       - kiwisolver==1.4.5
+      - kornia==0.6.4
       - lazy-loader==0.4
+      - libclang==18.1.1
       - llvmlite==0.42.0
       - lyft-dataset-sdk==0.0.8
       - markdown==3.6
@@ -225,37 +241,47 @@ dependencies:
       - matplotlib==3.5.3
       - mccabe==0.7.0
       - mdurl==0.1.2
+      - ml-dtypes==0.3.2
       - mmcv==2.1.0
       - mmdet==3.3.0
       - mmdet3d==1.4.0
       - mmengine==0.10.3
       - model-index==0.1.11
+      - multidict==6.0.5
       - mypy-extensions==1.0.0
+      - namex==0.0.7
       - nbformat==5.10.4
       - networkx==3.3
       - numba==0.59.1
       - nuscenes-devkit==1.1.11
+      - omegaconf==2.3.0
       - open3d==0.18.0
       - opencv-python==4.9.0.80
       - openmim==0.3.8
+      - opt-einsum==3.3.0
+      - optree==0.11.0
       - ordered-set==4.1.0
       - pandas==2.2.2
       - pathspec==0.12.1
       - plotly==5.20.0
       - pluggy==1.4.0
       - plyfile==1.0.3
-      - protobuf==5.26.1
+      - protobuf==4.25.3
+      - ptvsd==4.3.2
       - pycocotools==2.0.7
       - pycodestyle==2.11.1
       - pyflakes==3.2.0
       - pyparsing==3.1.2
       - pyquaternion==0.9.9
       - pytest==8.1.1
+      - pytorch-lightning==1.9.0
       - pytz==2024.1
       - referencing==0.34.0
+      - regex==2023.12.25
       - retrying==1.3.4
       - rich==13.7.1
       - rpds-py==0.18.0
+      - scann==1.3.1
       - scikit-image==0.23.1
       - scikit-learn==1.4.2
       - scipy==1.13.0
@@ -263,12 +289,20 @@ dependencies:
       - tenacity==8.2.3
       - tensorboard==2.16.2
       - tensorboard-data-server==0.7.2
+      - tensorflow==2.16.1
+      - tensorflow-io-gcs-filesystem==0.36.0
       - terminaltables==3.1.10
       - threadpoolctl==3.4.0
       - tifffile==2024.2.12
+      - tokenizers==0.12.1
       - tomli==2.0.1
+      - torchmetrics==1.3.2
+      - transformers==4.19.2
       - trimesh==4.3.0
       - tzdata==2024.1
       - werkzeug==3.0.2
       - widgetsnbextension==4.0.10
+      - wrapt==1.16.0
       - yapf==0.40.2
+      - yarl==1.9.4
+prefix: /n/fs/pci-sharedt/tb21/miniconda3/envs/inrdetect4
