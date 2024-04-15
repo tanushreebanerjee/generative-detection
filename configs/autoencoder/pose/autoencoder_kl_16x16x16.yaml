@@ -11,11 +11,12 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 250000
+        pose_weight: 25000
         pose_loss_fn: "l2"
         mask_weight: 1000
         mask_loss_fn: "l2"
         disc_in_channels: 4
+        num_classes: 1
 
     ddconfig:
       double_z: True
@@ -36,15 +37,18 @@ data:
     batch_size: 8
     num_workers: 10
     wrap: True
+    label_names: ["car"]
     train:
       target: src.data.datasets.shapenet.ShapeNetPoseTrain
       params:
-        size: 64
+        patch_height: 256
+        patch_aspect_ratio: 1.0
         euler_convention: "XYZ"
     validation:
       target: src.data.datasets.shapenet.ShapeNetPoseValidation
       params:
-        size: 64
+        patch_height: 256
+        patch_aspect_ratio: 1.0
         euler_convention: "XYZ"
 
 lightning:

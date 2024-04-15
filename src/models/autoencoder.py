@@ -18,6 +18,7 @@ from src.util.pose_transforms import euler_angles_translation2se3_log_map
 POSE_6D_DIM = 6
 PITCH_MAX = 360
 YAW_MAX = 30
+LHW_DIM = 3
 
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""
@@ -36,16 +37,16 @@ class PoseAutoencoder(AutoencoderKL):
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
-                 image_rgb_key="image_rgb",
-                 pose_key="pose",
-                 image_mask_key="image_mask",
+                 image_rgb_key="patch",
+                 pose_key="pose_6d",
+                #  image_mask_key="image_mask",
                  colorize_nlabels=None,
                  monitor=None,
                  ):
         pl.LightningModule.__init__(self)
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
-        self.image_mask_key = image_mask_key
+        # self.image_mask_key = image_mask_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
         self.loss = instantiate_from_config(lossconfig)
@@ -63,14 +64,16 @@ class PoseAutoencoder(AutoencoderKL):
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
         enc_feat_dims = self._get_enc_feat_dims(ddconfig)
+
+        pose_feat_dims = POSE_6D_DIM + LHW_DIM + lossconfig["num_classes"]
         
         feat_dim_config = {"enc_feat_dims": enc_feat_dims,
-                       "pose_feat_dims": POSE_6D_DIM}
+                       "pose_feat_dims": pose_feat_dims}
                 
         self.pose_decoder = PoseDecoder(**feat_dim_config)
         self.pose_encoder = PoseEncoder(**feat_dim_config)
         self.z_channels = ddconfig["z_channels"]
-        self.euler_convention=euler_convention
+        self.euler_convention=euler_convention    
     
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
@@ -149,7 +152,17 @@ class PoseAutoencoder(AutoencoderKL):
             dec_obj = self.decode(z_obj_pose)
             
             return dec_obj, dec_pose, posterior_obj, posterior_pose
-        
+    
+    def get_class_input(self, batch, k):
+        x = batch[k] 
+        x = x.to(memory_format=torch.contiguous_format).long()
+        return x
+    
+    def get_lhw_input(self, batch, k):
+        x = batch[k] 
+        x = x.to(memory_format=torch.contiguous_format).float()
+        return x
+    
     def get_pose_input(self, batch, k):
         x = batch[k] 
         x = x.to(memory_format=torch.contiguous_format).float()
@@ -158,7 +171,10 @@ class PoseAutoencoder(AutoencoderKL):
     def training_step(self, batch, batch_idx, optimizer_idx):
         rgb_gt = self.get_input(batch, self.image_rgb_key)
         pose_gt = self.get_pose_input(batch, self.pose_key)
-        mask_gt = self.get_input(batch, self.image_mask_key)
+        # mask_gt = self.get_input(batch, self.image_mask_key)
+        class_gt = self.get_class_input(batch, "class")
+        lhw_gt = self.get_lhw_input(batch, "lhw")
+        
          
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
         if optimizer_idx == 0:
@@ -185,7 +201,7 @@ class PoseAutoencoder(AutoencoderKL):
         
         rgb_gt = self.get_input(batch, self.image_rgb_key)
         pose_gt = self.get_pose_input(batch, self.pose_key)
-        mask_gt = self.get_input(batch, self.image_mask_key)
+        # mask_gt = self.get_input(batch, self.image_mask_key)
          
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
        
