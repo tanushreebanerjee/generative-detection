@@ -112,7 +112,7 @@ class NuScenesCameraInstances(Dataset):
                     
                 patch = img_pil.crop((x1, y1, x2, y2))
             except Exception as e:
-                print(f"Error in cropping image: {e}")
+                logging.info(f"Error in cropping image: {e}")
                 # return full image if error occurs
                 patch = img
             
@@ -141,7 +141,7 @@ class NuScenesCameraInstances(Dataset):
                 
                 patch = img_pil.crop((x1, y1, x2, y2))
             except Exception as e:
-                print(f"Error in cropping image: {e}")
+                logging.info(f"Error in cropping image: {e}")
                 # return full image if error occurs
                 patch = img
             
@@ -209,9 +209,14 @@ class NuScenesCameraInstances(Dataset):
         return pose_6d, bbox_sizes
         
     def __getitem__(self, idx):
+        if len(self.cam_instances) == 0:
+            return edict({"patch": self.patches[0], "pose_6d": torch.zeros(6, dtype=torch.float32), "bbox_sizes": torch.zeros(3, dtype=torch.float32), "class_id": -1})
+        
         cam_instance = edict(self.cam_instances[idx])   
         cam_instance.patch = self.patches[idx]
-        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(cam_instance)
+        # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
+        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(cam_instance) if len(self.cam_instances) > 0 else (torch.zeros(6, dtype=torch.float32), torch.zeros(3, dtype=torch.float32))
+        cam_instance.class_id = cam_instance.bbox_label if len(self.cam_instances) > 0 else -1
         return cam_instance
 
 class NuScenesBase(MMDetNuScenesDataset):
@@ -222,9 +227,14 @@ class NuScenesBase(MMDetNuScenesDataset):
         super().__init__(data_root=data_root, **kwargs)
         self.label_names = label_names
         self.label_ids = [LABEL_NAME2ID[label_name] for label_name in label_names]
-        print(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
+        logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
         self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
-    
+        # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
+        self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
+        self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
+        logging.info(f"Using patch size: {self.patch_size}")
+        logging.info(f"Using label id to class id mapping: {self.label_id2class_id}") 
+        
     def __len__(self):
         self.num_samples = super().__len__()
         self.num_cameras = len(CAMERA_NAMES)
@@ -255,6 +265,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
         ret.full_img = cv2.imread(os.path.join(self.img_root, cam_name, img_file))
         ret.patch = ret.cam_instances.patches[0]
+        ret.class_id = self.label_id2class_id[ret.cam_instances[0].class_id] if len(cam_instances) > 0 else -1
+        ret.pose_6d, ret.bbox_sizes = ret.cam_instances[0].pose_6d, ret.cam_instances[0].bbox_sizes
         return ret
 
 @DATASETS.register_module()
