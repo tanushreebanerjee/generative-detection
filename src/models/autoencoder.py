@@ -151,7 +151,6 @@ class PoseAutoencoder(AutoencoderKL):
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
             
-            # make sure z_obj and enc_pose have the same shape
             assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
             
             z_obj_pose = z_obj + enc_pose
