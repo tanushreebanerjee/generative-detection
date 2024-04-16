@@ -15,6 +15,7 @@ import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 import numpy as np
+import logging
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
@@ -78,11 +79,12 @@ class PoseAutoencoder(AutoencoderKL):
         batch_size = 1
         dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
         h = self.encoder(dummy_input)
-        moments = self.quant_conv_pose(h)
-        posterior = DiagonalGaussianDistribution(moments)
-        img_feat_map = posterior.sample()
-        img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
-        return img_feat_map_flat.size(1)
+        moments_pose = self.quant_conv_pose(h)
+        posterior_pose = DiagonalGaussianDistribution(moments_pose)
+        pose_feat_map = posterior_pose.sample()
+        pose_feat_map_flat = pose_feat_map.view(pose_feat_map.size(0), -1)
+        logging.info(f"enc_feat_dims: {pose_feat_map_flat.size(1)}")
+        return pose_feat_map.size(1)
         
     def _decode_pose(self, x):
         """
@@ -144,6 +146,9 @@ class PoseAutoencoder(AutoencoderKL):
             
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
+            
+            # make sure z_obj and enc_pose have the same shape
+            assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
             
             z_obj_pose = z_obj + enc_pose
             
