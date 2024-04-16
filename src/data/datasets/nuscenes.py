@@ -95,18 +95,21 @@ class NuScenesCameraInstances(Dataset):
             # use interpolation torch to get crop of image from bbox of size patch_size
             # need to use torch for interpolation, not cv2
             x1, y1, x2, y2 = bbox
+            img_clipped = np.clip(img, 0, 255)
+            img_pil = Image.fromarray(img_clipped)
             try:
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                patch = img[y1:y2, x1:x2]
+                patch = img_pil.crop((x1, y1, x2, y2))
             except Exception as e:
                 print(f"Error in cropping image: {e}")
                 # return full image if error occurs
                 patch = img
-            # patch_pil = Image.fromarray(patch)
-            # patch_resized = self.resize(patch_pil)
-            # patch_resized_np = np.array(patch_resized)
             
-            patches.append(patch)
+            patch_resized = self.resize(patch)
+            patch_resized_np = np.array(patch_resized)
+           
+            
+            patches.append(patch_resized_np)
         return patches
      
     def _get_pose_6d_lhw(self, cam_instance):
@@ -173,7 +176,7 @@ class NuScenesCameraInstances(Dataset):
         return cam_instance
 
 class NuScenesBase(MMDetNuScenesDataset):
-    def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.0,
+    def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.3,
                  is_sweep=False, **kwargs):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
