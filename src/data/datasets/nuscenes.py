@@ -8,8 +8,10 @@ import cv2
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
-from torchvision.transformsx import Resize
+from torchvision.transforms import Resize
 from torchvision.transforms.functional import InterpolationMode
+import PIL.Image as Image
+import numpy as np
 
 LABEL_NAME2ID = {
     'car': 0, 
@@ -44,20 +46,32 @@ class NuScenesCameraInstances(Dataset):
         
         self.cam_instances = cam_instances
         self.img_path = img_path
-        self.patches = self._generate_patches()
-        self.patch_size = patch_size
-        self.cam2img = cam2img
-        self.camera = PatchCameras(
-            znear=Z_NEAR,
-            zfar=Z_FAR,
-            K=cam2img,
-            device=torch.device.is_available(),
-            image_size=(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH))
-
         self.resize = Resize(size=patch_size, 
                              interpolation=InterpolationMode.BILINEAR, 
                              max_size=None, 
                              antialias=True)
+        self.patches = self._generate_patches()
+        self.patch_size = torch.tensor(patch_size, dtype=torch.float32)
+        
+        # if no batch dimension, add it
+        if self.patch_size.dim() == 1:
+            self.patch_size = self.patch_size.unsqueeze(0)
+            
+        cam2img = torch.tensor(cam2img, dtype=torch.float32)
+        
+        # make 4x4 matrix from 3x3 camera matrix
+        K = torch.eye(4, dtype=torch.float32)
+        K[:3, :3] = cam2img
+        self.K = torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
+    
+        self.image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
+        
+        self.camera = PatchCameras(
+            znear=Z_NEAR,
+            zfar=Z_FAR,
+            K=self.K,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            image_size=self.image_size)
         
     def __len__(self):
         return len(self.cam_instances)
@@ -88,9 +102,9 @@ class NuScenesCameraInstances(Dataset):
                 print(f"Error in cropping image: {e}")
                 # return full image if error occurs
                 patch = img
-            
-            patch = self.resize(patch)
-            patch = torch.tensor(patch, dtype=torch.float32).permute(2, 0, 1)
+            # patch_pil = Image.fromarray(patch)
+            # patch_resized = self.resize(patch_pil)
+            # patch_resized_np = np.array(patch_resized)
             
             patches.append(patch)
         return patches
@@ -101,11 +115,27 @@ class NuScenesCameraInstances(Dataset):
         # How to convert yaw from cam coords to patch ndc?
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
         
-        point_camera = torch.tensor([x, y, z], dtype=torch.float32)
-        point_patch_ndc = self.cameras.transform_points_patch_ndc(points=point_camera,
-                                                                  patch_size=self.patch_size, 
-                                                                    patch_center=cam_instance.center_2d)
+        point_camera = (x, y, z)
+        points = torch.tensor([point_camera], dtype=torch.float32)
+        patch_center = cam_instance.center_2d
+        if len(patch_center) == 2:
+            # add batch dimension
+            patch_center = torch.tensor(patch_center, dtype=torch.float32).unsqueeze(0)
+       
+        point_camera = torch.tensor(point_camera, dtype=torch.float32)
         
+        if point_camera.dim() == 1:
+            point_camera = point_camera.view(1, 1, 3)
+        
+        assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
+        assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
+        
+        point_patch_ndc = self.camera.transform_points_patch_ndc(points=point_camera,
+                                                                  patch_size=self.patch_size, 
+                                                                    patch_center=patch_center)
+    
+        if point_patch_ndc.dim() == 3:
+            point_patch_ndc = point_patch_ndc.view(-1)
         x_patch, y_patch, z_patch = point_patch_ndc
         
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
@@ -118,20 +148,23 @@ class NuScenesCameraInstances(Dataset):
         translation = torch.tensor([x_patch, y_patch, z_patch], dtype=torch.float32)
         
         # A SE(3) matrix has the following form: ` [ R 0 ] [ T 1 ] , `
-        se3_exp_map = torch.eye(4)
-        se3_exp_map[:3, :3] = R
-        se3_exp_map[:3, 3] = translation
+        se3_exp_map_matrix = torch.eye(4)
+        se3_exp_map_matrix[:3, :3] = R
+        se3_exp_map_matrix[:3, 3] = translation
 
         # form must be ` [ R 0 ] [ T 1 ] , ` so need to transpose
-        se3_exp_map = se3_exp_map.T
+        se3_exp_map_matrix = se3_exp_map_matrix.T
         
-        se3_log_map = se3_log_map(se3_exp_map) # 6d vector
+        # addd batch dim if not present
+        if se3_exp_map_matrix.dim() == 2:
+            se3_exp_map_matrix = se3_exp_map_matrix.unsqueeze(0)
+        pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
         
         h_aspect_ratio = h / l
         w_aspect_ratio = w / l
         
         bbox_sizes = torch.tensor([l, h_aspect_ratio, w_aspect_ratio], dtype=torch.float32)
-        return se3_log_map, bbox_sizes
+        return pose_6d, bbox_sizes
         
     def __getitem__(self, idx):
         cam_instance = edict(self.cam_instances[idx])   
@@ -142,57 +175,36 @@ class NuScenesCameraInstances(Dataset):
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.0,
                  is_sweep=False, **kwargs):
-        self.label_names = label_names
-        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in label_names]
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
-        self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
-        self._load_data()
-        print(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
-        self.num_cam_instances = self._get_num_cam_instances()
         super().__init__(data_root=data_root, **kwargs)
-        
-    def _get_num_cam_instances(self):
-        # sum of all instances in each camera for all samples
-        num_cam_instances = 0
-        for sample_idx in range(len(self)):
-            sample_info = edict(super().__getitem__(sample_idx))
-            for cam_name in CAMERA_NAMES:
-                cam_instances = sample_info.cam_instances[cam_name]
-                cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
-                num_cam_instances += len(cam_instances)
-        return num_cam_instances
+        self.label_names = label_names
+        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in label_names]
+        print(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
+        self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
     
     def __len__(self):
-        return len(self.data)
+        self.num_samples = super().__len__()
+        self.num_cameras = len(CAMERA_NAMES)
+        return self.num_samples * self.num_cameras
     
     def __getitem__(self, idx):
-        return self.data[idx]
-    
-    def _load_data(self):
-        num_samples = super().__len__()
-        num_cameras = len(CAMERA_NAMES)
-        # create empty list of length self._get_num_cam_instances() to store data
-        data = []
-        for sample_idx in range(num_samples):
-            sample_info = edict(super().__getitem__(sample_idx))
-            for cam_idx in range(num_cameras):
-                cam_name = CAM_ID2CAM_NAME[cam_idx]
-                sample_img_info = edict(sample_info.images[cam_name])
-                cam_instances = sample_info.cam_instances[cam_name]
-                cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
-                for cam_instance_idx, cam_instance in enumerate(cam_instances):
-                    ret = edict()
-                    img_file = sample_img_info.img_path.split("/")[-1]
-                    cam_instance.img_path = os.path.join(self.img_root, cam_name, img_file)
-                    ret.sample_idx = sample_idx
-                    ret.cam_idx = cam_idx
-                    ret.cam_name = cam_name
-                    ret.update(sample_img_info)
-                    cam_instance = NuScenesCameraInstances(cam_instances=[cam_instance], img_path=cam_instance.img_path, patch_size=self.patch_size, cam2img=sample_info.cam2img)
-                    ret.cam_instance = cam_instance
-                    data.append(ret)
-        self.data = data
+        ret = edict()
+        sample_idx = idx // self.num_cameras
+        cam_idx = idx % self.num_cameras
+        sample_info = edict(super().__getitem__(sample_idx))
+        cam_name = CAM_ID2CAM_NAME[cam_idx]
+        ret.sample_idx = sample_idx
+        ret.cam_idx = cam_idx
+        ret.cam_name = cam_name
+        sample_img_info = edict(sample_info.images[cam_name])
+        ret.update(sample_img_info)
+        cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
+        # filter out instances that are not in the label_names
+        cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
+        img_file = sample_img_info.img_path.split("/")[-1]
+        ret.cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+        return ret
 
 @DATASETS.register_module()
 class NuScenesTrain(NuScenesBase):
