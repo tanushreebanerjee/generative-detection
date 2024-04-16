@@ -1,6 +1,8 @@
 # src/modules/autoencodermodules/pose_encoder.py
 import torch.nn as nn
-import logging
+
+HIDDEN_DIM_1_DIV = 8
+HIDDEN_DIM_2_DIV = 4
 
 class PoseEncoder(nn.Module): 
     """
@@ -17,8 +19,8 @@ class PoseEncoder(nn.Module):
         """
         super(PoseEncoder, self).__init__()
         
-        hidden_dim_1 = enc_feat_dims // 8
-        hidden_dim_2 = enc_feat_dims // 4
+        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV
+        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV
         
         if activation == "relu":
             activation = nn.ReLU()
@@ -34,8 +36,6 @@ class PoseEncoder(nn.Module):
             activation,
             nn.Linear(hidden_dim_2, enc_feat_dims)
         )
-        logging.info("PoseEncoder initialized.")
-        logging.info(self.fc)
         
     def forward(self, x):
         """

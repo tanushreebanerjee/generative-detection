@@ -2,6 +2,9 @@
 import torch.nn as nn
 import logging
 
+HIDDEN_DIM_1_DIV = 4
+HIDDEN_DIM_2_DIV = 8
+
 class PoseDecoder(nn.Module):
     """
     Decoder module for pose estimation.
@@ -18,8 +21,8 @@ class PoseDecoder(nn.Module):
         
         super(PoseDecoder, self).__init__()
         
-        hidden_dim_1 = enc_feat_dims // 4
-        hidden_dim_2 = enc_feat_dims // 8
+        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV
+        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV
         
         if activation == "relu":
             activation = nn.ReLU()
@@ -34,11 +37,7 @@ class PoseDecoder(nn.Module):
             nn.Linear(hidden_dim_1, hidden_dim_2),
             activation,
             nn.Linear(hidden_dim_2, pose_feat_dims)
-        )
-        
-        logging.info("PoseDecoder initialized.")
-        logging.info(self.fc)
-        
+        )  
         
     def forward(self, x):
         """

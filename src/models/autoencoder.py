@@ -15,11 +15,11 @@ import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 import numpy as np
-import logging
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
 YAW_MAX = 30
+LHW_DIM = 3
 
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""
@@ -43,6 +43,7 @@ class PoseAutoencoder(AutoencoderKL):
                  image_mask_key="image_mask",
                  colorize_nlabels=None,
                  monitor=None,
+                 activation="relu",
                  ):
         pl.LightningModule.__init__(self)
         self.image_rgb_key = image_rgb_key
@@ -64,11 +65,14 @@ class PoseAutoencoder(AutoencoderKL):
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
+        self.num_classes = lossconfig["params"]["num_classes"]
         enc_feat_dims = self._get_enc_feat_dims(ddconfig)
+        pose_feat_dims = POSE_6D_DIM + LHW_DIM + self.num_classes
         
         feat_dim_config = {"enc_feat_dims": enc_feat_dims,
-                       "pose_feat_dims": POSE_6D_DIM}
-                
+                       "pose_feat_dims": pose_feat_dims,
+                       "activation": activation}
+        
         self.pose_decoder = PoseDecoder(**feat_dim_config)
         self.pose_encoder = PoseEncoder(**feat_dim_config)
         self.z_channels = ddconfig["z_channels"]
@@ -81,10 +85,10 @@ class PoseAutoencoder(AutoencoderKL):
         h = self.encoder(dummy_input)
         moments_pose = self.quant_conv_pose(h)
         posterior_pose = DiagonalGaussianDistribution(moments_pose)
-        pose_feat_map = posterior_pose.sample()
+        pose_feat_map = posterior_pose.mode()
         pose_feat_map_flat = pose_feat_map.view(pose_feat_map.size(0), -1)
-        logging.info(f"enc_feat_dims: {pose_feat_map_flat.size(1)}")
-        return pose_feat_map.size(1)
+      
+        return pose_feat_map_flat.size(1)
         
     def _decode_pose(self, x):
         """
@@ -120,6 +124,7 @@ class PoseAutoencoder(AutoencoderKL):
         moments_pose = self.quant_conv_pose(h)
         posterior_obj = DiagonalGaussianDistribution(moments_obj)
         posterior_pose = DiagonalGaussianDistribution(moments_pose)
+        
         return posterior_obj, posterior_pose
     
     def forward(self, input_im, sample_posterior=True):
@@ -139,11 +144,10 @@ class PoseAutoencoder(AutoencoderKL):
             posterior_obj, posterior_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
-                z_pose = posterior_pose.sample()
             else:
                 z_obj = posterior_obj.mode()
-                z_pose = posterior_pose.mode()
-            
+            z_pose = posterior_pose.mode()
+           
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
             
@@ -244,8 +248,14 @@ class PoseAutoencoder(AutoencoderKL):
             raise ValueError(f"Invalid convention: {self.euler_convention}, must be either ZYX or XYZ")   
         euler_angle = torch.stack([yaw, pitch, roll])
         translation = torch.zeros(batch_size, 3)
-        pose_6d = euler_angles_translation2se3_log_map(euler_angle, translation, self.euler_convention)
-        return pose_6d.to(self.device)
+        
+        pose_6d_perturbed_dim = POSE_6D_DIM + LHW_DIM + self.num_classes
+        pose_6d_perturbed = torch.zeros(batch_size, pose_6d_perturbed_dim)
+        pose_6d_perturbed[:, :POSE_6D_DIM] = euler_angles_translation2se3_log_map(euler_angles, translation, self.euler_convention)
+        pose_6d_perturbed[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] = pose_inputs[:, 6:9]
+        pose_6d_perturbed[:, POSE_6D_DIM+LHW_DIM:] = pose_inputs[:, 9:]
+        
+        return pose_6d_perturbed.to(self.device)
  
     def _perturbed_pose_forward(self, posterior_obj, dec_pose, sample_posterior=True):
         if sample_posterior:

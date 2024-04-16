@@ -4,6 +4,9 @@ from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWit
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
 
+POSE_6D_DIM = 6
+LHW_DIM = 3
+
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
     def __init__(self, *args, **kwargs):
@@ -12,11 +15,12 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
     def __init__(self, pose_weight=1.0, mask_weight=1.0, pose_loss_fn=None, 
-                 mask_loss_fn=None, use_mask_loss=True, *args, **kwargs):
+                 mask_loss_fn=None, use_mask_loss=True, num_classes=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_weight = pose_weight
         self.mask_weight = mask_weight
         self.use_mask_loss = use_mask_loss
+        self.num_classes = num_classes
         assert pose_loss_fn is not None, "Please provide a pose loss function."
         assert mask_loss_fn is not None, "Please provide a mask loss function."
         assert pose_loss_fn in ["l1", "l2", "mse"], \
@@ -77,10 +81,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
-        assert pose_gt.shape == dec_pose.shape, \
-            f"pose_gt.shape: {pose_gt.shape}, \
-                dec_pose.shape: {dec_pose.shape}"
-
+        
         gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
         inputs, reconstructions = gt_obj, dec_obj
         
@@ -96,8 +97,15 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         else:
             reconstructions_mask = torch.zeros_like(inputs_mask)
             self.use_mask_loss = False
-
-        pose_loss, weighted_pose_loss = self.compute_pose_loss(pose_gt, dec_pose)
+            
+            
+        # first POSE_6D_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
+        pose_rec = dec_pose[:, :POSE_6D_DIM]
+        lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM]
+        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM:]
+        # TODO: Class loss, LHW bbox loss
+        
+        pose_loss, weighted_pose_loss = self.compute_pose_loss(pose_gt, pose_rec)
         mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
         
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
