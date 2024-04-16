@@ -80,11 +80,11 @@ class PoseAutoencoder(AutoencoderKL):
         batch_size = 1
         dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
         h = self.encoder(dummy_input)
-        moments = self.quant_conv_pose(h)
-        posterior = DiagonalGaussianDistribution(moments)
-        img_feat_map = posterior.sample()
-        img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
-        return img_feat_map_flat.size(1)
+        moments_pose = self.quant_conv_pose(h)
+        posterior_pose = DiagonalGaussianDistribution(moments_pose)
+        pose_feat_map = posterior_pose.sample()
+        pose_feat_map_flat = pose_feat_map.view(pose_feat_map.size(0), -1)
+        return pose_feat_map_flat.size(1)
         
     def _decode_pose(self, x):
         """
@@ -147,6 +147,7 @@ class PoseAutoencoder(AutoencoderKL):
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
             
+            assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
             z_obj_pose = z_obj + enc_pose
             
             dec_obj = self.decode(z_obj_pose)
