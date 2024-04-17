@@ -12,7 +12,7 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 20000
+        pose_weight: 40000
         pose_loss_fn: "l2"
         mask_weight: 25000
         mask_loss_fn: "l2"
@@ -39,15 +39,39 @@ data:
     num_workers: 10
     wrap: True
     train:
-      target: src.data.datasets.shapenet.ShapeNetPoseTrain
+      target: src.data.datasets.nuscenes.NuScenesTrain
       params:
-        size: 64
-        euler_convention: "XYZ"
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ["car"]
+        patch_height: 256
+        patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.shapenet.ShapeNetPoseValidation
+      target: src.data.datasets.nuscenes.NuScenesValidation
       params:
-        size: 64
-        euler_convention: "XYZ"
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ["car"]
+        patch_height: 256
+        patch_aspect_ratio: 1.0
 
 lightning:
   callbacks:
