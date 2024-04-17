@@ -15,7 +15,6 @@ import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 import numpy as np
-import logging 
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
@@ -48,8 +47,10 @@ class PoseAutoencoder(AutoencoderKL):
                  colorize_nlabels=None,
                  monitor=None,
                  activation="relu",
+                 feat_dims=[16, 16, 16]
                  ):
         pl.LightningModule.__init__(self)
+        self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
         self.class_key = class_key
@@ -86,15 +87,8 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
-        batch_size = 1
-        dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
-        h = self.encoder(dummy_input)
-        moments_pose = self.quant_conv_pose(h)
-        posterior_pose = DiagonalGaussianDistribution(moments_pose)
-        pose_feat_map = posterior_pose.mode()
-        pose_feat_map_flat = pose_feat_map.view(pose_feat_map.size(0), -1)
-      
-        return pose_feat_map_flat.size(1)
+        # multiply all feat dims
+        return self.feature_dims[0] * self.feature_dims[1] * self.feature_dims[2]
         
     def _decode_pose(self, x):
         """
@@ -126,13 +120,11 @@ class PoseAutoencoder(AutoencoderKL):
     
     def encode(self, x):
         h = self.encoder(x)
-        moments_obj = self.quant_conv_obj(h)
+        moments_obj = self.quant_conv_obj(h) # (torch.Size([8, 32, 16, 16]),)
         moments_pose = self.quant_conv_pose(h)
-        logging.info("moments_obj shape: ", moments_obj.shape)
-        logging.info("moments_pose shape: ", moments_pose.shape)
-        posterior_obj = DiagonalGaussianDistribution(moments_obj)
-        logging.info("posterior_obj shape: ", posterior_obj.mode().shape)        
-        return posterior_obj, moments_pose
+        mean_pose, _ = torch.chunk(moments_pose, 2, dim=1)   # (torch.Size([8, 16, 16, 16]),)
+        posterior_obj = DiagonalGaussianDistribution(moments_obj) # (torch.Size([8, 16, 16, 16]),)
+        return posterior_obj, mean_pose
     
     def forward(self, input_im, sample_posterior=True):
             """
@@ -148,13 +140,13 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
-            posterior_obj, moments_pose = self.encode(input_im)
+            posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
             else:
                 z_obj = posterior_obj.mode()
             
-            z_pose = moments_pose
+            z_pose = mean_pose
            
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
@@ -165,7 +157,7 @@ class PoseAutoencoder(AutoencoderKL):
             
             dec_obj = self.decode(z_obj_pose)
             
-            return dec_obj, dec_pose, posterior_obj, posterior_pose
+            return dec_obj, dec_pose, posterior_obj, mean_pose
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
@@ -316,7 +308,7 @@ class PoseAutoencoder(AutoencoderKL):
             
         if not only_inputs:
             
-            xrec, poserec, posterior_obj, moments_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
+            xrec, poserec, posterior_obj, mean_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
             xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
             
             xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
@@ -339,8 +331,7 @@ class PoseAutoencoder(AutoencoderKL):
 
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
-            log["samples_obj"] = self.decode(torch.randn_like(posterior_obj.sample()))
-            log["samples_pose"] = self.decode(torch.randn_like(moments_pose) + torch.randn_like(posterior_obj.sample()))
+            log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         

@@ -63,7 +63,8 @@ class NuScenesCameraInstances(Dataset):
         # make 4x4 matrix from 3x3 camera matrix
         K = torch.eye(4, dtype=torch.float32)
         K[:3, :3] = cam2img
-        self.K = torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
+        self.K = K.clone().detach().requires_grad_(True).unsqueeze(0) # add batch dimension
+        # torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
     
         self.image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
         
@@ -145,7 +146,6 @@ class NuScenesCameraInstances(Dataset):
                 logging.info(f"Error in cropping image: {e}")
                 # return full image if error occurs
                 patch = img
-            
             
             patch_resized = self.resize(patch)
             patch_resized_np = np.array(patch_resized)
@@ -233,8 +233,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
-        logging.info(f"Using patch size: {self.patch_size}")
-        logging.info(f"Using label id to class id mapping: {self.label_id2class_id}") 
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -263,11 +261,13 @@ class NuScenesBase(MMDetNuScenesDataset):
             cam_instances = []
         
         img_file = sample_img_info.img_path.split("/")[-1]
-        ret.cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+        ret_cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
         ret.full_img = cv2.imread(os.path.join(self.img_root, cam_name, img_file))
-        ret.patch = ret.cam_instances.patches[0]
-        ret.class_id = self.label_id2class_id[ret.cam_instances[0].class_id] if len(cam_instances) > 0 else -1
-        ret.pose_6d, ret.bbox_sizes = ret.cam_instances[0].pose_6d, ret.cam_instances[0].bbox_sizes
+        ret.patch = ret_cam_instances.patches[0]
+        ret.class_id = self.label_id2class_id[ret_cam_instances[0].class_id] if len(cam_instances) > 0 else -1
+        ret.pose_6d, ret.bbox_sizes = ret_cam_instances[0].pose_6d, ret_cam_instances[0].bbox_sizes
+        ret.pose_6d = ret.pose_6d.unsqueeze(0) if ret.pose_6d.dim() == 1 else ret.pose_6d
+        assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 
 @DATASETS.register_module()

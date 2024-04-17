@@ -32,11 +32,11 @@ class PoseDecoder(nn.Module):
             raise ValueError("Invalid activation function. Please provide a valid activation function in ['relu', 'softplus'].")
         
         self.fc = nn.Sequential(
-            nn.Linear(enc_feat_dims, hidden_dim_1),
+            nn.Linear(enc_feat_dims, hidden_dim_1), #  256, 64
             activation,
-            nn.Linear(hidden_dim_1, hidden_dim_2),
+            nn.Linear(hidden_dim_1, hidden_dim_2), # 64, 32
             activation,
-            nn.Linear(hidden_dim_2, pose_feat_dims)
+            nn.Linear(hidden_dim_2, pose_feat_dims) # 32, 10
         )  
         
     def forward(self, x):
@@ -49,4 +49,5 @@ class PoseDecoder(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
+        # input shape: torch.Size([8, 4096])
         return self.fc(x)
