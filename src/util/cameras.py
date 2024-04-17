@@ -81,7 +81,7 @@ class PatchPerspectiveCameras(PerspectiveCameras):
             
         to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) # screen/ndc --> patch ndc
         world_to_patch_ndc_transform = world_to_ndc_transform.compose(to_patch_ndc_transform) # camera --> patch ndc
-    
+        points = points.to(self.device)
         return world_to_patch_ndc_transform.transform_points(points, eps=eps)
     
     def get_patch_ndc_camera_transform(self,
@@ -232,6 +232,14 @@ def get_patch_ndc_to_ndc_transform(
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # We assume that the image is centered at the origin
     # patch ndc --> ndc
+    # send to device
+    patch_width = patch_width.to(cameras.device)
+    patch_height = patch_height.to(cameras.device)
+    image_widths = image_widths.to(cameras.device)
+    image_heights = image_heights.to(cameras.device)
+    cx_patch = cx_patch.to(cameras.device)
+    cy_patch = cy_patch.to(cameras.device)
+    
     K[:, 0, 0] = patch_width.view(-1) / image_widths.view(-1)    
     K[:, 1, 1] = patch_height.view(-1) / image_heights.view(-1)
     K[:, 0, 3] = -((2.0 * cx_patch.view(-1) / image_widths.view(-1)) - 1.0)

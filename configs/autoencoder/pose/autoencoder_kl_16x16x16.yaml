@@ -32,22 +32,46 @@ model:
       dropout: 0.0
 
 data:
-  data_root: data/processed/shapenet/processed_get3d
+  data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 8
     num_workers: 10
     wrap: True
     train:
-      target: src.data.datasets.shapenet.ShapeNetPoseTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
-        size: 64
-        euler_convention: "XYZ"
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ["car"]
+        patch_height: 256
+        patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.shapenet.ShapeNetPoseValidation
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
       params:
-        size: 64
-        euler_convention: "XYZ"
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ["car"]
+        patch_height: 256
+        patch_aspect_ratio: 1.0
 
 lightning:
   callbacks:

@@ -12,6 +12,7 @@ from torchvision.transforms import Resize
 from torchvision.transforms.functional import InterpolationMode
 import PIL.Image as Image
 import numpy as np
+import logging
 
 LABEL_NAME2ID = {
     'car': 0, 

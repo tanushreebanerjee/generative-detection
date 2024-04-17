@@ -3,6 +3,7 @@ import argparse, os, sys, datetime, glob
 import pytorch_lightning as pl
 import logging
 import torch
+import torch.multiprocessing as mp
 
 import signal
 from packaging import version
@@ -516,4 +517,5 @@ def main():
             logging.info(f"{trainer.profiler.summary()}")
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn')
     main()
