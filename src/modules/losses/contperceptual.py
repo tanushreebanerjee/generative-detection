@@ -192,7 +192,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                    "{}/weighted_pose_loss".format(split): weighted_pose_loss.detach().mean(),
                    "{}/mask_loss".format(split): mask_loss.detach().mean(),
                    "{}/weighted_mask_loss".format(split): weighted_mask_loss.detach().mean(),
-                   "{}/class_loss".format(split): class_loss.detach
+                   "{}/class_loss".format(split): class_loss.detach,
                    "{}/weighted_class_loss".format(split): weighted_class_loss.detach(),
                    "{}/bbox_loss".format(split): bbox_loss.detach(),
                    "{}/weighted_bbox_loss".format(split): weighted_bbox_loss.detach(),
