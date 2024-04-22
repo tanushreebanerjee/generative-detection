@@ -43,7 +43,6 @@ class PoseAutoencoder(AutoencoderKL):
                  pose_key="pose_6d",
                  class_key="class_id",
                  bbox_key="bbox_sizes",
-                #  image_mask_key="image_mask",
                  colorize_nlabels=None,
                  monitor=None,
                  activation="relu",
