@@ -21,8 +21,8 @@ class PoseDecoder(nn.Module):
         
         super(PoseDecoder, self).__init__()
         
-        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV
-        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV
+        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV # hidden_dim_1: 1024
+        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV # hidden_dim_2: 512
         
         if activation == "relu":
             activation = nn.ReLU()
@@ -32,12 +32,15 @@ class PoseDecoder(nn.Module):
             raise ValueError("Invalid activation function. Please provide a valid activation function in ['relu', 'softplus'].")
         
         self.fc = nn.Sequential(
-            nn.Linear(enc_feat_dims, hidden_dim_1),
+            nn.Linear(enc_feat_dims, hidden_dim_1), # (0): Linear(in_features=4096, out_features=1024, bias=True)
             activation,
-            nn.Linear(hidden_dim_1, hidden_dim_2),
+            nn.Linear(hidden_dim_1, hidden_dim_2), # (2): Linear(in_features=1024, out_features=512, bias=True)
             activation,
-            nn.Linear(hidden_dim_2, pose_feat_dims)
+            nn.Linear(hidden_dim_2, pose_feat_dims) # (4): Linear(in_features=512, out_features=10, bias=True)
         )  
+        
+        print("PoseDecoder initialized with hidden_dim_1: {}, hidden_dim_2: {}".format(hidden_dim_1, hidden_dim_2))
+        print("self.fc: ", self.fc)
         
     def forward(self, x):
         """
@@ -49,4 +52,5 @@ class PoseDecoder(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
+        print("PoseDecoder forward pass. x.shape: ", x.shape) # torch.Size([8, 256])
         return self.fc(x)

@@ -38,16 +38,22 @@ class PoseAutoencoder(AutoencoderKL):
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
+                 image_mask_key="image_mask",
                  image_rgb_key="image_rgb",
                  pose_key="pose",
-                 image_mask_key="image_mask",
+                 class_key=None,
+                 bbox_key=None,
                  colorize_nlabels=None,
                  monitor=None,
                  activation="relu",
+                 feat_dims=[16, 4, 4]
                  ):
         pl.LightningModule.__init__(self)
+        self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
+        self.class_key = class_key
+        self.bbox_key = bbox_key
         self.image_mask_key = image_mask_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
@@ -80,15 +86,10 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
-        batch_size = 1
-        dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
-        h = self.encoder(dummy_input)
-        moments_pose = self.quant_conv_pose(h)
-        posterior_pose = DiagonalGaussianDistribution(moments_pose)
-        pose_feat_map = posterior_pose.mode()
-        pose_feat_map_flat = pose_feat_map.view(pose_feat_map.size(0), -1)
-      
-        return pose_feat_map_flat.size(1)
+        # multiply all feat dims
+        print("self.feature_dims: ", self.feature_dims) # [16, 16, 16]
+        
+        return self.feature_dims[0] * self.feature_dims[1] * self.feature_dims[2]
         
     def _decode_pose(self, x):
         """
@@ -100,7 +101,9 @@ class PoseAutoencoder(AutoencoderKL):
         Returns:
             Decoded pose tensor.
         """
+        print("x shape pre view: ", x.shape) # torch.Size([8, 16, 4, 4])
         x = x.view(x.size(0), -1)  # flatten the input tensor
+        print("x shape post view: ", x.shape) #  torch.Size([8, 256])
         return self.pose_decoder(x)
     
     def _encode_pose(self, x):
@@ -120,12 +123,11 @@ class PoseAutoencoder(AutoencoderKL):
     
     def encode(self, x):
         h = self.encoder(x)
-        moments_obj = self.quant_conv_obj(h)
+        moments_obj = self.quant_conv_obj(h) # (torch.Size([8, 32, 16, 16]),)
         moments_pose = self.quant_conv_pose(h)
-        posterior_obj = DiagonalGaussianDistribution(moments_obj)
-        posterior_pose = DiagonalGaussianDistribution(moments_pose)
-        
-        return posterior_obj, posterior_pose
+        mean_pose, _ = torch.chunk(moments_pose, 2, dim=1)   # (torch.Size([8, 16, 16, 16]),)
+        posterior_obj = DiagonalGaussianDistribution(moments_obj) # (torch.Size([8, 16, 16, 16]),)
+        return posterior_obj, mean_pose
     
     def forward(self, input_im, sample_posterior=True):
             """
@@ -141,13 +143,15 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
-            posterior_obj, posterior_pose = self.encode(input_im)
+            posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
-                z_obj = posterior_obj.sample()
+                z_obj = posterior_obj.sample() # torch.Size([8, 16, 4, 4])
             else:
                 z_obj = posterior_obj.mode()
-            z_pose = posterior_pose.mode()
-           
+            
+            z_pose = mean_pose # torch.Size([8, 16, 4, 4])
+            print("z_obj shape: ", z_obj.shape) # torch.Size([8, 16, 4, 4])
+            print("z_pose shape: ", z_pose.shape)
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
             
@@ -157,23 +161,46 @@ class PoseAutoencoder(AutoencoderKL):
             
             dec_obj = self.decode(z_obj_pose)
             
-            return dec_obj, dec_pose, posterior_obj, posterior_pose
+            return dec_obj, dec_pose, posterior_obj, mean_pose
         
     def get_pose_input(self, batch, k):
+        if k is None:
+            return None
         x = batch[k] 
         x = x.to(memory_format=torch.contiguous_format).float()
+        return x
+    
+    def get_mask_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
+        return x
+    
+    def get_class_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
+        return x
+    
+    def get_bbox_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
         return x
     
     def training_step(self, batch, batch_idx, optimizer_idx):
         rgb_gt = self.get_input(batch, self.image_rgb_key)
         pose_gt = self.get_pose_input(batch, self.pose_key)
-        mask_gt = self.get_input(batch, self.image_mask_key)
+        mask_gt = self.get_mask_input(batch, self.image_mask_key)
+        class_gt = self.get_class_input(batch, self.class_key)
+        bbox_gt = self.get_bbox_input(batch, self.bbox_key)
          
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                             dec_obj, dec_pose,
+                                            class_gt, bbox_gt,
                                             posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -184,6 +211,7 @@ class PoseAutoencoder(AutoencoderKL):
             # train the discriminator
             discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                                 dec_obj, dec_pose,
+                                                class_gt, bbox_gt,
                                                 posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -194,18 +222,22 @@ class PoseAutoencoder(AutoencoderKL):
         
         rgb_gt = self.get_input(batch, self.image_rgb_key)
         pose_gt = self.get_pose_input(batch, self.pose_key)
-        mask_gt = self.get_input(batch, self.image_mask_key)
+        mask_gt = self.get_mask_input(batch, self.image_mask_key)
+        class_gt = self.get_class_input(batch, self.class_key)
+        bbox_gt = self.get_bbox_input(batch, self.bbox_key)
          
         dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
        
         
         _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                       dec_obj, dec_pose,
+                                      class_gt, bbox_gt,
                                       posterior_obj, posterior_pose, 0, self.global_step,
                                       last_layer=self.get_last_layer(), split="val")
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
+                                        class_gt, bbox_gt,
                                         posterior_obj, posterior_pose, 1, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 
@@ -273,19 +305,20 @@ class PoseAutoencoder(AutoencoderKL):
         
         # x = self.get_input(batch, self.image_key)
         x_rgb = self.get_input(batch, self.image_rgb_key)
-        x_mask = self.get_input(batch, self.image_mask_key)
+        x_mask = self.get_mask_input(batch, self.image_mask_key)
         
         # x = x.to(self.device)
         x_rgb = x_rgb.to(self.device)
-        x_mask = x_mask.to(self.device)
         
-        # convert mask to float, 0.0, 1.0 if not already
-        if x_mask.dtype != torch.float32:
-            x_mask = x_mask.float()
+        if x_mask is not None:
+            x_mask = x_mask.to(self.device)
+            # convert mask to float, 0.0, 1.0 if not already
+            if x_mask.dtype != torch.float32:
+                x_mask = x_mask.float()
             
         if not only_inputs:
             
-            xrec, poserec, posterior_obj, posterior_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
+            xrec, poserec, posterior_obj, mean_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
             xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
             
             xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
@@ -308,13 +341,15 @@ class PoseAutoencoder(AutoencoderKL):
 
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
-            log["samples_obj"] = self.decode(torch.randn_like(posterior_obj.sample()))
-            log["samples_pose"] = self._decode_pose(torch.randn_like(posterior_pose.sample()))
+            log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
         log["inputs_rgb"] = x_rgb
-        log["inputs_mask"] = x_mask
+        
+        if x_mask is not None:
+            log["inputs_mask"] = x_mask
+        
         return log
      
     def to_rgb(self, x):

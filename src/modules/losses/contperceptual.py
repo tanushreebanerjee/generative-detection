@@ -6,6 +6,7 @@ import torch
 
 POSE_6D_DIM = 6
 LHW_DIM = 3
+PROB_THRESHOLD_OBJ = 0.2
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
@@ -14,11 +15,15 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, pose_weight=1.0, mask_weight=1.0, pose_loss_fn=None, 
-                 mask_loss_fn=None, use_mask_loss=True, num_classes=1, *args, **kwargs):
+    def __init__(self, pose_weight=1.0, mask_weight=1.0, class_weight=1.0, bbox_weight=1.0,
+                 pose_loss_fn=None, mask_loss_fn=None, 
+                 use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
+                 num_classes=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_weight = pose_weight
         self.mask_weight = mask_weight
+        self.class_weight = class_weight
+        self.bbox_weight = bbox_weight
         self.use_mask_loss = use_mask_loss
         self.num_classes = num_classes
         assert pose_loss_fn is not None, "Please provide a pose loss function."
@@ -40,10 +45,23 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         else:
             raise ValueError("Invalid mask loss function. Please provide a valid mask loss function in ['l1', 'l2', 'mse'].")
         
+        self.class_loss_fn = nn.CrossEntropyLoss()
+        self.bbox_loss_fn = nn.MSELoss()
+        
     def compute_pose_loss(self, pred, gt):
-        pose_loss = self.pose_loss(pred, gt)
+        # need to get loss split for each part of the pose - t1, t2, t3, v1, v2, v3
+        t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
+        t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
+        t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
+        
+        v1_loss = self.pose_loss(pred[:, 3], gt[:, 3])
+        v2_loss = self.pose_loss(pred[:, 4], gt[:, 4])
+        v3_loss = self.pose_loss(pred[:, 5], gt[:, 5])
+        
+        pose_loss = t1_loss + t2_loss + t3_loss + v1_loss + v2_loss + v3_loss
         weighted_pose_loss = self.pose_weight * pose_loss
-        return pose_loss, weighted_pose_loss
+        
+        return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v1_loss, v2_loss, v3_loss
 
     def _get_rec_loss(self, inputs, reconstructions):
         rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
@@ -75,13 +93,60 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             weighted_mask_loss = torch.tensor(0.0)
         return mask_loss, weighted_mask_loss
     
+    def compute_class_loss(self, class_gt, class_probs):
+        if not self.use_class_loss:
+            return torch.tensor(0.0), torch.tensor(0.0)
+        class_probs = class_probs.view(-1, self.num_classes)
+        class_gt = class_gt.view(-1)
+        
+        # for each sample in batch, if all classprobs for all classes are below threshold, 
+        # then class_prob for no object is 1 (at index class_probs.shape[1])
+        # else it is 0
+        class_probs_with_no_obj = torch.zeros((class_probs.shape[0], class_probs.shape[1] + 1))
+        class_prob_no_obj = torch.tensor([1.0 if torch.all(class_probs[i] < PROB_THRESHOLD_OBJ) else 0.0 for i in range(class_probs.shape[0])])
+        class_probs_with_no_obj[:, -1] = class_prob_no_obj
+        class_probs_with_no_obj[:, :-1] = class_probs
+        
+        # where class_gt is -1, set it to class_probs.shape
+        class_gt[class_gt == -1] = class_probs.shape[1]
+        class_probs_with_no_obj = class_probs_with_no_obj.to("cuda" if torch.cuda.is_available() else "cpu")
+        class_gt = class_gt.to(class_probs_with_no_obj.device)
+        class_loss = self.class_loss_fn(class_probs_with_no_obj, class_gt)
+        weighted_class_loss = self.class_weight * class_loss
+        return class_loss, weighted_class_loss
+    
+    def compute_bbox_loss(self, bbox_gt, bbox_pred):
+        if not self.use_bbox_loss:
+            return torch.tensor(0.0), torch.tensor(0.0)
+        bbox_loss = nn.MSELoss()(bbox_gt, bbox_pred)
+        weighted_bbox_loss = self.bbox_weight * bbox_loss
+        return bbox_loss, weighted_bbox_loss
+    
     def forward(self, 
                 rgb_gt, mask_gt, pose_gt,
                 dec_obj, dec_pose,
+                class_gt, bbox_gt,
                 posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
+        print("rgb_gt[:, :1, :, :]", rgb_gt[:, :1, :, :].shape) # torch.Size([8, 1, 64, 64])
+        if mask_gt == None:
+            mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :])
+            self.use_mask_loss = False
         
+        if mask_gt.dim() == 3:
+            mask_gt = mask_gt.unsqueeze(1)
+        
+        if class_gt == None:
+            class_gt = torch.zeros_like(dec_pose[:, POSE_6D_DIM+LHW_DIM:])
+            self.use_class_loss = False
+        
+        if bbox_gt == None:
+            bbox_gt = torch.zeros_like(dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM])
+            self.use_bbox_loss = False
+        
+        print("rgb_gt: ", rgb_gt.shape) # torch.Size([8, 3, 64, 64])
+        print("mask_gt: ", mask_gt.shape) # torch.Size([8, 1, 64, 64])
         gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
         inputs, reconstructions = gt_obj, dec_obj
         
@@ -100,21 +165,23 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             
             
         # first POSE_6D_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
-        pose_rec = dec_pose[:, :POSE_6D_DIM]
+        pose_rec = dec_pose[:, :POSE_6D_DIM] # pose_rec:  torch.Size([8, 6]) 
+        if pose_gt.dim() == 3 and pose_gt.size(1) == 1:
+            pose_gt = pose_gt.squeeze(1) # pose_gt:  torch.Size([8, 6])
         lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM]
         class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM:]
-        # TODO: Class loss, LHW bbox loss
+            
+        class_loss, weighted_class_loss = self.compute_class_loss(class_gt, class_probs)
+        bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec)
         
-        pose_loss, weighted_pose_loss = self.compute_pose_loss(pose_gt, pose_rec)
+        pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v1_loss, v2_loss, v3_loss = self.compute_pose_loss(pose_gt, pose_rec)
         mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
         
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
         nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
         
-        kl_loss_obj = self._get_kl_loss(posterior_obj)
-        kl_loss_pose = self._get_kl_loss(posterior_pose)
-        kl_loss = kl_loss_obj + kl_loss_pose
-
+        kl_loss = self._get_kl_loss(posterior_obj)
+    
         # now the GAN part
         if optimizer_idx == 0:
             # generator update
@@ -143,8 +210,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
 
             log = {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                    "{}/logvar".format(split): self.logvar.detach(),
-                   "{}/kl_loss_obj".format(split): kl_loss_obj.detach().mean(),
-                   "{}/kl_loss_pose".format(split): kl_loss_pose.detach().mean(),
                    "{}/kl_loss".format(split): kl_loss.detach().mean(), 
                    "{}/nll_loss".format(split): nll_loss.detach().mean(),
                    "{}/weighted_nll_loss".format(split): weighted_nll_loss.detach().mean(),
@@ -155,7 +220,17 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                    "{}/pose_loss".format(split): pose_loss.detach().mean(),
                    "{}/weighted_pose_loss".format(split): weighted_pose_loss.detach().mean(),
                    "{}/mask_loss".format(split): mask_loss.detach().mean(),
-                   "{}/weighted_mask_loss".format(split): weighted_mask_loss.detach().mean()
+                   "{}/weighted_mask_loss".format(split): weighted_mask_loss.detach().mean(),
+                   "{}/class_loss".format(split): class_loss.detach(),
+                   "{}/weighted_class_loss".format(split): weighted_class_loss.detach(),
+                   "{}/bbox_loss".format(split): bbox_loss.detach(),
+                   "{}/weighted_bbox_loss".format(split): weighted_bbox_loss.detach(),
+                   "{}/t1_loss".format(split): t1_loss.detach().mean(),
+                   "{}/t2_loss".format(split): t2_loss.detach().mean(),
+                   "{}/t3_loss".format(split): t3_loss.detach().mean(),
+                   "{}/v1_loss".format(split): v1_loss.detach().mean(),
+                   "{}/v2_loss".format(split): v2_loss.detach().mean(),
+                   "{}/v3_loss".format(split): v3_loss.detach().mean()
                    }
             return loss, log
 
