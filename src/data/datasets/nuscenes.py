@@ -41,185 +41,6 @@ Z_FAR = 80.0
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
 
-# @DATASETS.register_module()
-# class NuScenesCameraInstances(Dataset):
-#     def __init__(self, cam_instances, img_path, patch_size, cam2img):
-        
-#         self.cam_instances = cam_instances
-#         self.img_path = img_path
-#         self.resize = Resize(size=patch_size, 
-#                              interpolation=InterpolationMode.BILINEAR, 
-#                              max_size=None, 
-#                              antialias=True)
-#         self.patches = self._generate_patches()
-#         self.patch_size = torch.tensor(patch_size, dtype=torch.float32)
-        
-#         # if no batch dimension, add it
-#         if self.patch_size.dim() == 1:
-#             self.patch_size = self.patch_size.unsqueeze(0)
-            
-#         cam2img = torch.tensor(cam2img, dtype=torch.float32)
-        
-#         # make 4x4 matrix from 3x3 camera matrix
-#         K = torch.eye(4, dtype=torch.float32)
-#         K[:3, :3] = cam2img
-#         self.K = K.clone().detach().requires_grad_(True).unsqueeze(0) # add batch dimension
-#         # torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
-    
-#         self.image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
-        
-#         self.camera = PatchCameras(
-#             znear=Z_NEAR,
-#             zfar=Z_FAR,
-#             K=self.K,
-#             device="cuda" if torch.cuda.is_available() else "cpu",
-#             image_size=self.image_size)
-        
-#     def __len__(self):
-#         return len(self.cam_instances)
-    
-#     def _generate_patches(self):
-#         # load image from path
-#         patches = []
-#         img = cv2.imread(self.img_path)
-#         img_clipped = np.clip(img, 0, 255)
-#         img_pil = Image.fromarray(img_clipped)
-#         if img is None:
-#             # if instances present but file not found, raise error. else return empty list
-#             if self.__len__() > 0:
-#                 raise FileNotFoundError(f"Image not found at {self.img_path} but {self.__len__()} instances are present")
-#             else:
-#                 return []
-            
-#         # return croped list of images as defined by 2d bbox for each instance
-#         for cam_instance in self.cam_instances:
-            
-#             bbox = cam_instance.bbox # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
-#             center_2d = cam_instance.center_2d 
-#             # use interpolation torch to get crop of image from bbox of size patch_size
-#             # need to use torch for interpolation, not cv2
-#             x1, y1, x2, y2 = bbox
-#             try:
-#                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-#                 # make patch a square by taking max of width and height, centered at center_2d
-#                 width = x2 - x1
-#                 height = y2 - y1
-                
-#                 if width > height:
-#                     y1 = center_2d[1] - width // 2
-#                     y2 = center_2d[1] + width // 2
-#                 else:
-#                     x1 = center_2d[0] - height // 2
-#                     x2 = center_2d[0] + height // 2
-                    
-#                 patch = img_pil.crop((x1, y1, x2, y2))
-#             except Exception as e:
-#                 logging.info(f"Error in cropping image: {e}")
-#                 # return full image if error occurs
-#                 patch = img
-            
-#             patch_resized = self.resize(patch)
-#             patch_resized_np = np.array(patch_resized)
-#             patches.append(patch_resized_np)
-        
-#         if len(patches) == 0:
-#             # add full image if no instances present but cropped to be a square centered at the image center
-#             center_2d = (NUSC_IMG_WIDTH // 2, NUSC_IMG_HEIGHT // 2)
-#             # get corners of the full image
-#             x1, y1, x2, y2 = 0, 0, NUSC_IMG_WIDTH, NUSC_IMG_HEIGHT
-            
-#             try: 
-#                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                
-#                 width = x2 - x1
-#                 height = y2 - y1
-                
-#                 if width > height:
-#                     y1 = center_2d[1] - width // 2
-#                     y2 = center_2d[1] + width // 2
-#                 else:
-#                     x1 = center_2d[0] - height // 2
-#                     x2 = center_2d[0] + height // 2
-                
-#                 patch = img_pil.crop((x1, y1, x2, y2))
-#             except Exception as e:
-#                 logging.info(f"Error in cropping image: {e}")
-#                 # return full image if error occurs
-#                 patch = img
-            
-#             patch_resized = self.resize(patch)
-#             patch_resized_np = np.array(patch_resized)
-#             patches.append(patch_resized_np) 
-#         return patches
-     
-#     def _get_pose_6d_lhw(self, cam_instance):
-#         bbox_3d = cam_instance.bbox_3d
-        
-#         # How to convert yaw from cam coords to patch ndc?
-#         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
-        
-#         point_camera = (x, y, z)
-#         points = torch.tensor([point_camera], dtype=torch.float32)
-#         patch_center = cam_instance.center_2d
-#         if len(patch_center) == 2:
-#             # add batch dimension
-#             patch_center = torch.tensor(patch_center, dtype=torch.float32).unsqueeze(0)
-       
-#         point_camera = torch.tensor(point_camera, dtype=torch.float32)
-        
-#         if point_camera.dim() == 1:
-#             point_camera = point_camera.view(1, 1, 3)
-        
-#         assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
-#         assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
-        
-#         point_patch_ndc = self.camera.transform_points_patch_ndc(points=point_camera,
-#                                                                   patch_size=self.patch_size, 
-#                                                                     patch_center=patch_center)
-    
-#         if point_patch_ndc.dim() == 3:
-#             point_patch_ndc = point_patch_ndc.view(-1)
-#         x_patch, y_patch, z_patch = point_patch_ndc
-        
-#         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
-        
-#         euler_angles = torch.tensor([yaw, pitch, roll], dtype=torch.float32)
-#         convention = "XYZ"
-        
-#         R = euler_angles_to_matrix(euler_angles, convention)
-        
-#         translation = torch.tensor([x_patch, y_patch, z_patch], dtype=torch.float32)
-        
-#         # A SE(3) matrix has the following form: ` [ R 0 ] [ T 1 ] , `
-#         se3_exp_map_matrix = torch.eye(4)
-#         se3_exp_map_matrix[:3, :3] = R
-#         se3_exp_map_matrix[:3, 3] = translation
-
-#         # form must be ` [ R 0 ] [ T 1 ] , ` so need to transpose
-#         se3_exp_map_matrix = se3_exp_map_matrix.T
-        
-#         # addd batch dim if not present
-#         if se3_exp_map_matrix.dim() == 2:
-#             se3_exp_map_matrix = se3_exp_map_matrix.unsqueeze(0)
-#         pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
-        
-#         h_aspect_ratio = h / l
-#         w_aspect_ratio = w / l
-        
-#         bbox_sizes = torch.tensor([l, h_aspect_ratio, w_aspect_ratio], dtype=torch.float32)
-#         return pose_6d, bbox_sizes
-        
-#     def __getitem__(self, idx):
-#         if len(self.cam_instances) == 0:
-#             return edict({"patch": self.patches[0], "pose_6d": torch.zeros(6, dtype=torch.float32), "bbox_sizes": torch.zeros(3, dtype=torch.float32), "class_id": -1})
-        
-#         cam_instance = edict(self.cam_instances[idx])   
-#         cam_instance.patch = self.patches[idx]
-#         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
-#         cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(cam_instance) if len(self.cam_instances) > 0 else (torch.zeros(6, dtype=torch.float32), torch.zeros(3, dtype=torch.float32))
-#         cam_instance.class_id = cam_instance.bbox_label if len(self.cam_instances) > 0 else -1
-#         return cam_instance
-
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
                  is_sweep=False, **kwargs):
@@ -266,7 +87,12 @@ class NuScenesBase(MMDetNuScenesDataset):
                 x1 = center_2d[0] - height // 2
                 x2 = center_2d[0] + height // 2
                 
+            # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
+            if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
+                return None, None
+                
             patch = img_pil.crop((x1, y1, x2, y2))
+            patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
             # return full image if error occurs
@@ -274,7 +100,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         patch_resized = resize(patch)
         patch_resized_np = np.array(patch_resized)
-        return patch_resized_np
+        return patch_resized_np, patch_size_sq
      
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size):
         bbox_3d = cam_instance.bbox_3d
@@ -342,12 +168,17 @@ class NuScenesBase(MMDetNuScenesDataset):
                              interpolation=InterpolationMode.BILINEAR, 
                              max_size=None, 
                              antialias=True)
-        patch = self._generate_patch(img_path, cam_instance, resize)
-        patch_size = torch.tensor(patch_size, dtype=torch.float32)
+        
+        ### must be original patch size!!
+        patch, patch_size_original = self._generate_patch(img_path, cam_instance, resize)
+        # patch_size = torch.tensor(patch_size, dtype=torch.float32)
+        if patch is None or patch_size_original is None:
+            return None
+        
         
         # if no batch dimension, add it
-        if patch_size.dim() == 1:
-            patch_size = patch_size.unsqueeze(0)
+        if patch_size_original.dim() == 1:
+            patch_size_original = patch_size_original.unsqueeze(0)
             
         cam2img = torch.tensor(cam2img, dtype=torch.float32)
         
@@ -367,9 +198,14 @@ class NuScenesBase(MMDetNuScenesDataset):
             image_size=image_size)
         
         
+        # normalize patch to [0, 1] to enable tensorboard visualization and also clip
+        # print("patch shape: ", patch.shape, "patch max: ", patch.max(), "patch min: ", patch.min()) # size batch, 4, 256, 256
+        patch = torch.tensor(patch, dtype=torch.float32) / 255.0
+        patch = torch.clamp(patch, 0.0, 1.0)
+        
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
-        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size)
+        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original)
         cam_instance.class_id = cam_instance.bbox_label
         return cam_instance
     
@@ -407,7 +243,12 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
         # ret_cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-        
+        if ret_cam_instance is None:
+            if idx + 1 >= self.__len__():
+                return self.__getitem__(0)
+            else:
+                return self.__getitem__(idx + 1)
+            
         ret.full_img = cv2.imread(os.path.join(self.img_root, cam_name, img_file))
         ret.patch = ret_cam_instance.patch
         ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
