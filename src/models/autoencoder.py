@@ -14,10 +14,12 @@ import math
 import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
+import numpy as np
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
 YAW_MAX = 30
+LHW_DIM = 3
 
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""
@@ -36,27 +38,29 @@ class PoseAutoencoder(AutoencoderKL):
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
-                 image1rgb_key="image1_rgb",
-                 pose1_key="pose1",
-                 image1mask_key="image1_mask",
-                 image2rgb_key="image2_rgb",
-                 pose2_key="pose2",
-                 image2mask_key="image2_mask",
+                 image_mask_key="image_mask",
+                 image_rgb_key="image_rgb",
+                 pose_key="pose",
+                 class_key=None,
+                 bbox_key=None,
                  colorize_nlabels=None,
                  monitor=None,
+                 activation="relu",
+                 feat_dims=[16, 4, 4]
                  ):
         pl.LightningModule.__init__(self)
-        self.image1rgb_key = image1rgb_key
-        self.pose1_key = pose1_key
-        self.image1mask_key = image1mask_key
-        self.image2rgb_key = image2rgb_key
-        self.pose2_key = pose2_key
-        self.image2mask_key = image2mask_key
+        self.feature_dims = feat_dims
+        self.image_rgb_key = image_rgb_key
+        self.pose_key = pose_key
+        self.class_key = class_key
+        self.bbox_key = bbox_key
+        self.image_mask_key = image_mask_key
         self.encoder = FeatEncoder(**ddconfig)
         self.decoder = FeatDecoder(**ddconfig)
         self.loss = instantiate_from_config(lossconfig)
         assert ddconfig["double_z"]
-        self.quant_conv = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1)
+        self.quant_conv_obj = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1)
+        self.quant_conv_pose = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1) # TODO: Need to fix the dimensions
         self.post_quant_conv = torch.nn.Conv2d(embed_dim, ddconfig["z_channels"], 1)
         self.embed_dim = embed_dim
         if colorize_nlabels is not None:
@@ -67,26 +71,23 @@ class PoseAutoencoder(AutoencoderKL):
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
-        img_feat_dims = self._get_img_feat_dims(ddconfig)
+        self.num_classes = lossconfig["params"]["num_classes"]
+        enc_feat_dims = self._get_enc_feat_dims(ddconfig)
+        pose_feat_dims = POSE_6D_DIM + LHW_DIM + self.num_classes
         
-        feat_dim_config = {"img_feat_dims": img_feat_dims,
-                       "pose_feat_dims": POSE_6D_DIM}
-                
+        feat_dim_config = {"enc_feat_dims": enc_feat_dims,
+                       "pose_feat_dims": pose_feat_dims,
+                       "activation": activation}
+        
         self.pose_decoder = PoseDecoder(**feat_dim_config)
         self.pose_encoder = PoseEncoder(**feat_dim_config)
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
     
-    def _get_img_feat_dims(self, ddconfig):
+    def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
-        batch_size = 1
-        dummy_input = torch.randn(batch_size, ddconfig["in_channels"], ddconfig["resolution"], ddconfig["resolution"])
-        h = self.encoder(dummy_input)
-        moments = self.quant_conv(h)
-        posterior = DiagonalGaussianDistribution(moments)
-        img_feat_map = posterior.sample()
-        img_feat_map_flat = img_feat_map.view(img_feat_map.size(0), -1)
-        return img_feat_map_flat.size(1)
+        # multiply all feat dims
+        return self.feature_dims[0] * self.feature_dims[1] * self.feature_dims[2]
         
     def _decode_pose(self, x):
         """
@@ -116,91 +117,85 @@ class PoseAutoencoder(AutoencoderKL):
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)), 
                                                     int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)))
     
-    def _get_feat_map_img_pose(self, img_feat_map):
-            """
-            Get the feature map of image and pose.
-
-            Args:
-                img_feat_map (Tensor): The feature map of the image.
-
-            Returns:
-                feat_map_img_pose (Tensor): The combined feature map of image and pose.
-                pose_decoded (Tensor): The decoded pose.
-
-            """
-            pose_decoded = self._decode_pose(img_feat_map)
-            pose_feat_map = self._encode_pose(pose_decoded)         
-            feat_map_img_pose = img_feat_map + pose_feat_map
-            pose_decoded_reshaped = pose_decoded.reshape(pose_decoded.size(0), -1)
-            return feat_map_img_pose, pose_decoded_reshaped
+    def encode(self, x):
+        h = self.encoder(x)
+        moments_obj = self.quant_conv_obj(h) # (torch.Size([8, 32, 16, 16]),)
+        moments_pose = self.quant_conv_pose(h)
+        mean_pose, _ = torch.chunk(moments_pose, 2, dim=1)   # (torch.Size([8, 16, 16, 16]),)
+        posterior_obj = DiagonalGaussianDistribution(moments_obj) # (torch.Size([8, 16, 16, 16]),)
+        return posterior_obj, mean_pose
     
-    def _get_img2_reconstruction(self, pose2, z1):
+    def forward(self, input_im, sample_posterior=True):
             """
-            Reconstructs the second image based on the given pose and latent code.
-
-            Args:
-                pose2 (Tensor): The pose of the second image.
-                z1 (Tensor): The latent code of the first image.
-
-            Returns:
-                Tensor: The reconstructed second image.
-            """
-            pose2 = pose2.reshape(pose2.size(0), -1)
-            pose_feat_map = self._encode_pose(pose2)  
-            feat_map_img_pose = z1 + pose_feat_map
-            dec2 = self.decode(feat_map_img_pose)
-            return dec2
-    
-    def forward(self, input1, pose2, sample_posterior=True):
-        """
-        Forward pass of the autoencoder.
-        
-        Args:
-            input: Input image tensor.
-            sample_posterior: Whether to sample from the posterior distribution.
-        
-        Returns:
-            tuple: Tuple containing 
-                - dec: Decoded image tensor.
-                - posterior: Posterior distribution.
-                - pose_decoded: Decoded pose tensor.
-        """
-        posterior1 = self.encode(input1)
-        if sample_posterior:
-            img_feat_map1 = posterior1.sample()
-        else:
-            img_feat_map1 = posterior1.mode()
-        
-        dec2 = self._get_img2_reconstruction(pose2, img_feat_map1)
-        
-        feat_map_img_pose1, pose_decoded1 = self._get_feat_map_img_pose(img_feat_map1)
+            Forward pass of the autoencoder model.
             
-        dec1 = self.decode(feat_map_img_pose1)
-        
-        return dec1, dec2, posterior1, pose_decoded1
+            Args:
+                input (Tensor): Input tensor to the autoencoder.
+                sample_posterior (bool, optional): Whether to sample from the posterior distribution or use the mode.
+            
+            Returns:
+                dec_obj (Tensor): Decoded object tensor.
+                dec_pose (Tensor): Decoded pose tensor.
+                posterior_obj (Distribution): Posterior distribution of the object latent space.
+                posterior_pose (Distribution): Posterior distribution of the pose latent space.
+            """
+            posterior_obj, mean_pose = self.encode(input_im)
+            if sample_posterior:
+                z_obj = posterior_obj.sample() # torch.Size([8, 16, 4, 4])
+            else:
+                z_obj = posterior_obj.mode()
+            
+            z_pose = mean_pose # torch.Size([8, 16, 4, 4])
+            dec_pose = self._decode_pose(z_pose)
+            enc_pose = self._encode_pose(dec_pose)
+            
+            assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
+            
+            z_obj_pose = z_obj + enc_pose
+            
+            dec_obj = self.decode(z_obj_pose)
+            
+            return dec_obj, dec_pose, posterior_obj, mean_pose
         
     def get_pose_input(self, batch, k):
+        if k is None:
+            return None
         x = batch[k] 
         x = x.to(memory_format=torch.contiguous_format).float()
         return x
     
+    def get_mask_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
+        return x
+    
+    def get_class_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
+        return x
+    
+    def get_bbox_input(self, batch, k):
+        if k is None:
+            return None
+        x = batch[k]
+        return x
+    
     def training_step(self, batch, batch_idx, optimizer_idx):
-        inputs1_rgb = self.get_input(batch, self.image1rgb_key)
-        pose_inputs1 = self.get_pose_input(batch, self.pose1_key)
-        inputs1_mask = self.get_input(batch, self.image1mask_key)
-        
-        inputs2_rgb = self.get_input(batch, self.image2rgb_key)
-        pose_inputs2 = self.get_pose_input(batch, self.pose2_key)
-        inputs2_mask = self.get_input(batch, self.image2mask_key)
-        
-        reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1_rgb, pose_inputs2)
+        rgb_gt = self.get_input(batch, self.image_rgb_key)
+        pose_gt = self.get_pose_input(batch, self.pose_key)
+        mask_gt = self.get_mask_input(batch, self.image_mask_key)
+        class_gt = self.get_class_input(batch, self.class_key)
+        bbox_gt = self.get_bbox_input(batch, self.bbox_key)
+         
+        dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
-            aeloss, log_dict_ae = self.loss(inputs1_rgb, inputs2_rgb,
-                                            inputs1_mask, inputs2_mask, 
-                                            reconstructions1, reconstructions2, 
-                                            pose_inputs1, pose_reconstructions1,
-                                            posterior1, optimizer_idx, self.global_step,
+            aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
+                                            dec_obj, dec_pose,
+                                            class_gt, bbox_gt,
+                                            posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -208,38 +203,37 @@ class PoseAutoencoder(AutoencoderKL):
 
         if optimizer_idx == 1:
             # train the discriminator
-            discloss, log_dict_disc = self.loss(inputs1_rgb, inputs2_rgb, 
-                                                inputs1_mask, inputs2_mask, 
-                                                reconstructions1, reconstructions2, 
-                                                pose_inputs1, pose_reconstructions1,
-                                                posterior1, optimizer_idx, self.global_step,
+            discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
+                                                dec_obj, dec_pose,
+                                                class_gt, bbox_gt,
+                                                posterior_obj, posterior_pose, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return discloss
     
     def validation_step(self, batch, batch_idx):
-        inputs1_rgb = self.get_input(batch, self.image1rgb_key) # torch.Size([8, 3, 64, 64])
-        pose_inputs_1 = self.get_pose_input(batch, self.pose1_key) # torch.Size([8, 1, 6])
-        inputs1_mask = self.get_input(batch, self.image1mask_key)
-        inputs2_rgb = self.get_input(batch, self.image2rgb_key)
-        pose_inputs_2 = self.get_pose_input(batch, self.pose2_key)
-        inputs2_mask = self.get_input(batch, self.image2mask_key)
-        reconstructions1, reconstructions2, posterior1, pose_reconstructions1 = self(inputs1_rgb, pose_inputs_2)
         
-        _, log_dict_ae = self.loss(inputs1_rgb, inputs2_rgb, 
-                                   inputs1_mask, inputs2_mask, 
-                                   reconstructions1, reconstructions2, 
-                                   pose_inputs_1, pose_reconstructions1,
-                                   posterior1, 0, self.global_step,
-                                   last_layer=self.get_last_layer(), split="val")
+        rgb_gt = self.get_input(batch, self.image_rgb_key)
+        pose_gt = self.get_pose_input(batch, self.pose_key)
+        mask_gt = self.get_mask_input(batch, self.image_mask_key)
+        class_gt = self.get_class_input(batch, self.class_key)
+        bbox_gt = self.get_bbox_input(batch, self.bbox_key)
+         
+        dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
+       
+        
+        _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
+                                      dec_obj, dec_pose,
+                                      class_gt, bbox_gt,
+                                      posterior_obj, posterior_pose, 0, self.global_step,
+                                      last_layer=self.get_last_layer(), split="val")
 
-        _, log_dict_disc = self.loss(inputs1_rgb, inputs2_rgb, 
-                                     inputs1_mask, inputs2_mask, 
-                                     reconstructions1, reconstructions2, 
-                                     pose_inputs_1, pose_reconstructions1,
-                                     posterior1, 1, self.global_step,
-                                     last_layer=self.get_last_layer(), split="val")
+        _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
+                                        dec_obj, dec_pose,
+                                        class_gt, bbox_gt,
+                                        posterior_obj, posterior_pose, 1, self.global_step,
+                                        last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
         self.log_dict(log_dict_ae)
@@ -250,7 +244,8 @@ class PoseAutoencoder(AutoencoderKL):
         lr = self.learning_rate
         opt_ae = torch.optim.Adam(list(self.encoder.parameters())+
                                   list(self.decoder.parameters())+
-                                  list(self.quant_conv.parameters())+
+                                  list(self.quant_conv_obj.parameters())+
+                                  list(self.quant_conv_pose.parameters())+
                                   list(self.post_quant_conv.parameters())+
                                   list(self.pose_encoder.parameters())+
                                   list(self.pose_decoder.parameters()),
@@ -278,84 +273,79 @@ class PoseAutoencoder(AutoencoderKL):
             raise ValueError(f"Invalid convention: {self.euler_convention}, must be either ZYX or XYZ")   
         euler_angle = torch.stack([yaw, pitch, roll])
         translation = torch.zeros(batch_size, 3)
-        pose_6d = euler_angles_translation2se3_log_map(euler_angle, translation, self.euler_convention)
-        return pose_6d.to(self.device)
-
-    def _get_feat_map_img_perturbed_pose(self, img_feat_map, pose_decoded_perturbed):
-        pose_feat_map = self._encode_pose(pose_decoded_perturbed)         
-        feat_map_img_pose = img_feat_map + pose_feat_map
-        return feat_map_img_pose
-    
-    def _perturbed_pose_forward(self, posterior, pose_decoded, sample_posterior=True):
+        
+        pose_6d_perturbed_dim = POSE_6D_DIM + LHW_DIM + self.num_classes
+        pose_6d_perturbed = torch.zeros(batch_size, pose_6d_perturbed_dim)
+        pose_6d_perturbed[:, :POSE_6D_DIM] = euler_angles_translation2se3_log_map(euler_angles, translation, self.euler_convention)
+        pose_6d_perturbed[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] = pose_inputs[:, 6:9]
+        pose_6d_perturbed[:, POSE_6D_DIM+LHW_DIM:] = pose_inputs[:, 9:]
+        
+        return pose_6d_perturbed.to(self.device)
+ 
+    def _perturbed_pose_forward(self, posterior_obj, dec_pose, sample_posterior=True):
         if sample_posterior:
-            z = posterior.sample()
+            z_obj = posterior_obj.sample()
         else:
-            z = posterior.mode()
-        pose_decoded_perturbed = self._perturb_poses(pose_decoded).reshape(pose_decoded.size(0), -1)
-        z = self._get_feat_map_img_perturbed_pose(z, pose_decoded_perturbed)
-        dec = self.decode(z)
-        return dec
+            z_obj = posterior_obj.mode()
+        dec_pose_perturbed = self._perturb_poses(dec_pose).reshape(dec_pose.size(0), -1)
+        enc_pose_perturbed = self._encode_pose(dec_pose_perturbed)
+        z_obj_pose_perturbed = z_obj + enc_pose_perturbed
+        dec_obj_pose_perturbed = self.decode(z_obj_pose_perturbed)
+        return dec_obj_pose_perturbed
             
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         
         # x = self.get_input(batch, self.image_key)
-        x1_rgb = self.get_input(batch, self.image1rgb_key)
-        x2_rgb = self.get_input(batch, self.image2rgb_key)
-        x1_mask = self.get_input(batch, self.image1mask_key)
-        x2_mask = self.get_input(batch, self.image2mask_key)
-        pose2 = self.get_pose_input(batch, self.pose2_key)
+        x_rgb = self.get_input(batch, self.image_rgb_key)
+        x_mask = self.get_mask_input(batch, self.image_mask_key)
         
         # x = x.to(self.device)
-        x1_rgb = x1_rgb.to(self.device)
-        x2_rgb = x2_rgb.to(self.device)
-        pose2 = pose2.to(self.device)
-        x1_mask = x1_mask.to(self.device)
-        x2_mask = x2_mask.to(self.device)
-        # convert mask to float, 0.0, 1.0 if not already
-        if x1_mask.dtype != torch.float32:
-            x1_mask = x1_mask.float()
-        if x2_mask.dtype != torch.float32:
-            x2_mask = x2_mask.float()
+        x_rgb = x_rgb.to(self.device)
+        
+        if x_mask is not None:
+            x_mask = x_mask.to(self.device)
+            # convert mask to float, 0.0, 1.0 if not already
+            if x_mask.dtype != torch.float32:
+                x_mask = x_mask.float()
             
         if not only_inputs:
-            xrec1, xrec2, posterior1, pose_decoded1 = self(x1_rgb, pose2)
-            xrec1_perturbed_pose = self._perturbed_pose_forward(posterior1, pose_decoded1)
             
-            xrec1_rgb = xrec1[:, :3, :, :]
-            xrec2_rgb = xrec2[:, :3, :, :]
-            xrec1_perturbed_pose_rgb = xrec1_perturbed_pose[:, :3, :, :]
-            # if xrec1.shape[1] == 4: # alpha channel prediction loggging
-            #     xrec1_mask = xrec1[:, 3, :, :]
-            #     xrec2_mask = xrec2[:, 3, :, :]
-            #     xrec1_perturbed_pose_mask =xrec1_perturbed_pose[:, 3, :, :]
-                
-                # log["reconstructions1_mask"] = xrec1_mask
-                # log["reconstructions2_mask"] = xrec2_mask
-                # log["perturbed_pose_reconstruction_mask"] = xrec1_perturbed_pose_mask
+            xrec, poserec, posterior_obj, mean_pose = self(x_rgb) # torch.Size([8, 4, 64, 64])
+            xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
             
-            if x1_rgb.shape[1] > 3:
-                # colorize with random projection
-                assert xrec1_rgb.shape[1] > 3
-                x1_rgb = self.to_rgb(x1_rgb)
-                x2_rgb = self.to_rgb(x2_rgb)
-                
-                xrec1_rgb = self.to_rgb(xrec1_rgb)
-                xrec2_rgb = self.to_rgb(xrec2_rgb)
-                xrec1_perturbed_pose_rgb = self.to_rgb(xrec1_perturbed_pose_rgb)
+            xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
+            xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :]
+            
+            # xrec_mask = xrec[:, 3, :, :] # torch.Size([8, 64, 64])
+            # xrec_perturbed_pose_mask = xrec_perturbed_pose[:, 3, :, :]
+            
+            # xrec_mask = (xrec_mask * 255).byte().cpu().numpy()
+            # xrec_mask = np.clip(xrec_mask, 0, 255).astype(np.uint8)
+            # xrec_perturbed_pose_mask = (xrec_perturbed_pose_mask * 255).byte().cpu().numpy()
+            # xrec_perturbed_pose_mask = np.clip(xrec_perturbed_pose_mask, 0, 255).astype(np.uint8)
 
-            log["samples1"] = self.decode(torch.randn_like(posterior1.sample()))
-            log["reconstructions1_rgb"] = torch.tensor(xrec1_rgb)
-            log["reconstructions2_rgb"] = torch.tensor(xrec2_rgb)
-            log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec1_perturbed_pose_rgb)
+            if x_rgb.shape[1] > 3:
+                # colorize with random projection
+                assert xrec_rgb.shape[1] > 3
+                x_rgb = self.to_rgb(x_rgb)
+                xrec_rgb = self.to_rgb(xrec_rgb)
+                xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
+
+            # log["reconstructions_mask"] = torch.tensor(xrec_mask)
+            # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
+            # log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
+            log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
+            log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
-        log["inputs1_rgb"] = x1_rgb
-        log["inputs2_rgb"] = x2_rgb
-        log["inputs1_mask"] = x1_mask
-        log["inputs2_mask"] = x2_mask
+        log["inputs_rgb"] = x_rgb
+        
+        # if x_mask is not None:
+        #     log["inputs_mask"] = x_mask
+        
         return log
-    
+     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
