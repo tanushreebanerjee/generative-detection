@@ -12,7 +12,7 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 40000
+        pose_weight: 800
         pose_loss_fn: "l2"
         mask_weight: 25000
         mask_loss_fn: "l2"
@@ -35,7 +35,7 @@ data:
   data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 6
+    batch_size: 4
     num_workers: 10
     wrap: True
     train:
