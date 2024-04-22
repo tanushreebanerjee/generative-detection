@@ -240,6 +240,10 @@ def get_patch_ndc_to_ndc_transform(
     cx_patch = cx_patch.to(cameras.device)
     cy_patch = cy_patch.to(cameras.device)
     
+    # send to device
+    patch_width = patch_width.to("cuda" if torch.cuda.is_available() else "cpu")
+    patch_height = patch_height.to("cuda" if torch.cuda.is_available() else "cpu")
+    
     K[:, 0, 0] = patch_width.view(-1) / image_widths.view(-1)    
     K[:, 1, 1] = patch_height.view(-1) / image_heights.view(-1)
     K[:, 0, 3] = -((2.0 * cx_patch.view(-1) / image_widths.view(-1)) - 1.0)
