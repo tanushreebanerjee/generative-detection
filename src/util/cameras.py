@@ -232,17 +232,16 @@ def get_patch_ndc_to_ndc_transform(
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # We assume that the image is centered at the origin
     # patch ndc --> ndc
+    # send to available device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     # send to device
-    patch_width = patch_width.to(cameras.device)
-    patch_height = patch_height.to(cameras.device)
-    image_widths = image_widths.to(cameras.device)
-    image_heights = image_heights.to(cameras.device)
-    cx_patch = cx_patch.to(cameras.device)
-    cy_patch = cy_patch.to(cameras.device)
-    
-    # send to device
-    patch_width = patch_width.to("cuda" if torch.cuda.is_available() else "cpu")
-    patch_height = patch_height.to("cuda" if torch.cuda.is_available() else "cpu")
+    patch_width = patch_width.to(device)
+    patch_height = patch_height.to(device)
+    image_widths = image_widths.to(device)
+    image_heights = image_heights.to(device)
+    cx_patch = cx_patch.to(device)
+    cy_patch = cy_patch.to(device)
     
     K[:, 0, 0] = patch_width.view(-1) / image_widths.view(-1)    
     K[:, 1, 1] = patch_height.view(-1) / image_heights.view(-1)
