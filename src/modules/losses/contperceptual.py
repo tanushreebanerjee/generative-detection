@@ -129,7 +129,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 posterior_obj, posterior_pose, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
-        print("rgb_gt[:, :1, :, :]", rgb_gt[:, :1, :, :].shape) # torch.Size([8, 1, 64, 64])
         if mask_gt == None:
             mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :])
             self.use_mask_loss = False
@@ -145,8 +144,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             bbox_gt = torch.zeros_like(dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM])
             self.use_bbox_loss = False
         
-        print("rgb_gt: ", rgb_gt.shape) # torch.Size([8, 3, 64, 64])
-        print("mask_gt: ", mask_gt.shape) # torch.Size([8, 1, 64, 64])
         gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
         inputs, reconstructions = gt_obj, dec_obj
         
