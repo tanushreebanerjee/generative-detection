@@ -87,8 +87,6 @@ class PoseAutoencoder(AutoencoderKL):
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
         # multiply all feat dims
-        print("self.feature_dims: ", self.feature_dims) # [16, 16, 16]
-        
         return self.feature_dims[0] * self.feature_dims[1] * self.feature_dims[2]
         
     def _decode_pose(self, x):
@@ -101,9 +99,7 @@ class PoseAutoencoder(AutoencoderKL):
         Returns:
             Decoded pose tensor.
         """
-        print("x shape pre view: ", x.shape) # torch.Size([8, 16, 4, 4])
         x = x.view(x.size(0), -1)  # flatten the input tensor
-        print("x shape post view: ", x.shape) #  torch.Size([8, 256])
         return self.pose_decoder(x)
     
     def _encode_pose(self, x):
@@ -150,8 +146,6 @@ class PoseAutoencoder(AutoencoderKL):
                 z_obj = posterior_obj.mode()
             
             z_pose = mean_pose # torch.Size([8, 16, 4, 4])
-            print("z_obj shape: ", z_obj.shape) # torch.Size([8, 16, 4, 4])
-            print("z_pose shape: ", z_pose.shape)
             dec_pose = self._decode_pose(z_pose)
             enc_pose = self._encode_pose(dec_pose)
             
@@ -341,14 +335,14 @@ class PoseAutoencoder(AutoencoderKL):
 
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
-            log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
+            # log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
         log["inputs_rgb"] = x_rgb
         
-        if x_mask is not None:
-            log["inputs_mask"] = x_mask
+        # if x_mask is not None:
+        #     log["inputs_mask"] = x_mask
         
         return log
      

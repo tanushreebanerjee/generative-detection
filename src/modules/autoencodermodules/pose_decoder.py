@@ -39,9 +39,6 @@ class PoseDecoder(nn.Module):
             nn.Linear(hidden_dim_2, pose_feat_dims) # (4): Linear(in_features=512, out_features=10, bias=True)
         )  
         
-        print("PoseDecoder initialized with hidden_dim_1: {}, hidden_dim_2: {}".format(hidden_dim_1, hidden_dim_2))
-        print("self.fc: ", self.fc)
-        
     def forward(self, x):
         """
         Forward pass of the pose decoder.
@@ -52,5 +49,4 @@ class PoseDecoder(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        print("PoseDecoder forward pass. x.shape: ", x.shape) # torch.Size([8, 256])
         return self.fc(x)
