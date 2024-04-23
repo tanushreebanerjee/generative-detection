@@ -302,11 +302,20 @@ def get_ndc_to_patch_ndc_transform(
     ]
 
     """
-    transform = get_patch_ndc_to_ndc_transform(
+    
+    patch_ndc_to_ndc_transform = get_patch_ndc_to_ndc_transform(
         cameras,
         with_xyflip=with_xyflip,
         image_size=image_size,
         patch_size=patch_size,
         patch_center=patch_center,
-    ).inverse()
+    )
+    try: 
+        transform = patch_ndc_to_ndc_transform.inverse()
+    except Exception as e:
+        print(e)
+        print("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
+        print("image_size", image_size)
+        print("patch_size", patch_size)
+        print("patch_center", patch_center)
     return transform
