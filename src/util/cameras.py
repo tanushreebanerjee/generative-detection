@@ -311,13 +311,24 @@ def get_ndc_to_patch_ndc_transform(
         patch_size=patch_size,
         patch_center=patch_center,
     )
+    
+    # logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
+    # logging.info("image_size", image_size)
+    # logging.info("patch_size", patch_size)
+    # logging.info("patch_center", patch_center)
     try: 
         transform = patch_ndc_to_ndc_transform.inverse()
-    except Exception as e:
-        logging.info(e)
-        logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
-        logging.info("image_size", image_size)
-        logging.info("patch_size", patch_size)
-        logging.info("patch_center", patch_center)
-        raise e
+    except:
+        # logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
+        # logging.info("image_size", image_size)
+        # logging.info("patch_size", patch_size)
+        # logging.info("patch_center", patch_center)
+        
+        # make invertible by adding a small value to the diagonal
+        patch_ndc_to_ndc_transform = patch_ndc_to_ndc_transform.get_matrix()
+        diag_small = torch.eye(4, device=cameras.device) * 1e-6
+        patch_ndc_to_ndc_transform = patch_ndc_to_ndc_transform + diag_small
+        patch_ndc_to_ndc_transform = Transform3d(matrix=patch_ndc_to_ndc_transform, device=cameras.device)
+        transform = patch_ndc_to_ndc_transform.inverse()
+    
     return transform
