@@ -3,6 +3,7 @@ from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthT
 from pytorch3d.common.datatypes import Device
 from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
+import logging
 
 class PatchPerspectiveCameras(PerspectiveCameras):
     """
@@ -313,9 +314,10 @@ def get_ndc_to_patch_ndc_transform(
     try: 
         transform = patch_ndc_to_ndc_transform.inverse()
     except Exception as e:
-        print(e)
-        print("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
-        print("image_size", image_size)
-        print("patch_size", patch_size)
-        print("patch_center", patch_center)
+        logging.info(e)
+        logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
+        logging.info("image_size", image_size)
+        logging.info("patch_size", patch_size)
+        logging.info("patch_center", patch_center)
+        raise e
     return transform
