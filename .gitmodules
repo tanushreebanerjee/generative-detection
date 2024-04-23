@@ -14,3 +14,6 @@
 [submodule "submodules/mmdetection3d"]
 	path = submodules/mmdetection3d
 	url = https://github.com/open-mmlab/mmdetection3d.git
+[submodule "submodules/spatial-VAE"]
+	path = submodules/spatial-VAE
+	url = https://github.com/tbepler/spatial-VAE.git
