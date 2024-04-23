@@ -335,9 +335,6 @@ class PoseAutoencoder(AutoencoderKL):
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
         # permute torch tensor
-        x_rgb = x_rgb.permute(0, 2, 3, 1)
-        x_rgb = torch.tensor(x_rgb, dtype=torch.float32, device="cuda" if torch.cuda.is_available() else "cpu")
-        # print("x_rgb shape: ", x_rgb.shape, x_rgb.dtype)
         log["inputs_rgb"] = x_rgb
         
         # if x_mask is not None:
