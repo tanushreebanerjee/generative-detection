@@ -197,11 +197,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             device="cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
         
-        
-        # normalize patch to [0, 1] to enable tensorboard visualization and also clip
-        # print("patch shape: ", patch.shape, "patch max: ", patch.max(), "patch min: ", patch.min()) # size b, 3, 256, 256
         patch = torch.tensor(patch, dtype=torch.float32) / 255.0
-        patch = patch.permute(0, 2, 3, 1) # permute to b, 256, 256, 3
         
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id

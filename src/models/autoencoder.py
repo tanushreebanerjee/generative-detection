@@ -334,6 +334,7 @@ class PoseAutoencoder(AutoencoderKL):
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
+        x_rgb = x_rgb.permute(0, 2, 3, 1) # torch.Size([8, 256, 256, 3])
         log["inputs_rgb"] = x_rgb
         
         if x_mask is not None:
