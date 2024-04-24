@@ -8,9 +8,10 @@ import cv2
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
-from torchvision.transforms import Resize
 from torchvision.transforms.functional import InterpolationMode
-import PIL.Image as Image
+# import Resampling
+from PIL import Image as Image
+from PIL.Image import Resampling
 import numpy as np
 import logging
 
@@ -60,7 +61,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.num_cameras = len(CAMERA_NAMES)
         return self.num_samples * self.num_cameras
     
-    def _generate_patch(self, img_path, cam_instance, resize):
+    def _generate_patch(self, img_path, cam_instance):
         # load image from path using PIL
         img_pil = Image.open(img_path)
         if img_pil is None:
@@ -96,9 +97,10 @@ class NuScenesBase(MMDetNuScenesDataset):
             # return full image if error occurs
             patch = img
         
-        patch_resized = resize(patch) # pillow resize
-        # patch_resized_np = np.array(patch_resized)
-        return patch_resized, patch_size_sq
+        resized_width, resized_height = self.patch_size
+        patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
+        patch_resized_tensor = torch.tensor(np.array(patch_resized), dtype=torch.float32)
+        return patch_resized_tensor, patch_size_sq
      
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size):
         bbox_3d = cam_instance.bbox_3d
@@ -162,13 +164,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         # get a easy dict / edict with the same keys as the CamInstance class
         cam_instance = edict(cam_instance)
         
-        resize = Resize(size=patch_size, 
-                             interpolation=InterpolationMode.BILINEAR, 
-                             max_size=None, 
-                             antialias=True)
-        
         ### must be original patch size!!
-        patch, patch_size_original = self._generate_patch(img_path, cam_instance, resize)
+        patch, patch_size_original = self._generate_patch(img_path, cam_instance)
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
             return None
@@ -197,6 +194,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # normalize patch to [0, 1]
         patch = patch / 255.0
+        # scale to [-1, 1]
+        patch = patch * 2 - 1
+        
         
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id

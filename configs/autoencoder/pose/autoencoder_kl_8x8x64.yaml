@@ -12,7 +12,9 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 800
+        pose_weight: 160
+        class_weight: 0.0
+        bbox_weight: 0.0
         pose_loss_fn: "l2"
         mask_weight: 25000
         mask_loss_fn: "l2"

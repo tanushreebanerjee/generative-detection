@@ -15,6 +15,7 @@ import random
 from math import radians
 from src.util.pose_transforms import euler_angles_translation2se3_log_map
 import numpy as np
+import logging
 
 POSE_6D_DIM = 6
 PITCH_MAX = 360
@@ -139,6 +140,7 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
+            print("running forward on device:", "cpu" if not torch.cuda.is_available() else "cuda", "with device:", self.device)
             posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
@@ -184,7 +186,7 @@ class PoseAutoencoder(AutoencoderKL):
         class_gt = self.get_class_input(batch, self.class_key)
         bbox_gt = self.get_bbox_input(batch, self.bbox_key)
          
-        dec_obj, dec_pose, posterior_obj, posterior_pose = self.foward(rgb_gt)
+        dec_obj, dec_pose, posterior_obj, posterior_pose = self.forward(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
@@ -330,6 +332,10 @@ class PoseAutoencoder(AutoencoderKL):
 
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
+            
+            
+            print("xrgb max:", x_rgb.max(), "xrgb min:", x_rgb.min())
+            logging.info("xrgb max: %s, xrgb min: %s", x_rgb.max(), x_rgb.min())
             log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
