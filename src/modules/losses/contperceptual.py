@@ -96,20 +96,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     def compute_class_loss(self, class_gt, class_probs):
         class_probs = class_probs.view(-1, self.num_classes)
         class_gt = class_gt.view(-1)
-        
-        # for each sample in batch, if all classprobs for all classes are below threshold, 
-        # then class_prob for no object is 1 (at index class_probs.shape[1])
-        # else it is 0
-        class_probs_with_no_obj = torch.zeros((class_probs.shape[0], class_probs.shape[1] + 1))
-        class_prob_no_obj = torch.tensor([1.0 if torch.all(class_probs[i] < PROB_THRESHOLD_OBJ) else 0.0 for i in range(class_probs.shape[0])])
-        class_probs_with_no_obj[:, -1] = class_prob_no_obj
-        class_probs_with_no_obj[:, :-1] = class_probs
-        
-        # where class_gt is -1, set it to class_probs.shape
-        class_gt[class_gt == -1] = class_probs.shape[1]
-        class_probs_with_no_obj = class_probs_with_no_obj.to("cuda" if torch.cuda.is_available() else "cpu")
-        class_gt = class_gt.to(class_probs_with_no_obj.device)
-        class_loss = self.class_loss_fn(class_probs_with_no_obj, class_gt)
+        class_probs = class_probs.to("cuda" if torch.cuda.is_available() else "cpu")
+        class_gt = class_gt.to(class_probs.device)
+        class_loss = self.class_loss_fn(class_probs, class_gt)
         weighted_class_loss = self.class_weight * class_loss
         return class_loss, weighted_class_loss
     
