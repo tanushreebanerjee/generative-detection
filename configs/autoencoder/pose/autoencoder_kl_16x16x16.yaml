@@ -12,7 +12,7 @@ model:
         disc_start: 50001
         kl_weight: 0.000001
         disc_weight: 0.5
-        pose_weight: 0
+        pose_weight: 800
         pose_loss_fn: "l2"
         mask_weight: 25000
         mask_loss_fn: "l2"
@@ -39,7 +39,7 @@ data:
     num_workers: 10
     wrap: True
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -56,7 +56,7 @@ data:
         patch_height: 256
         patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.nuscenes.NuScenesValidation
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -95,6 +95,6 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: simple
-    max_epochs: 1000
+    profiler: pytorch
+    max_epochs: 1
     strategy: ddp

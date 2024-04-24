@@ -61,11 +61,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         return self.num_samples * self.num_cameras
     
     def _generate_patch(self, img_path, cam_instance, resize):
-        # load image from path
-        img = cv2.imread(img_path)
-        img_clipped = np.clip(img, 0, 255)
-        img_pil = Image.fromarray(img_clipped)
-        if img is None:
+        # load image from path using PIL
+        img_pil = Image.open(img_path)
+        if img_pil is None:
             raise FileNotFoundError(f"Image not found at {img_path}")
             
         # return croped list of images as defined by 2d bbox for each instance
@@ -98,9 +96,9 @@ class NuScenesBase(MMDetNuScenesDataset):
             # return full image if error occurs
             patch = img
         
-        patch_resized = resize(patch)
-        patch_resized_np = np.array(patch_resized)
-        return patch_resized_np, patch_size_sq
+        patch_resized = resize(patch) # pillow resize
+        # patch_resized_np = np.array(patch_resized)
+        return patch_resized, patch_size_sq
      
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size):
         bbox_3d = cam_instance.bbox_3d
@@ -197,7 +195,8 @@ class NuScenesBase(MMDetNuScenesDataset):
             device="cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
         
-        patch = torch.tensor(patch, dtype=torch.float32) / 255.0
+        # normalize patch to [0, 1]
+        patch = patch / 255.0
         
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id

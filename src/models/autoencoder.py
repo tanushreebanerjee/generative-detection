@@ -184,7 +184,7 @@ class PoseAutoencoder(AutoencoderKL):
         class_gt = self.get_class_input(batch, self.class_key)
         bbox_gt = self.get_bbox_input(batch, self.bbox_key)
          
-        dec_obj, dec_pose, posterior_obj, posterior_pose = self(rgb_gt)
+        dec_obj, dec_pose, posterior_obj, posterior_pose = self.foward(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
