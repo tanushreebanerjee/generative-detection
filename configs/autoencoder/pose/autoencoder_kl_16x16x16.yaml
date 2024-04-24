@@ -97,6 +97,6 @@ lightning:
   trainer:
     benchmark: True
     accumulate_grad_batches: 2
-    profiler: pytorch
+    profiler: advanced
     max_epochs: 1
     strategy: ddp

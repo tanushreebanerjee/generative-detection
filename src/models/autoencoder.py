@@ -140,7 +140,6 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
-            print("running forward on device:", "cpu" if not torch.cuda.is_available() else "cuda", "with device:", self.device)
             posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()

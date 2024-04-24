@@ -50,9 +50,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
     def compute_pose_loss(self, pred, gt):
         # need to get loss split for each part of the pose - t1, t2, t3, v1, v2, v3
-        print("pred: ", pred.shape)
-        print("gt: ", gt.shape)
-        print("pred[:, 0]", pred[:, 0].shape)
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
         t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
