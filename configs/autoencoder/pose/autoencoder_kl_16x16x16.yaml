@@ -41,7 +41,7 @@ data:
     num_workers: 10
     wrap: True
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrainMini
+      target: src.data.datasets.nuscenes.NuScenesTrain
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -58,7 +58,7 @@ data:
         patch_height: 256
         patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.nuscenes.NuScenesValidationMini
+      target: src.data.datasets.nuscenes.NuScenesValidation
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -98,5 +98,5 @@ lightning:
     benchmark: True
     accumulate_grad_batches: 2
     profiler: advanced
-    max_epochs: 1
+    max_epochs: 1000
     strategy: ddp
