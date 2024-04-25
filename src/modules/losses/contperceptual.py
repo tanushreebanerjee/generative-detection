@@ -53,7 +53,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
         t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
-        
+        print("t1_loss: ", t1_loss, "shape: ", t1_loss.shape)
+        print("pred[:, 0]: ", pred[:, 0], "shape: ", pred[:, 0].shape)
+        print("gt[:, 0]: ", gt[:, 0], "shape: ", gt[:, 0].shape)
         v1_loss = self.pose_loss(pred[:, 3], gt[:, 3])
         v2_loss = self.pose_loss(pred[:, 4], gt[:, 4])
         v3_loss = self.pose_loss(pred[:, 5], gt[:, 5])

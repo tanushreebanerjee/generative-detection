@@ -84,7 +84,28 @@ class PoseAutoencoder(AutoencoderKL):
         self.pose_encoder = PoseEncoder(**feat_dim_config)
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
+        
+        # initialize the weights
+        self._init_weights()
+        
+    def _init_weights(self):
+        # use torch.nn.init.kaiming_uniform_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu', generator=None)
+        self.encoder.apply(self._init_weights_layer)
+        self.decoder.apply(self._init_weights_layer)
+        self.pose_decoder.apply(self._init_weights_layer)
+        self.pose_encoder.apply(self._init_weights_layer)
+        self.quant_conv_obj.apply(self._init_weights_layer)
+        self.quant_conv_pose.apply(self._init_weights_layer)
+        self.post_quant_conv.apply(self._init_weights_layer)
     
+    def _init_weights_layer(self, m):
+        if type(m) == torch.nn.Conv2d:
+            torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
+            torch.nn.init.constant_(m.bias, 0)
+        if type(m) == torch.nn.Linear:
+            torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
+            torch.nn.init.constant_(m.bias, 0)
+
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
         # multiply all feat dims
