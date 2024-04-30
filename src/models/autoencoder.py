@@ -340,6 +340,10 @@ class PoseAutoencoder(AutoencoderKL):
             # xrec_perturbed_pose_mask = (xrec_perturbed_pose_mask * 255).byte().cpu().numpy()
             # xrec_perturbed_pose_mask = np.clip(xrec_perturbed_pose_mask, 0, 255).astype(np.uint8)
 
+            # print("xrec_rgb shape: ", xrec_rgb.shape) # torch.Size([4, 3, 256, 256])
+            # print("x_rgb shape: ", x_rgb.shape) # torch.Size([4, 256, 3, 256])
+            x_rgb = x_rgb.permute(0, 2, 1, 3) # torch.Size([4, 3, 256, 256])
+            
             if x_rgb.shape[1] > 3:
                 # colorize with random projection
                 assert xrec_rgb.shape[1] > 3
