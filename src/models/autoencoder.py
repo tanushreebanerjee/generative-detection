@@ -157,7 +157,7 @@ class PoseAutoencoder(AutoencoderKL):
             """
             # reshape input_im to (batch_size, 3, 256, 256)
             input_im = input_im.to(memory_format=torch.contiguous_format).float() # ([4, 256, 3, 256])
-            input_im = input_im.permute(0, 2, 1, 3) # ([4, 3, 256, 256])
+            input_im = input_im.permute(0, 2, 3, 1) # ([4, 3, 256, 256])
             posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
@@ -342,7 +342,7 @@ class PoseAutoencoder(AutoencoderKL):
 
             # print("xrec_rgb shape: ", xrec_rgb.shape) # torch.Size([4, 3, 256, 256])
             # print("x_rgb shape: ", x_rgb.shape) # torch.Size([4, 256, 3, 256])
-            x_rgb = x_rgb.permute(0, 2, 1, 3) # torch.Size([4, 3, 256, 256])
+            x_rgb = x_rgb.permute(0, 2, 3, 1) # torch.Size([4, 3, 256, 256])
             
             if x_rgb.shape[1] > 3:
                 # colorize with random projection
@@ -355,18 +355,29 @@ class PoseAutoencoder(AutoencoderKL):
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
             
             logging.info("xrgb max: %s, xrgb min: %s", x_rgb.max(), x_rgb.min())
-            log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
+            samples = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
+            samples = self._rescale(samples)
+            log["samples"] = samples
+            # scale is 0, 1. scale to -1, 1
+            xrec_rgb = self._rescale(xrec_rgb)
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
+            xrec_perturbed_pose_rgb = self._rescale(xrec_perturbed_pose_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
-        # permute torch tensor
+        x_rgb = self._rescale(x_rgb)
         log["inputs_rgb"] = x_rgb
         
         # if x_mask is not None:
         #     log["inputs_mask"] = x_mask
         
         return log
-     
+    
+    def _rescale(self, x):
+        # scale is 0, 1. scale to -1, 1
+        min_val = 0
+        max_val = 1
+        return 2. * (x - min_val) / (max_val - min_val) - 1.
+    
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))

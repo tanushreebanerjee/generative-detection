@@ -115,7 +115,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 last_layer=None, cond=None, split="train",
                 weights=None):
         
-        rgb_gt = rgb_gt.permute(0, 2, 1, 3)
+        rgb_gt = rgb_gt.permute(0, 2, 3, 1)
         if mask_gt == None:
             mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :])
             self.use_mask_loss = False
