@@ -53,9 +53,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
         t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
-        print("t1_loss: ", t1_loss, "shape: ", t1_loss.shape)
-        print("pred[:, 0]: ", pred[:, 0], "shape: ", pred[:, 0].shape)
-        print("gt[:, 0]: ", gt[:, 0], "shape: ", gt[:, 0].shape)
+        
         v1_loss = self.pose_loss(pred[:, 3], gt[:, 3])
         v2_loss = self.pose_loss(pred[:, 4], gt[:, 4])
         v3_loss = self.pose_loss(pred[:, 5], gt[:, 5])
@@ -65,7 +63,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v1_loss, v2_loss, v3_loss
 
-    def _get_rec_loss(self, inputs, reconstructions):
+    def _get_rec_loss(self, inputs, reconstructions):  
         rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
         if self.perceptual_weight > 0:
             p_loss = self.perceptual_loss(inputs.contiguous(), reconstructions.contiguous())
@@ -117,6 +115,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 last_layer=None, cond=None, split="train",
                 weights=None):
         
+        rgb_gt = rgb_gt.permute(0, 2, 1, 3)
         if mask_gt == None:
             mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :])
             self.use_mask_loss = False
@@ -124,8 +123,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
         inputs, reconstructions = gt_obj, dec_obj
         
-        inputs_rgb = inputs[:, :3, :, :]
-        inputs_mask = inputs[:, 3:, :, :]
+        inputs_rgb = rgb_gt
+        inputs_mask = mask_gt
         
         reconstructions_rgb = reconstructions[:, :3, :, :]
         

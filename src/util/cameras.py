@@ -5,6 +5,8 @@ from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
 import logging
 
+EPS = 1e-10
+
 class PatchPerspectiveCameras(PerspectiveCameras):
     """
     A class representing patch perspective cameras.
@@ -71,6 +73,13 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         world_to_patch_ndc_transform = world_to_proj_transform.compose(screen_to_patch_ndc_transform) # camera --> patch ndc
         return world_to_patch_ndc_transform
     
+    def transform_points_camera_from_patch_ndc(self, points,
+                                            patch_size,
+                                            patch_center,
+                                            eps: Optional[float] = None, **kwargs) -> torch.Tensor:
+        
+        raise NotImplementedError("This function is not implemented yet.")
+    
     def transform_points_patch_ndc(self, points, 
                                    patch_size, 
                                    patch_center,
@@ -83,7 +92,22 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) # screen/ndc --> patch ndc
         world_to_patch_ndc_transform = world_to_ndc_transform.compose(to_patch_ndc_transform) # camera --> patch ndc
         points = points.to(self.device)
-        return world_to_patch_ndc_transform.transform_points(points, eps=eps)
+        
+        points_patch_ndc = world_to_patch_ndc_transform.transform_points(points, eps=eps)
+        # print("points_patch_ndc", points_patch_ndc, points_patch_ndc.shape) # torch.Size([1, 1, 3])
+        # z_camera = points_patch_ndc[..., 2]
+        # print("z_camera", z_camera, z_camera.shape) # torch.Size([1, 1, 2]
+        # # scale z values from patch space to NDC space
+        # z_ndc = self.z_camera_to_ndc(z_camera)
+        # print("z_ndc", z_ndc, z_ndc.shape) # torch.Size([1, 1, 2])
+        # z_patch = self.z_ndc_to_patch(z_ndc, patch_size, self.get_image_size()) # torch.Size([1, 2])
+        # print("z_patch", z_patch, z_patch.shape) # torch.Size([1, 1, 2])
+        
+        # print("points_patch_ndc[..., 2]", points_patch_ndc[..., 2], points_patch_ndc[..., 2].shape) # torch.Size([1, 1, 2]) 
+        
+        # points_patch_ndc[..., 2] = z_patch
+        
+        return points_patch_ndc
     
     def get_patch_ndc_camera_transform(self,
                                         patch_size,
@@ -143,27 +167,41 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         
         return 0.5 * (z + 1) * (self.zfar - self.znear) + self.znear
 
-    def z_patch_to_ndc(self, z_patch: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
-        """
-        Scale z values from patch space to NDC space to make the network aware of the patch size.
-        """
-        scale = min(patch_size) / min(image_size) 
-        z_ndc = z_patch * scale
-        return z_ndc
-    
     def z_ndc_to_patch(self, z_ndc: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
         """
         Scale z values from NDC space to patch space.
         """
-        scale = min(image_size) / min(patch_size)
+        im_size = torch.min(image_size, dim=1).values
+        patch_size = torch.min(patch_size, dim=1).values
+        # send to cpu device
+        device = torch.device("cpu") if not torch.cuda.is_available() else torch.device("cuda")
+        im_size = im_size.to(device)
+        patch_size = patch_size.to(device)
+        z_ndc = z_ndc.to(device)
+        scale = patch_size / im_size 
         z_patch = z_ndc * scale
-        return x_patch
+        return z_patch
+    
+    def z_patch_to_ndc(self, z_patch: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
+        """
+        Scale z values from patch space to NDC space to make the network aware of the patch size.
+        """
+        im_size = torch.min(image_size, dim=1).values
+        patch_size = torch.min(patch_size, dim=1).values
+        # send to cpu device
+        device = torch.device("cpu") if not torch.cuda.is_available() else torch.device("cuda")
+        im_size = im_size.to(device)
+        patch_size = patch_size.to(device)
+        z_patch = z_patch.to(device)
+        scale = im_size / patch_size
+        z_ndc = z_patch * scale
+        return z_ndc
 
 ################################################
 # Helper functions for patch perspective cameras
 ################################################
 
-def get_patch_ndc_to_ndc_transform(
+def get_ndc_to_patch_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -272,7 +310,7 @@ def get_patch_ndc_to_ndc_transform(
         transform = transform.compose(xyflip_transform)
     return transform
 
-def get_ndc_to_patch_ndc_transform(
+def get_patch_ndc_to_ndc_transform(
     cameras,
     with_xyflip: bool = False,
     image_size: Optional[Union[List, Tuple, torch.Tensor]] = None,
@@ -304,31 +342,22 @@ def get_ndc_to_patch_ndc_transform(
 
     """
     
-    patch_ndc_to_ndc_transform = get_patch_ndc_to_ndc_transform(
+    ndc_to_patch_ndc_transform = get_ndc_to_patch_ndc_transform(
         cameras,
         with_xyflip=with_xyflip,
         image_size=image_size,
         patch_size=patch_size,
         patch_center=patch_center,
     )
-    
-    # logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
-    # logging.info("image_size", image_size)
-    # logging.info("patch_size", patch_size)
-    # logging.info("patch_center", patch_center)
+
     try: 
-        transform = patch_ndc_to_ndc_transform.inverse()
-    except:
-        # logging.info("patch_ndc_to_ndc_transform", patch_ndc_to_ndc_transform.get_matrix())
-        # logging.info("image_size", image_size)
-        # logging.info("patch_size", patch_size)
-        # logging.info("patch_center", patch_center)
-        
+        transform = ndc_to_patch_ndc_transform.inverse()
+    except: 
         # make invertible by adding a small value to the diagonal
-        patch_ndc_to_ndc_transform = patch_ndc_to_ndc_transform.get_matrix()
-        diag_small = torch.eye(4, device=cameras.device) * 1e-6
-        patch_ndc_to_ndc_transform = patch_ndc_to_ndc_transform + diag_small
-        patch_ndc_to_ndc_transform = Transform3d(matrix=patch_ndc_to_ndc_transform, device=cameras.device)
-        transform = patch_ndc_to_ndc_transform.inverse()
+        ndc_to_patch_ndc_transform = ndc_to_patch_ndc_transform.get_matrix()
+        diag_small = torch.eye(4, device=cameras.device) * EPS
+        ndc_to_patch_ndc_transform = ndc_to_patch_ndc_transform + diag_small
+        ndc_to_patch_ndc_transform = Transform3d(matrix=ndc_to_patch_ndc_transform, device=cameras.device)
+        transform = ndc_to_patch_ndc_transform.inverse()
     
     return transform

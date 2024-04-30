@@ -85,26 +85,20 @@ class PoseAutoencoder(AutoencoderKL):
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
         
-        # initialize the weights
-        self._init_weights()
+    #     # initialize the weights
+    #     self._init_weights()
         
-    def _init_weights(self):
-        # use torch.nn.init.kaiming_uniform_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu', generator=None)
-        self.encoder.apply(self._init_weights_layer)
-        self.decoder.apply(self._init_weights_layer)
-        self.pose_decoder.apply(self._init_weights_layer)
-        self.pose_encoder.apply(self._init_weights_layer)
-        self.quant_conv_obj.apply(self._init_weights_layer)
-        self.quant_conv_pose.apply(self._init_weights_layer)
-        self.post_quant_conv.apply(self._init_weights_layer)
+    # def _init_weights(self):
+    #     self.pose_decoder.apply(self._init_weights_layer)
+    #     self.pose_encoder.apply(self._init_weights_layer)
     
-    def _init_weights_layer(self, m):
-        if type(m) == torch.nn.Conv2d:
-            torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
-            torch.nn.init.constant_(m.bias, 0)
-        if type(m) == torch.nn.Linear:
-            torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
-            torch.nn.init.constant_(m.bias, 0)
+    # def _init_weights_layer(self, m):
+    #     if type(m) == torch.nn.Conv2d:
+    #         torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
+    #         torch.nn.init.constant_(m.bias, 0)
+    #     if type(m) == torch.nn.Linear:
+    #         torch.nn.init.kaiming_uniform_(m.weight, a=0, mode='fan_in', nonlinearity='relu')
+    #         torch.nn.init.constant_(m.bias, 0)
 
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
@@ -161,6 +155,9 @@ class PoseAutoencoder(AutoencoderKL):
                 posterior_obj (Distribution): Posterior distribution of the object latent space.
                 posterior_pose (Distribution): Posterior distribution of the pose latent space.
             """
+            # reshape input_im to (batch_size, 3, 256, 256)
+            input_im = input_im.to(memory_format=torch.contiguous_format).float() # ([4, 256, 3, 256])
+            input_im = input_im.permute(0, 2, 1, 3) # ([4, 3, 256, 256])
             posterior_obj, mean_pose = self.encode(input_im)
             if sample_posterior:
                 z_obj = posterior_obj.sample()
@@ -205,7 +202,7 @@ class PoseAutoencoder(AutoencoderKL):
         mask_gt = self.get_mask_input(batch, self.image_mask_key)
         class_gt = self.get_class_input(batch, self.class_key)
         bbox_gt = self.get_bbox_input(batch, self.bbox_key)
-         
+        
         dec_obj, dec_pose, posterior_obj, posterior_pose = self.forward(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
@@ -353,8 +350,6 @@ class PoseAutoencoder(AutoencoderKL):
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
             # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
             
-            
-            print("xrgb max:", x_rgb.max(), "xrgb min:", x_rgb.min())
             logging.info("xrgb max: %s, xrgb min: %s", x_rgb.max(), x_rgb.min())
             log["samples"] = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
