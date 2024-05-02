@@ -203,11 +203,11 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # trace must be in 
         pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
-        # try: 
-        #     pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
-        # except Exception as e:
-        #     print("Error in se3_log_map", e)
-        #     return None, None
+        try: 
+            pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
+        except Exception as e:
+            print("Error in se3_log_map", e)
+            return None, None
         # logging.info("pose_6d", pose_6d, pose_6d.shape)
         h_aspect_ratio = h / l
         w_aspect_ratio = w / l
