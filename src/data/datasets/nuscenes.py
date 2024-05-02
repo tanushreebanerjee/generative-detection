@@ -69,7 +69,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             
         # return croped list of images as defined by 2d bbox for each instance
         bbox = cam_instance.bbox # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
-        center_2d = cam_instance.center_2d 
+        center_2d = cam_instance.center_2d # Projected center location on the image, a list has shape (2,)
         # use interpolation torch to get crop of image from bbox of size patch_size
         # need to use torch for interpolation, not cv2
         x1, y1, x2, y2 = bbox
@@ -88,9 +88,10 @@ class NuScenesBase(MMDetNuScenesDataset):
                 
             # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
             if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
+                print("bbox out of bounds of image")
                 return None, None
                 
-            patch = img_pil.crop((x1, y1, x2, y2))
+            patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
@@ -112,7 +113,18 @@ class NuScenesBase(MMDetNuScenesDataset):
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
         
         point_camera = (x, y, z)
+        print("point_camera", point_camera)
         patch_center = cam_instance.center_2d
+        
+        # TODO: patch center is currently relative to upper left corner of full image. needs to be relative to the center of the full image
+        # center of patch relative to center of full image so 0, 0 is center of full image and not top left corner
+        full_im_center_wrt_upper_left_corner = (NUSC_IMG_WIDTH // 2, NUSC_IMG_HEIGHT // 2)
+        patch_center_wrt_im_center = (patch_center[0] - full_im_center_wrt_upper_left_corner[0], patch_center[1] - full_im_center_wrt_upper_left_corner[1])
+        print("patch_center", patch_center)
+        patch_center = patch_center_wrt_im_center
+        print("patch_center_wrt_im_center", patch_center_wrt_im_center)
+        print("patch_size", patch_size)
+        
         # logging.info("center2d", patch_center)
         if len(patch_center) == 2:
             # add batch dimension
@@ -125,11 +137,11 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
         assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
-        
+
         point_patch_ndc = camera.transform_points_patch_ndc(points=point_camera,
                                                                   patch_size=patch_size, 
                                                                     patch_center=patch_center)
-          
+        print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)  
         z_camera = point_patch_ndc[..., 2]
         # logging.info("z_camera", z_camera, z_camera.shape) # torch.Size([1, 1, 2]
         # scale z values from patch space to NDC space
@@ -187,13 +199,15 @@ class NuScenesBase(MMDetNuScenesDataset):
         rotation_matrix = se3_exp_map_matrix[:, :3, :3]
         # logging.info("rotation_matrix", rotation_matrix, rotation_matrix.shape) # torch.Size([1, 3, 3])
         rot_trace = rotation_matrix.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1)
-        # logging.info("rot_trace", rot_trace, rot_trace.shape)
+        logging.info("rot_trace", rot_trace, rot_trace.shape)
         
         # trace must be in 
-        try: 
-            pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
-        except Exception as e:
-            return None, None
+        pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
+        # try: 
+        #     pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
+        # except Exception as e:
+        #     print("Error in se3_log_map", e)
+        #     return None, None
         # logging.info("pose_6d", pose_6d, pose_6d.shape)
         h_aspect_ratio = h / l
         w_aspect_ratio = w / l
@@ -202,7 +216,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         return pose_6d, bbox_sizes
     
     
-    def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
+    def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img, cam2ego):
         # get a easy dict / edict with the same keys as the CamInstance class
         cam_instance = edict(cam_instance)
         
@@ -210,6 +224,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         patch, patch_size_original = self._generate_patch(img_path, cam_instance)
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
+            print("patch", patch)
+            print("patch_size_original", patch_size_original)
             return None
         
         
@@ -227,23 +243,32 @@ class NuScenesBase(MMDetNuScenesDataset):
     
         image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
         
+        # cam2ego: The transformation matrix from this camera sensor to ego vehicle. (4x4 list)
+        # cam2ego = torch.tensor(cam2ego, dtype=torch.float32)
+        # R = torch.tensor(cam2ego[:3, :3], dtype=torch.float32)
+        # T = torch.tensor(cam2ego[:3, 3], dtype=torch.float32)
+        # print("R", R, R.shape)
+        # print("T", T, T.shape)
+        # add batch dimension if not present
+        # if R.dim() == 2:
+        #     R = R.unsqueeze(0)
+        # if T.dim() == 1:
+        #     T = T.unsqueeze(0)
+        
         camera = PatchCameras(
             znear=Z_NEAR,
             zfar=Z_FAR,
             K=K,
             device="cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
-        
-        # # normalize patch to [0, 1]
-        # patch = patch / 255.0
-        # # scale to [-1, 1]
-        # patch = patch * 2 - 1
-        
+         
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original)
         
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
+            print("pose_6d", cam_instance.pose_6d)
+            print("bbox_sizes", cam_instance.bbox_sizes)
             return None
         
         cam_instance.class_id = cam_instance.bbox_label
@@ -272,18 +297,13 @@ class NuScenesBase(MMDetNuScenesDataset):
                 return self.__getitem__(0)
             else:
                 return self.__getitem__(idx + 1)
-        
-        # select index of closest instance by depth, given in cam_instance.depth
-        # min_depth_idx = np.argmin([cam_instance['depth'] for cam_instance in cam_instances])
-        # cam_instance = cam_instances[min_depth_idx]
-        
+         
         random_idx = np.random.randint(0, len(cam_instances))
         cam_instance = cam_instances[random_idx]
         
         img_file = sample_img_info.img_path.split("/")[-1]
         
-        ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-        # ret_cam_instances = NuScenesCameraInstances(cam_instances=cam_instances, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+        ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img, cam2ego=sample_img_info.cam2ego)
         if ret_cam_instance is None:
             if idx + 1 >= self.__len__():
                 return self.__getitem__(0)
