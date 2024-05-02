@@ -1,5 +1,5 @@
 from src.data.datasets.nuscenes import NuScenesValidationMini, LABEL_ID2NAME
-from src.data.datasets.waymo import WaymoValidationMini, LABEL_ID2NAME
+from src.data.datasets.waymo import WaymoValidation, LABEL_ID2NAME
 import matplotlib.pyplot as plt
 import tqdm
 
@@ -20,14 +20,14 @@ waymo_base_kwargs = {
     # "use_valid_flag": False,
 }
 
-waymo_val = WaymoValidationMini(**waymo_base_kwargs)
+waymo_val = WaymoValidation(**waymo_base_kwargs)
 
 # ERROR: No such file or directory: 'data/waymo/waymo_mini_infos_val.pkl'
 # Right now: data/processed/waymo/....
 #   no pkl file in there
 
-print(len(waymo_val))
-print(waymo_val[5])
+print("LENGTH:", len(waymo_val))
+print("5: ", waymo_val[5])
 
 # mark patch_center_2d as red on full image
 idx = 50
