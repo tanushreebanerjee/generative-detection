@@ -92,6 +92,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 return None, None
                 
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
+            print("patch.size", patch.size)
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
@@ -113,17 +114,16 @@ class NuScenesBase(MMDetNuScenesDataset):
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
         
         point_camera = (x, y, z)
-        print("point_camera", point_camera)
         patch_center = cam_instance.center_2d
         
         # TODO: patch center is currently relative to upper left corner of full image. needs to be relative to the center of the full image
         # center of patch relative to center of full image so 0, 0 is center of full image and not top left corner
         full_im_center_wrt_upper_left_corner = (NUSC_IMG_WIDTH // 2, NUSC_IMG_HEIGHT // 2)
-        patch_center_wrt_im_center = (patch_center[0] - full_im_center_wrt_upper_left_corner[0], patch_center[1] - full_im_center_wrt_upper_left_corner[1])
+        # patch_center_wrt_im_center = (patch_center[0] - full_im_center_wrt_upper_left_corner[0], patch_center[1] - full_im_center_wrt_upper_left_corner[1])
         print("patch_center", patch_center)
-        patch_center = patch_center_wrt_im_center
-        print("patch_center_wrt_im_center", patch_center_wrt_im_center)
-        print("patch_size", patch_size)
+        # patch_center = patch_center_wrt_im_center
+        # print("patch_center_wrt_im_center", patch_center_wrt_im_center)
+        # print("patch_size", patch_size)
         
         # logging.info("center2d", patch_center)
         if len(patch_center) == 2:
@@ -137,7 +137,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
         assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
-
         point_patch_ndc = camera.transform_points_patch_ndc(points=point_camera,
                                                                   patch_size=patch_size, 
                                                                     patch_center=patch_center)
@@ -234,13 +233,17 @@ class NuScenesBase(MMDetNuScenesDataset):
             patch_size_original = patch_size_original.unsqueeze(0)
             
         cam2img = torch.tensor(cam2img, dtype=torch.float32)
-        
         # make 4x4 matrix from 3x3 camera matrix
-        K = torch.eye(4, dtype=torch.float32)
+        K = torch.zeros(4, 4, dtype=torch.float32)
         K[:3, :3] = cam2img
-        K = K.clone().detach().requires_grad_(True).unsqueeze(0) # add batch dimension
+        K[2, 2] = 0.0
+        K[2, 3] = 1.0
+        K[3, 2] = 1.0
+        K = K.clone().detach().requires_grad_(False).unsqueeze(0) # add batch dimension
         # torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
-    
+        
+        
+        print("K", K)
         image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
         
         # cam2ego: The transformation matrix from this camera sensor to ego vehicle. (4x4 list)
@@ -273,6 +276,20 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         cam_instance.class_id = cam_instance.bbox_label
         cam_instance.patch_size = patch_size_original
+        
+        bbox_3d = cam_instance.bbox_3d
+        x, y, z, l, h, w, yaw = bbox_3d
+        point_camera = (x, y, z)
+        point_camera = torch.tensor(point_camera, dtype=torch.float32)
+        if point_camera.dim() == 1:
+            point_camera = point_camera.view(1, 1, 3)
+        
+        assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
+        assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
+        print("point_camera", point_camera)
+        
+        point_screen = camera.transform_points_screen(points=point_camera, eps=None)
+        cam_instance.point_screen = point_screen
         return cam_instance
     
     def __getitem__(self, idx):
@@ -325,10 +342,11 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
         patch_size_original = ret_cam_instance.patch_size
-        patch_size_original = torch.tensor(self.patch_size, dtype=torch.float32, requires_grad=False)
+        patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
         patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
         ret.patch_size = patch_size_original
         ret.patch_center_2d = patch_center_2d
+        ret.point_screen = ret_cam_instance.point_screen
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 
