@@ -7,6 +7,8 @@ from src.util.misc import EasyDict as edict
 import cv2
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
+from src.util.cameras import get_ndc_to_patch_ndc_transform
+from pytorch3d.renderer.cameras import get_screen_to_ndc_transform
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
 from torchvision.transforms.functional import InterpolationMode
 import torchvision.transforms as transforms
@@ -235,7 +237,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam2img = torch.tensor(cam2img, dtype=torch.float32)
         # make 4x4 matrix from 3x3 camera matrix
         K = torch.zeros(4, 4, dtype=torch.float32)
+        
         K[:3, :3] = cam2img
+        K_orig = K.clone().detach().requires_grad_(False)
         K[2, 2] = 0.0
         K[2, 3] = 1.0
         K[3, 2] = 1.0
@@ -257,6 +261,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         #     R = R.unsqueeze(0)
         # if T.dim() == 1:
         #     T = T.unsqueeze(0)
+        print("K", K)
+        print("Z_NEAR", Z_NEAR, "Z_FAR", Z_FAR)
+        print("image_size", image_size)
+        print("device", "cuda" if torch.cuda.is_available() else "cpu")
         
         camera = PatchCameras(
             znear=Z_NEAR,
@@ -264,7 +272,42 @@ class NuScenesBase(MMDetNuScenesDataset):
             K=K,
             device="cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
-         
+        bbox_3d = cam_instance.bbox_3d
+        x, y, z, l, h, w, yaw = bbox_3d
+        
+        # point_camera = (x, y, z, 1)
+        # point_camera = torch.tensor(point_camera, dtype=torch.float32)
+        # print("point_camera", point_camera)
+        # K_orig_squeezed = K_orig.squeeze()
+        # points_screen = K_orig_squeezed @ point_camera
+        # z_dim = points_screen[2]
+        # points_screen = points_screen / z_dim
+        # print("points_screen", points_screen, "cam_instance.center_2d", cam_instance.center_2d)
+        # must be 3d
+        center_2d = torch.ones(3, dtype=torch.float32)
+        center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
+        center_2d = center_2d.unsqueeze(0)
+        print("center_2d", center_2d, np.shape(center_2d))
+        
+        point_screen = center_2d
+        print("point_screen", point_screen, point_screen.shape)
+        screen2ndc_transform = camera.get_ndc_camera_transform()
+        print("screen2ndc_transform", screen2ndc_transform.get_matrix())
+        point_ndc = screen2ndc_transform.transform_points(point_screen)
+        print("point_ndc", point_ndc, point_ndc.shape)
+        print("patch_size_original", patch_size_original)
+        print("image_size", image_size)
+        print("center_2d[..., :2]", center_2d[..., :2])
+        ndc2patch_transform = get_ndc_to_patch_ndc_transform(camera, 
+                                                             with_xyflip=False, 
+                                                             image_size=image_size,
+                                                             patch_size=patch_size_original, 
+                                                             patch_center=center_2d[..., :2])
+        
+        print("ndc2patch_transform", ndc2patch_transform.get_matrix())
+        point_patch_ndc = ndc2patch_transform.transform_points(point_ndc)
+        print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)
+        
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original)
@@ -347,6 +390,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.patch_size = patch_size_original
         ret.patch_center_2d = patch_center_2d
         ret.point_screen = ret_cam_instance.point_screen
+        ret.bbox_3d = ret_cam_instance.bbox_3d
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 
