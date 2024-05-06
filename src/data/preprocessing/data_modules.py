@@ -113,6 +113,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
                 self.dataset_configs["predict"] = predict
                 self.predict_dataloader = self._predict_dataloader
             self.wrap = wrap
+            self.pin_memory = False
 
     def prepare_data(self):
         """Prepare data, how to download, tokenize, etc."""
@@ -138,7 +139,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
             init_fn = None
         return DataLoader(self.datasets["train"], batch_size=self.batch_size,
                           num_workers=self.num_workers, persistent_workers=self.persistent_workers, shuffle=False if is_iterable_dataset else True,
-                          worker_init_fn=init_fn, pin_memory=torch.cuda.is_available())
+                          worker_init_fn=init_fn, pin_memory=self.pin_memory)
 
     def _val_dataloader(self, shuffle=False):
         """generate the validation dataloader(s)"""
@@ -153,7 +154,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           persistent_workers=self.persistent_workers,
                           worker_init_fn=init_fn,
                           shuffle=shuffle,
-                          pin_memory=torch.cuda.is_available())
+                          pin_memory=self.pin_memory)
 
     def _test_dataloader(self, shuffle=False):
         """generate the test dataloader(s)"""
@@ -169,7 +170,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
 
         return DataLoader(self.datasets["test"], batch_size=self.batch_size,
                           num_workers=self.num_workers, persistent_workers=self.persistent_workers, worker_init_fn=init_fn, shuffle=shuffle, 
-                          pin_memory=torch.cuda.is_available())
+                          pin_memory=self.pin_memory)
 
     def _predict_dataloader(self, shuffle=False):
         """generate the predict dataloader(s)"""
@@ -180,4 +181,4 @@ class DataModuleFromConfig(pl.LightningDataModule):
             init_fn = None
         return DataLoader(self.datasets["predict"], batch_size=self.batch_size,
                           num_workers=self.num_workers, persistent_workers=self.persistent_workers, worker_init_fn=init_fn, 
-                          pin_memory=torch.cuda.is_available())
+                          pin_memory=self.pin_memory)

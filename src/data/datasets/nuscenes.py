@@ -7,7 +7,7 @@ from src.util.misc import EasyDict as edict
 import cv2
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
-from src.util.cameras import get_ndc_to_patch_ndc_transform
+from src.util.cameras import get_ndc_to_patch_ndc_transform, get_patch_ndc_to_ndc_transform
 from pytorch3d.renderer.cameras import get_screen_to_ndc_transform
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
 from torchvision.transforms.functional import InterpolationMode
@@ -94,7 +94,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 return None, None
                 
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
-            print("patch.size", patch.size)
+            # print("patch.size", patch.size)
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
@@ -110,30 +110,23 @@ class NuScenesBase(MMDetNuScenesDataset):
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size):
         # logging.info("_get_pose_6d_lhw")
         bbox_3d = cam_instance.bbox_3d
+        # print("bbox_3d", bbox_3d)
         
         # How to convert yaw from cam coords to patch ndc?
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
         
         point_camera = (x, y, z)
+        # print("point_camera", point_camera)
         patch_center = cam_instance.center_2d
-        
-        # TODO: patch center is currently relative to upper left corner of full image. needs to be relative to the center of the full image
-        # center of patch relative to center of full image so 0, 0 is center of full image and not top left corner
-        full_im_center_wrt_upper_left_corner = (NUSC_IMG_WIDTH // 2, NUSC_IMG_HEIGHT // 2)
-        # patch_center_wrt_im_center = (patch_center[0] - full_im_center_wrt_upper_left_corner[0], patch_center[1] - full_im_center_wrt_upper_left_corner[1])
-        print("patch_center", patch_center)
-        # patch_center = patch_center_wrt_im_center
-        # print("patch_center_wrt_im_center", patch_center_wrt_im_center)
+        # print("patch_center", patch_center)
         # print("patch_size", patch_size)
-        
         # logging.info("center2d", patch_center)
         if len(patch_center) == 2:
             # add batch dimension
             patch_center = torch.tensor(patch_center, dtype=torch.float32).unsqueeze(0)
        
         point_camera = torch.tensor(point_camera, dtype=torch.float32)
-        # logging.info("point_camera", point_camera, point_camera.shape)
         if point_camera.dim() == 1:
             point_camera = point_camera.view(1, 1, 3)
         
@@ -142,52 +135,45 @@ class NuScenesBase(MMDetNuScenesDataset):
         point_patch_ndc = camera.transform_points_patch_ndc(points=point_camera,
                                                                   patch_size=patch_size, 
                                                                     patch_center=patch_center)
-        print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)  
+        # print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)  
         z_camera = point_patch_ndc[..., 2]
-        # logging.info("z_camera", z_camera, z_camera.shape) # torch.Size([1, 1, 2]
+        # print("z_camera", z_camera, z_camera.shape) # torch.Size([1, 1, 2]
         # scale z values from patch space to NDC space
         z_ndc = camera.z_camera_to_ndc(z_camera)
-        # logging.info("z_ndc", z_ndc, z_ndc.shape) # torch.Size([1, 1, 2])
+        # print("z_ndc", z_ndc, z_ndc.shape) # torch.Size([1, 1, 2])
         z_patch = camera.z_ndc_to_patch(z_ndc, patch_size, camera.get_image_size()) # torch.Size([1, 2])
-        # logging.info("z_patch", z_patch, z_patch.shape) # torch.Size([1, 1, 2])
-        
-        # logging.info("point_patch_ndc[..., 2]", point_patch_ndc[..., 2], point_patch_ndc[..., 2].shape) # torch.Size([1, 1, 2]) 
-        
+        # print("z_patch", z_patch, z_patch.shape) # torch.Size([1, 1, 2])        
         point_patch_ndc[..., 2] = z_patch
-        
-        
         if point_patch_ndc.dim() == 3:
             point_patch_ndc = point_patch_ndc.view(-1)
         x_patch, y_patch, z_patch = point_patch_ndc
-        # logging.info("x_patch, y_patch, z_patch", x_patch, y_patch, z_patch)
+        # print("x_patch, y_patch, z_patch", x_patch, y_patch, z_patch)
         
         
         # TODO: Roll Pitch Yaw must be in Patch NDC, not in camera coords
-        euler_angles = torch.tensor([yaw, pitch, roll], dtype=torch.float32)
+        euler_angles = torch.tensor([roll, pitch, yaw], dtype=torch.float32)
+        # print("euler_angles", euler_angles, euler_angles.shape)
         convention = "XYZ"
         
-        R = euler_angles_to_matrix(euler_angles, convention) 
+        R = euler_angles_to_matrix(euler_angles, convention)
+        # print("R", R, R.shape) 
         
-        # R_homogeneous = torch.eye(4)
-        # R_homogeneous[:3, :3] = R
-        # print("R", R, R.shape)
-        # print("R_homogeneous", R_homogeneous, R_homogeneous.shape)
         R_patch = camera.transform_points_patch_ndc(points=R,
                                                     patch_size=patch_size,
                                                     patch_center=patch_center)
-        # print("R_patch_homogenous", R_patch_homogenous, R_patch_homogenous.shape)
-        # R_patch = R_patch_homogenous[:3, :3]
-        # logging.info("R_patch", R_patch, R_patch.shape)
+        # print("R_patch", R_patch, R_patch.shape)
         translation = torch.tensor([x_patch, y_patch, z_patch], dtype=torch.float32)
+        # print("translation", translation, translation.shape)
         # logging.info("translation", translation, translation.shape)
         # A SE(3) matrix has the following form: ` [ R 0 ] [ T 1 ] , `
         se3_exp_map_matrix = torch.eye(4)
-        se3_exp_map_matrix[:3, :3] = R_patch
+        se3_exp_map_matrix[:3, :3] = R #R_patch # TODO: R should be in patch NDC
         se3_exp_map_matrix[:3, 3] = translation
-        
+        # print("se3_exp_map_matrix", se3_exp_map_matrix, se3_exp_map_matrix.shape)
 
         # form must be ` [ R 0 ] [ T 1 ] , ` so need to transpose
         se3_exp_map_matrix = se3_exp_map_matrix.T
+        # print("se3_exp_map_matrix", se3_exp_map_matrix, se3_exp_map_matrix.shape)
         
         # logging.info("se3_exp_map_matrix", se3_exp_map_matrix, se3_exp_map_matrix.shape)
         
@@ -197,23 +183,24 @@ class NuScenesBase(MMDetNuScenesDataset):
         # logging.info("se3_exp_map_matrix", se3_exp_map_matrix, se3_exp_map_matrix.shape)
         # print("se3_exp_map_matrix", se3_exp_map_matrix, se3_exp_map_matrix.shape)
         # print trace of rotation matrix
-        rotation_matrix = se3_exp_map_matrix[:, :3, :3]
+        rotation_matrix = R_patch
         # logging.info("rotation_matrix", rotation_matrix, rotation_matrix.shape) # torch.Size([1, 3, 3])
-        rot_trace = rotation_matrix.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1)
-        logging.info("rot_trace", rot_trace, rot_trace.shape)
+        rot_trace = R_patch.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1)
+        # print("rot_trace", rot_trace, rot_trace.shape)
         
-        # trace must be in 
-        pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
         try: 
             pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
+            # print("pose_6d", pose_6d, pose_6d.shape)
         except Exception as e:
             print("Error in se3_log_map", e)
             return None, None
         # logging.info("pose_6d", pose_6d, pose_6d.shape)
         h_aspect_ratio = h / l
         w_aspect_ratio = w / l
+        # print("l, h, h_aspect_ratio, w, w_aspect_ratio", l, h, h_aspect_ratio, w, w_aspect_ratio)
         
         bbox_sizes = torch.tensor([l, h_aspect_ratio, w_aspect_ratio], dtype=torch.float32)
+        # print("bbox_sizes", bbox_sizes, bbox_sizes.shape)
         return pose_6d, bbox_sizes
     
     
@@ -247,7 +234,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # torch.tensor(K, dtype=torch.float32).unsqueeze(0) # add batch dimension
         
         
-        print("K", K)
+        # print("K", K)
         image_size = [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]
         
         # cam2ego: The transformation matrix from this camera sensor to ego vehicle. (4x4 list)
@@ -261,10 +248,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         #     R = R.unsqueeze(0)
         # if T.dim() == 1:
         #     T = T.unsqueeze(0)
-        print("K", K)
-        print("Z_NEAR", Z_NEAR, "Z_FAR", Z_FAR)
-        print("image_size", image_size)
-        print("device", "cuda" if torch.cuda.is_available() else "cpu")
+        # print("K", K)
+        # print("Z_NEAR", Z_NEAR, "Z_FAR", Z_FAR)
+        # print("image_size", image_size)
+        # print("device", "cuda" if torch.cuda.is_available() else "cpu")
         
         camera = PatchCameras(
             znear=Z_NEAR,
@@ -275,38 +262,36 @@ class NuScenesBase(MMDetNuScenesDataset):
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d
         
-        # point_camera = (x, y, z, 1)
-        # point_camera = torch.tensor(point_camera, dtype=torch.float32)
-        # print("point_camera", point_camera)
-        # K_orig_squeezed = K_orig.squeeze()
-        # points_screen = K_orig_squeezed @ point_camera
-        # z_dim = points_screen[2]
-        # points_screen = points_screen / z_dim
-        # print("points_screen", points_screen, "cam_instance.center_2d", cam_instance.center_2d)
-        # must be 3d
         center_2d = torch.ones(3, dtype=torch.float32)
         center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
         center_2d = center_2d.unsqueeze(0)
-        print("center_2d", center_2d, np.shape(center_2d))
+        # print("center_2d", center_2d, np.shape(center_2d))
         
         point_screen = center_2d
-        print("point_screen", point_screen, point_screen.shape)
+        # print("point_screen", point_screen, point_screen.shape)
         screen2ndc_transform = camera.get_ndc_camera_transform()
-        print("screen2ndc_transform", screen2ndc_transform.get_matrix())
+        # print("screen2ndc_transform", screen2ndc_transform.get_matrix())
+        point_screen = point_screen.to(device="cpu")
+        screen2ndc_transform = screen2ndc_transform.to(device="cpu")
         point_ndc = screen2ndc_transform.transform_points(point_screen)
-        print("point_ndc", point_ndc, point_ndc.shape)
-        print("patch_size_original", patch_size_original)
-        print("image_size", image_size)
-        print("center_2d[..., :2]", center_2d[..., :2])
+        # print("point_ndc", point_ndc, point_ndc.shape)
+        # print("patch_size_original", patch_size_original)
+        # print("image_size", image_size)
+        # print("center_2d[..., :2]", center_2d[..., :2])
         ndc2patch_transform = get_ndc_to_patch_ndc_transform(camera, 
                                                              with_xyflip=False, 
                                                              image_size=image_size,
                                                              patch_size=patch_size_original, 
                                                              patch_center=center_2d[..., :2])
         
-        print("ndc2patch_transform", ndc2patch_transform.get_matrix())
+        # print("ndc2patch_transform", ndc2patch_transform.get_matrix())
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        ndc2patch_transform.to(device=device)
+        point_ndc = point_ndc.to(device=device)
+        print("point_ndc device", point_ndc.device)
+        print("ndc2patch_transform device", ndc2patch_transform.device)
         point_patch_ndc = ndc2patch_transform.transform_points(point_ndc)
-        print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)
+        # print("point_patch_ndc", point_patch_ndc, point_patch_ndc.shape)
         
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
@@ -329,10 +314,21 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         assert point_camera.dim() == 3 or point_camera.dim() == 2, f"point_camera dim is {point_camera.dim()}"
         assert isinstance(point_camera, torch.Tensor), f"point_camera is not a torch tensor"
-        print("point_camera", point_camera)
+        print("point_camera in nusc dataloader", point_camera)
         
-        point_screen = camera.transform_points_screen(points=point_camera, eps=None)
-        cam_instance.point_screen = point_screen
+        patch2ndc_transform = get_patch_ndc_to_ndc_transform(cameras=camera, 
+                                    with_xyflip=False, 
+                                    image_size=image_size,
+                                    patch_size=patch_size_original, 
+                                    patch_center=center_2d[..., :2])
+        
+        print("point_patch_ndc", point_patch_ndc)
+        points_ndc_recovered = patch2ndc_transform.transform_points(point_patch_ndc)
+        print("points_ndc_recovered in nusc dataloader", points_ndc_recovered)
+        ndc2screen_transform = get_screen_to_ndc_transform(cameras=camera, image_size=image_size)
+        screen_points_recovered = ndc2screen_transform.transform_points(points_ndc_recovered)
+        print("point_screen in nusc dataloader", screen_points_recovered)
+        cam_instance.point_screen = screen_points_recovered
         return cam_instance
     
     def __getitem__(self, idx):
@@ -385,6 +381,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
         patch_size_original = ret_cam_instance.patch_size
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print("device", device, "torch.cuda.is_available()", torch.cuda.is_available())
+        patch_size_original = patch_size_original.to(device=device)
         patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
         patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
         ret.patch_size = patch_size_original
