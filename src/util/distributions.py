@@ -17,12 +17,13 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
                                        dim=[1, 2, 3])
             else:
                 # make sure all tensors are on the same device
-                self.mean = self.mean.to(self.device)
-                self.var = self.var.to(self.device)
-                self.logvar = self.logvar.to(self.device)
-                other.mean = other.mean.to(self.device)
-                other.var = other.var.to(self.device)
-                other.logvar = other.logvar.to(self.device)
+                other_device = other.mean.device
+                self.mean = self.mean.to(other_device)
+                self.var = self.var.to(other_device)
+                self.logvar = self.logvar.to(other_device)
+                other.mean = other.mean.to(other_device)
+                other.var = other.var.to(other_device)
+                other.logvar = other.logvar.to(other_device)
                 
                 return 0.5 * torch.sum(
                     torch.pow(self.mean - other.mean, 2) / other.var

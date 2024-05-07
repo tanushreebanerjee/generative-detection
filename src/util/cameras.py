@@ -314,7 +314,7 @@ def get_ndc_to_patch_ndc_transform(
     patch_height, patch_width = patch_size[..., 0], patch_size[..., 1]
     
     patch_center = patch_center.view(batch_size, 1, 2)
-    cx_patch, cy_patch = patch_center[..., 0], patch_center[..., 1]
+    cx_screen, cy_screen = patch_center[..., 0], patch_center[..., 1]
 
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # send to available device
@@ -325,22 +325,50 @@ def get_ndc_to_patch_ndc_transform(
     patch_height = patch_height.to(device)
     image_widths = image_widths.to(device)
     image_heights = image_heights.to(device)
-    cx_patch = cx_patch.to(device)
-    cy_patch = cy_patch.to(device)
-
+    cx_screen = cx_screen.to(device)
+    cy_screen = cy_screen.to(device)
+    
+    screen_to_ndc_transform = cameras.get_ndc_camera_transform()
+    
+    # get_screen_to_ndc_transform(cameras=cameras, image_size=image_size, with_xyflip=with_xyflip)
+    
+    print("screen_to_ndc_transform in cameras", screen_to_ndc_transform.get_matrix())
+    
+    print("cx_screen", cx_screen, cx_screen.shape) # torch.Size([1, 1])
+    point_screen = torch.cat([cx_screen, cy_screen, torch.ones_like(cx_screen)], dim=-1)
+    print("point_screen", point_screen, point_screen.shape)
+    point_ndc = screen_to_ndc_transform.transform_points(point_screen)
+    cx_ndc = point_ndc[..., 0]
+    cy_ndc = point_ndc[..., 1]
+    print("cx_ndc", cx_ndc, cx_ndc.shape)
+    print("cy_ndc", cy_ndc, cy_ndc.shape)
+    
+    
     patch_size = patch_size.squeeze(0)
 
     scale = (image_size.min(dim=1).values - 0.0).to(device)
     patch_scale = (patch_size.min(dim=-1).values - 0.0).to(device)
-
+    principal_point = cameras.get_principal_point()
+    
+    
+    print("principal_point in cameras", principal_point)
+    print("scale", scale)
+    print("patch_scale", patch_scale)
+    
     K[:, 0, 0] = 2 * (patch_scale / scale)
     K[:, 1, 1] = 2 * (patch_scale / scale)
+    principal_point_scale = 2 * (principal_point / scale) 
     
-    tx = -(2* (cx_patch.view(-1) / scale) - image_widths.view(-1) / scale)
-    ty = -(2* (cy_patch.view(-1) / scale) - image_heights.view(-1) / scale)
+    # tx = -(2* (cx_patch.view(-1) / scale) + principal_point_scale[..., 0].view(-1))
+    # ty = -(2* (cy_patch.view(-1) / scale) + principal_point_scale[..., 1].view(-1))
+    tx = cx_ndc
+    ty = cy_ndc
     
-    K[:, 0, 3] = 2 * (patch_scale / scale) * tx
-    K[:, 1, 3] = 2 * (patch_scale / scale) * ty
+    print("tx", tx)
+    print("ty", ty)
+    
+    K[:, 3, 0] = -2 * (patch_scale / scale) * tx
+    K[:, 3, 1] = -2 * (patch_scale / scale) * ty
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
