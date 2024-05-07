@@ -1,6 +1,9 @@
 # src/modules/autoencodermodules/pose_encoder.py
 import torch.nn as nn
+from spatial_vae.models import SpatialGenerator
 
+POSE_DIM = 6
+LHW_DIM = 3
 HIDDEN_DIM_1_DIV = 8
 HIDDEN_DIM_2_DIV = 4
 
@@ -48,3 +51,23 @@ class PoseEncoder(nn.Module):
             tensor: Output tensor containing encoded image features.
         """
         return self.fc(x)
+
+class PoseEncoderSpatialVAE(SpatialGenerator):
+    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
+        latent_dim = POSE_DIM + LHW_DIM + num_classes # 10
+        n_out = num_channels * n * m
+       
+        activation = nn.Tanh if activation == "tanh" else nn.ReLU
+        
+        kwargs.update({  
+            "n_out": n_out,
+            "latent_dim": latent_dim,
+            "activation": activation
+        })
+        
+        super().__init__(**kwargs)
+    
+    def forward(self, x):
+        out = self.layers(x) 
+        print("PoseEncoderSpatialVAE out shape: ", out.shape)
+        return out

@@ -1,7 +1,11 @@
 # src/modules/autoencodermodules/pose_decoder.py
 import torch.nn as nn
 import logging
+from spatial_vae.models import InferenceNetwork
+from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 
+POSE_DIM = 6
+LHW_DIM = 3
 HIDDEN_DIM_1_DIV = 4
 HIDDEN_DIM_2_DIV = 8
 
@@ -51,3 +55,28 @@ class PoseDecoder(nn.Module):
         """
         # input shape: torch.Size([8, 4096])
         return self.fc(x)
+    
+   
+class PoseDecoderSpatialVAE(InferenceNetwork):
+    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
+        
+        n_out = num_channels * n * m
+        inf_dim = ((POSE_DIM + LHW_DIM) * 2) + num_classes
+        activation = nn.Tanh if activation == "tanh" else nn.ReLU
+        
+        kwargs.update({
+            
+            "n": n_out,
+            "latent_dim": inf_dim,
+            "activation": activation,
+        })
+        
+        super().__init__(**kwargs)
+        
+        print("Expected input shape: (batch_size, num_channels, n, m)", (None, num_channels, n, m))
+        print("Expected output shape: (batch_size, inf_dim)", (None, inf_dim))
+        
+    def forward(self, x):
+        # x is (batch,num_coords)
+        z = self.layers(x)
+        return z

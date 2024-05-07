@@ -20,7 +20,33 @@ model:
         mask_loss_fn: "l2"
         disc_in_channels: 4
         num_classes: 1
-
+    pose_decoder_config:
+      target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
+      params: 
+        num_classes: 1
+        num_channels: 16
+        n: 16
+        m: 16
+        hidden_dim: 500
+        num_layers: 2
+        activation: tanh
+        resid: False
+    
+    pose_encoder_config:
+      target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
+      params:
+        num_classes: 1
+        num_channels: 16
+        n: 16
+        m: 16
+        hidden_dim: 500
+        n_out: 4
+        num_layers: 2
+        activation: tanh
+        softplus: False
+        resid: False
+        expand_coords: False
+        bilinear: False
     ddconfig:
       double_z: True
       z_channels: 16

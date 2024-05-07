@@ -15,10 +15,11 @@ class AverageMeter():
             "mean": np.mean(self.history),
             "std": np.std(self.history),
         }
-        return 
-
+        return
+    
     def update(self, val, n=1):
-        self.history.append(val)
+        # self.history is a numpy array
+        self.history = np.append(self.history, val)
 
 def get_dataset_stats(dataset, save_dir="dataset_stats"):
     os.makedirs(save_dir, exist_ok=True)
@@ -28,11 +29,11 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     l_meter = AverageMeter()
     h_meter = AverageMeter()
     w_meter = AverageMeter()
-    pbar = tqdm.tqdm(total=len(nusc_train))
+    pbar = tqdm.tqdm(total=len(dataset))
     for i in range(len(dataset)):
-        data = nusc_train[i]
-        t1, t2, t3, _, _, _ = data['pose_6d']
-        l, h, w = data['bbox_size']
+        data = dataset[i]
+        t1, t2, t3, _, _, _ = data['pose_6d'][0]
+        l, h, w = data['bbox_sizes']
         t1_meter.update(t1)
         t2_meter.update(t2)
         t3_meter.update(t3)
