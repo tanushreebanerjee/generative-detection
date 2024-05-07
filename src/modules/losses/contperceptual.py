@@ -1,7 +1,7 @@
 # src/modules/losses/contperceptual.py
 import torch.nn as nn
 from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWithDiscriminator_LDM
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
+from src.util.distributions import DiagonalGaussianDistribution
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
 import json
@@ -66,6 +66,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         # t1, t2, t3: mean = 0, std_dev = 1
         translation_params = torch.tensor([0.0, 1.0])
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.t1_distribution = self._create_distribution_from_params(params=translation_params)
         self.t2_distribution = self._create_distribution_from_params(params=translation_params)
         self.t3_distribution = self._create_distribution_from_params(params=translation_params)

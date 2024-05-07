@@ -57,11 +57,11 @@ class PoseDecoder(nn.Module):
         return self.fc(x)
     
    
-class PoseDecoderSpatialVAE(InferenceNetwork):
+class PoseDecoderSpatialVAE(nn.Module):
     def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
-        
-        n_out = num_channels * n * m
-        inf_dim = ((POSE_DIM + LHW_DIM) * 2) + num_classes
+        super(PoseDecoderSpatialVAE, self).__init__()
+        n_out = num_channels * n * m # 16 * 16 * 16 = 4096
+        inf_dim = ((POSE_DIM + LHW_DIM) * 2) + num_classes # (6 + 3) * 2  + 1 = 19
         activation = nn.Tanh if activation == "tanh" else nn.ReLU
         
         kwargs.update({
@@ -70,13 +70,35 @@ class PoseDecoderSpatialVAE(InferenceNetwork):
             "latent_dim": inf_dim,
             "activation": activation,
         })
+        latent_dim = inf_dim
+        n = n_out
         
-        super().__init__(**kwargs)
+        self.latent_dim = latent_dim
+        self.n = n
+        hidden_dim = kwargs.get("hidden_dim", 500)
+        num_layers = kwargs.get("num_layers", 2)
+        resid = kwargs.get("resid", False)
+
+        layers = [nn.Linear(n, hidden_dim),
+                  activation(),
+                 ]
+        for _ in range(1, num_layers):
+            if resid:
+                layers.append(ResidLinear(hidden_dim, hidden_dim, activation=activation))
+            else:
+                layers.append(nn.Linear(hidden_dim, hidden_dim))
+                layers.append(activation())
+
+        layers.append(nn.Linear(hidden_dim, latent_dim))
         
-        print("Expected input shape: (batch_size, num_channels, n, m)", (None, num_channels, n, m))
-        print("Expected output shape: (batch_size, inf_dim)", (None, inf_dim))
-        
+        self.layers = nn.Sequential(*layers)
+        print("PoseDecoderSpatialVAE kwargs: ", kwargs)
+        print("PoseDecoderSpatialVAE Expected input shape: (batch_size, num_channels, n, m)", (None, num_channels, n, m))
+        print("PoseDecoderSpatialVAE Expected output shape: (batch_size, inf_dim)", (None, inf_dim))
+        print("PoseDecoderSpatialVAE layers: ", self.layers)
     def forward(self, x):
         # x is (batch,num_coords)
+        print("PoseDecoderSpatialVAE actual input shape: ", x.shape)
         z = self.layers(x)
+        print("PoseDecoderSpatialVAE actual output shape: ", z.shape)
         return z

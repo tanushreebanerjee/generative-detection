@@ -54,8 +54,8 @@ class PoseEncoder(nn.Module):
 
 class PoseEncoderSpatialVAE(SpatialGenerator):
     def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
-        latent_dim = POSE_DIM + LHW_DIM + num_classes # 10
-        n_out = num_channels * n * m
+        latent_dim = POSE_DIM + LHW_DIM + num_classes # 10 = 6 + 3 + 1
+        n_out = num_channels * n * m # 16 * 16 * 16 = 4096
        
         activation = nn.Tanh if activation == "tanh" else nn.ReLU
         
@@ -66,8 +66,16 @@ class PoseEncoderSpatialVAE(SpatialGenerator):
         })
         
         super().__init__(**kwargs)
+        print("PoseEncoderSpatialVAE kwargs: ", kwargs)
+        print("PoseEncoderSpatialVAE expected input shape: ", latent_dim)
+        print("PoseEncoderSpatialVAE expected output shape: ", n_out)
+        print("PoseEncoderSpatialVAE latent_linear: ", self.latent_linear)
+        print("PoseEncoderSpatialVAE layers: ", self.layers)
     
     def forward(self, x):
-        out = self.layers(x) 
+        print("PoseEncoderSpatialVAE input shape: ", x.shape)
+        
+        latent_linear_out = self.latent_linear(x)
+        out = self.layers(latent_linear_out) 
         print("PoseEncoderSpatialVAE out shape: ", out.shape)
         return out

@@ -112,6 +112,7 @@ class PatchPerspectiveCameras(PerspectiveCameras):
                                    patch_center,
                                    eps: Optional[float] = None, **kwargs) -> torch.Tensor:
         # camera --> ndc points
+        points = points.to(self.device)
         points_ndc = self.transform_points_ndc(points, eps=None)
         
         # ndc --> patch ndc transform
