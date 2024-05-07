@@ -91,7 +91,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
             if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
                 print("bbox out of bounds of image: x1, x2, y1, y2", x1, x2, y1, y2, "img size:", img_pil.size)
-                return None, None
+                return None, None, None
                 
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -125,7 +125,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         assert object_centroid_3D.dim() == 3 or object_centroid_3D.dim() == 2, f"object_centroid_3D dim is {object_centroid_3D.dim()}"
         assert isinstance(object_centroid_3D, torch.Tensor), f"object_centroid_3D is not a torch tensor"
-        object_centroid_3D_projected = camera.transform_points_screen(object_centroid_3D)
+        # object_centroid_3D_projected = camera.transform_points_screen(object_centroid_3D)
         point_patch_ndc = camera.transform_points_patch_ndc(points=object_centroid_3D,
                                                             patch_size=patch_size,
                                                             patch_center=patch_center)

@@ -3,6 +3,7 @@ src/*.ipynb
 data
 !data/splits
 scripts/slurm
+dataset_stats
 
 taming
 logs

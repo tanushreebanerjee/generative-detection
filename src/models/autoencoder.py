@@ -108,37 +108,31 @@ class PoseAutoencoder(AutoencoderKL):
     def _decode_pose_to_distribution(self, z, sample_posterior=True):
         # z = t1, t2, t3, v1, v2, v3, l, h, w (mu and std dev), class
         print("z shape: ", z.shape) # torch.Size([8, 19]
-        t1_mu =  z[..., 0]
-        t1_logstd = z[..., 1]
-        t2_mu =  z[..., 2]
-        t2_logstd = z[:, 3]
-        t3_mu =  z[..., 4]
-        t3_logstd = z[..., 5]
-        v1_mu =  z[..., 6]
-        v1_logstd = z[..., 7]
-        v2_mu =  z[..., 8]
-        v2_logstd = z[..., 9]
-        v3_mu =  z[..., 10]
-        v3_logstd = z[..., 11]
-        l_mu =  z[..., 12]
-        l_logstd = z[..., 13]
-        h_mu =  z[..., 14]
-        h_logstd = z[..., 15]
-        w_mu =  z[..., 16]
-        w_logstd = z[..., 17]
+       
+        # moments = mean, logvar
+        moments_t1 = z[..., 0:2]
+        moments_t2 = z[..., 2:4]
+        moments_t3 = z[..., 4:6]
+        moments_v1 = z[..., 6:8]
+        moments_v2 = z[..., 8:10]
+        moments_v3 = z[..., 10:12]
+        moments_l = z[..., 12:14]
+        moments_h = z[..., 14:16]
+        moments_w = z[..., 16:18]
+        
         # no mu and std dev for class prediction, this is just a class confidence score list of len num_classes
         c_pred = z[..., 18:]
         
-        t1_posterior = DiagonalGaussianDistribution(t1_mu, t1_logstd)
-        t2_posterior = DiagonalGaussianDistribution(t2_mu, t2_logstd)
-        t3_posterior = DiagonalGaussianDistribution(t3_mu, t3_logstd)
-        v1_posterior = DiagonalGaussianDistribution(v1_mu, v1_logstd)
-        v2_posterior = DiagonalGaussianDistribution(v2_mu, v2_logstd)
-        v3_posterior = DiagonalGaussianDistribution(v3_mu, v3_logstd)
-        l_posterior = DiagonalGaussianDistribution(l_mu, l_logstd)
-        h_posterior = DiagonalGaussianDistribution(h_mu, h_logstd)
-        w_posterior = DiagonalGaussianDistribution(w_mu, w_logstd)
-
+        t1_posterior = DiagonalGaussianDistribution(moments_t1)
+        t2_posterior = DiagonalGaussianDistribution(moments_t2)
+        t3_posterior = DiagonalGaussianDistribution(moments_t3)
+        v1_posterior = DiagonalGaussianDistribution(moments_v1)
+        v2_posterior = DiagonalGaussianDistribution(moments_v2)
+        v3_posterior = DiagonalGaussianDistribution(moments_v3)
+        l_posterior = DiagonalGaussianDistribution(moments_l)
+        h_posterior = DiagonalGaussianDistribution(moments_h)
+        w_posterior = DiagonalGaussianDistribution(moments_w)
+        
         return t1_posterior, t2_posterior, t3_posterior, v1_posterior, v2_posterior, v3_posterior, l_posterior, h_posterior, w_posterior, c_pred
     
     def _decode_pose(self, x, sample_posterior=True):
@@ -405,12 +399,7 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
 
             # log["reconstructions_mask"] = torch.tensor(xrec_mask)
-            # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)
-            
-            logging.info("xrgb max: %s, xrgb min: %s", x_rgb.max(), x_rgb.min())
-            samples = self.decode(mean_pose + torch.randn_like(posterior_obj.sample()))
-            samples = self._rescale(samples)
-            log["samples"] = samples
+            # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)            
             # scale is 0, 1. scale to -1, 1
             xrec_rgb = self._rescale(xrec_rgb)
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)

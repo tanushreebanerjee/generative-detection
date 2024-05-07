@@ -2,24 +2,36 @@ from src.data.datasets.nuscenes import NuScenesTrain, NuScenesValidation
 import tqdm
 import numpy as np
 import os
+import torch
+import json
+import pickle as pkl
 
 class AverageMeter():
-    def __init__(self):
+    def __init__(self, history=None):
         self.reset()
+        if history is not None:
+            self.history = history
 
     def reset(self):
         self.history = np.array([])
         
     def get_stats(self):
-        ret = {
-            "mean": np.mean(self.history),
-            "std": np.std(self.history),
-        }
-        return
+        # return mean and logvar concatenated as "moments" in an array
+        mean = np.mean(self.history)
+        std = np.std(self.history)
+        logvar = np.log(std**2)
+        moments = np.array([mean, logvar])
+        moments = torch.from_numpy(moments).float()
+        return moments
     
     def update(self, val, n=1):
         # self.history is a numpy array
         self.history = np.append(self.history, val)
+        
+    def combine(self, other_meter_history):
+        # combine self.history with other_meter_history
+        self.history = np.append(self.history, other_meter_history)
+        return self
 
 def get_dataset_stats(dataset, save_dir="dataset_stats"):
     os.makedirs(save_dir, exist_ok=True)
@@ -58,10 +70,19 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     print(f"{dataset.__class__.__name__} stats:")
     for k, v in stats.items():
         print(f"{k}: {v}")
-    with open(os.path.join(save_dir, f"{dataset.__class__.__name__}_stats.txt"), "w") as f:
-        f.write(str(stats))    
         
-    return stats
+    with open(os.path.join(save_dir, f"{dataset.__class__.__name__}.pkl"), 'wb') as handle:
+        pkl.dump(stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
+    
+    meters_dict = {
+        "t1": t1_meter,
+        "t2": t2_meter,
+        "t3": t3_meter,
+        "l": l_meter,
+        "h": h_meter,
+        "w": w_meter,
+    } 
+    return stats, meters_dict
 
 def main():
     nusc_base_kwargs = {
@@ -79,8 +100,18 @@ def main():
     nusc_train = NuScenesTrain(**nusc_base_kwargs)
     nusc_val = NuScenesValidation(**nusc_base_kwargs)
 
-    train_stats = get_dataset_stats(nusc_train)
-    val_stats = get_dataset_stats(nusc_val)
-
+    train_stats, train_meters_dict = get_dataset_stats(nusc_train)
+    val_stats, val_meters_dict = get_dataset_stats(nusc_val)
+    
+    # get combined stats from train_meters_list and val_meters_list
+    combined_stats = {}
+    for key, meter in train_meters_dict.items():
+        meter = meter.combine(val_meters_dict[key].history)
+        combined_stats[key] = meter.get_stats()
+    print("Combined stats:")
+    print(combined_stats)
+    with open(os.path.join("dataset_stats", "combined.pkl"), 'wb') as handle:
+        pkl.dump(combined_stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
+    
 if __name__ == "__main__":
     main()
