@@ -1,7 +1,6 @@
 # src/modules/autoencodermodules/pose_decoder.py
 import torch.nn as nn
 import logging
-from spatial_vae.models import InferenceNetwork
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 
 POSE_DIM = 6

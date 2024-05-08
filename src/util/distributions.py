@@ -6,6 +6,7 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
     def __init__(self, parameters, deterministic=False):
         super(DiagonalGaussianDistribution, self).__init__(parameters, deterministic)
         self.device = parameters.device
+        print("DiagonalGaussianDistribution device: ", self.device)
         
     def kl(self, other=None):
         if self.deterministic:
@@ -18,6 +19,7 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
             else:
                 # make sure all tensors are on the same device
                 other_device = other.mean.device
+                print("DiagonalGaussianDistribution kl other_device: ", other_device)
                 self.mean = self.mean.to(other_device)
                 self.var = self.var.to(other_device)
                 self.logvar = self.logvar.to(other_device)

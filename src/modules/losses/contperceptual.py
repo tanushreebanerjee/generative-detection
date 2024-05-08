@@ -23,7 +23,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     def __init__(self, pose_weight=1.0, mask_weight=1.0, class_weight=1.0, bbox_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, 
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
-                 num_classes=1, dataset_stats_path="dataset_stats/combined_mini.pkl",
+                 num_classes=1, dataset_stats_path="dataset_stats/combined.pkl",
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_weight = pose_weight
@@ -60,38 +60,29 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         print("Loaded dataset stats:")
         print(dataset_stats)
-        print("dataset_stats['t1']: ", dataset_stats["t1"], dataset_stats["t1"].shape)
-        #  self.mean, self.logvar = torch.chunk(parameters, 2, dim=1)
-        # parameters = dataset_stats['t1']
+        self.bbox_distribution = self._create_distribution_from_dataset_stats(dataset_stats)
+            
+    def _create_distribution_from_dataset_stats(self, dataset_stats):
+        bbox_means = torch.zeros(POSE_6D_DIM + LHW_DIM)
+        bbox_logvars = torch.zeros(POSE_6D_DIM + LHW_DIM)
+        for idx, key in enumerate(["t1", "t2", "t3", "v1", "v2", "v3", "l", "h", "w"]):
+            if key not in dataset_stats: # v1, v2, v3
+                mean = 0.
+                std_dev = 1.
+                logvar = 2 * math.log(std_dev)
+                bbox_means[idx] = mean
+                bbox_logvars[idx] = logvar
+            else: # t1, t2, t3, l, h, w
+                mean, logvar = dataset_stats[key]
+                bbox_means[idx] = mean
+                bbox_logvars[idx] = logvar
         
-        # t1, t2, t3: mean = 0, std_dev = 1
-        translation_params = torch.tensor([0.0, 1.0])
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.t1_distribution = self._create_distribution_from_params(params=translation_params)
-        self.t2_distribution = self._create_distribution_from_params(params=translation_params)
-        self.t3_distribution = self._create_distribution_from_params(params=translation_params)
+        print("bbox_means: ", bbox_means.shape) # torch.Size([9]) 
+        print("bbox_logvars: ", bbox_logvars.shape) # torch.Size([9])
+
+        parameters = torch.cat((bbox_means, bbox_logvars), dim=0) # torch.Size([18])
         
-        # yaw: mean = 0, std_dev = pi. pitch, roll: 0
-        # TODO: need to set these values correctly
-        v_params = torch.tensor([0.0, 1.0])
-        self.v1_distribution = self._create_distribution_from_params(params=v_params)
-        self.v2_distribution = self._create_distribution_from_params(params=v_params)
-        self.v3_distribution = self._create_distribution_from_params(params=v_params)
-        self.l_distribution = self._create_distribution_from_stats(dataset_stats, 'l')
-        self.h_distribution = self._create_distribution_from_stats(dataset_stats, 'h')
-        self.w_distribution = self._create_distribution_from_stats(dataset_stats, 'w')
-    
-    def _create_distribution_from_params(self, params):
-        mean, std_dev = torch.chunk(params, 2, dim=0)
-        logvar = torch.log(std_dev**2)
-        # Reshape mean and logvar tensors to have the same shape along dim=1
-        mean = mean.view(1, -1)  # Reshape to 1x1 tensor
-        logvar = logvar.view(1, -1)  # Reshape to 1x1 tensor
-        
-        # Concatenate mean and logvar tensors along dim=1
-        parameters = torch.cat((mean, logvar), dim=1)
-        distribution = DiagonalGaussianDistribution(parameters)
-        return distribution
+        return DiagonalGaussianDistribution(parameters)
     
     def _create_distribution_from_stats(self, dataset_stats, key):
         params = dataset_stats[key]
@@ -164,27 +155,15 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         weighted_bbox_loss = self.bbox_weight * bbox_loss
         return bbox_loss, weighted_bbox_loss
     
-    def compute_pose_kl_loss(self, pose_posteriors):
-        # pose_posteriors = [t1_posterior, t2_posterior, t3_posterior, v1_posterior, v2_posterior, v3_posterior, l_posterior, h_posterior, w_posterior]
-        t1_kl_loss = pose_posteriors[0].kl(self.t1_distribution)
-        t2_kl_loss = pose_posteriors[1].kl(self.t2_distribution)
-        t3_kl_loss = pose_posteriors[2].kl(self.t3_distribution)
-        v1_kl_loss = pose_posteriors[3].kl(self.v1_distribution)
-        v2_kl_loss = pose_posteriors[4].kl(self.v2_distribution)
-        v3_kl_loss = pose_posteriors[5].kl(self.v3_distribution)
-        l_kl_loss = pose_posteriors[6].kl(self.l_distribution)
-        h_kl_loss = pose_posteriors[7].kl(self.h_distribution)
-        w_kl_loss = pose_posteriors[8].kl(self.w_distribution)
-        
-        pose_kl_loss = t1_kl_loss + t2_kl_loss + t3_kl_loss + v1_kl_loss + v2_kl_loss + v3_kl_loss + l_kl_loss + h_kl_loss + w_kl_loss
-        
-        return pose_kl_loss, t1_kl_loss, t2_kl_loss, t3_kl_loss, v1_kl_loss, v2_kl_loss, v3_kl_loss, l_kl_loss, h_kl_loss, w_kl_loss
+    def compute_pose_kl_loss(self, bbox_posterior):
+        pose_kl_loss = bbox_posterior.kl(self.bbox_distribution)
+        return pose_kl_loss
       
     def forward(self, 
                 rgb_gt, mask_gt, pose_gt,
                 dec_obj, dec_pose,
                 class_gt, bbox_gt,
-                posterior_obj, pose_posteriors, optimizer_idx, global_step, 
+                posterior_obj, bbox_posterior, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
         
@@ -227,10 +206,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         kl_loss = self._get_kl_loss(posterior_obj)
         
-        pose_kl_loss, \
-            t1_kl_loss, t2_kl_loss, t3_kl_loss, \
-                v1_kl_loss, v2_kl_loss, v3_kl_loss, \
-                    l_kl_loss, h_kl_loss, w_kl_loss = self.compute_pose_kl_loss(pose_posteriors)
+        bbox_kl_loss = self.compute_pose_kl_loss(bbox_posterior)
     
         # now the GAN part
         if optimizer_idx == 0:
@@ -256,7 +232,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             disc_factor = adopt_weight(self.disc_factor, global_step, 
                                        threshold=self.discriminator_iter_start)
             loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
-                + (self.kl_weight * kl_loss) + (self.kl_weight * pose_kl_loss) \
+                + (self.kl_weight * kl_loss) + (self.kl_weight * bbox_kl_loss) \
                     + d_weight * disc_factor * g_loss
 
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
@@ -282,16 +258,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     "{}/v1_loss".format(split): v1_loss.detach().mean(),
                     "{}/v2_loss".format(split): v2_loss.detach().mean(),
                     "{}/v3_loss".format(split): v3_loss.detach().mean(),
-                    "{}/t1_kl_loss".format(split): t1_kl_loss.detach().mean(),
-                    "{}/t2_kl_loss".format(split): t2_kl_loss.detach().mean(),
-                    "{}/t3_kl_loss".format(split): t3_kl_loss.detach().mean(),
-                    "{}/v1_kl_loss".format(split): v1_kl_loss.detach().mean(),
-                    "{}/v2_kl_loss".format(split): v2_kl_loss.detach().mean(),
-                    "{}/v3_kl_loss".format(split): v3_kl_loss.detach().mean(),
-                    "{}/l_kl_loss".format(split): l_kl_loss.detach().mean(),
-                    "{}/h_kl_loss".format(split): h_kl_loss.detach().mean(),
-                    "{}/w_kl_loss".format(split): w_kl_loss.detach().mean(),
-                    "{}/pose_kl_loss".format(split): pose_kl_loss.detach().mean(),
+                    "{}/bbox_kl_loss".format(split): bbox_kl_loss.detach().mean(),
+                    "{}/weighted_bbox_kl_loss".format(split): self.kl_weight * bbox_kl_loss.detach().mean(),
                    }
             return loss, log
 

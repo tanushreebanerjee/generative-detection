@@ -106,34 +106,14 @@ class PoseAutoencoder(AutoencoderKL):
         return z
     
     def _decode_pose_to_distribution(self, z, sample_posterior=True):
-        # z = t1, t2, t3, v1, v2, v3, l, h, w (mu and std dev), class
-        print("z shape: ", z.shape) # torch.Size([8, 19]
-       
-        # moments = mean, logvar
-        moments_t1 = z[..., 0:2]
-        moments_t2 = z[..., 2:4]
-        moments_t3 = z[..., 4:6]
-        moments_v1 = z[..., 6:8]
-        moments_v2 = z[..., 8:10]
-        moments_v3 = z[..., 10:12]
-        moments_l = z[..., 12:14]
-        moments_h = z[..., 14:16]
-        moments_w = z[..., 16:18]
-        
         # no mu and std dev for class prediction, this is just a class confidence score list of len num_classes
-        c_pred = z[..., 18:]
-        
-        t1_posterior = DiagonalGaussianDistribution(moments_t1)
-        t2_posterior = DiagonalGaussianDistribution(moments_t2)
-        t3_posterior = DiagonalGaussianDistribution(moments_t3)
-        v1_posterior = DiagonalGaussianDistribution(moments_v1)
-        v2_posterior = DiagonalGaussianDistribution(moments_v2)
-        v3_posterior = DiagonalGaussianDistribution(moments_v3)
-        l_posterior = DiagonalGaussianDistribution(moments_l)
-        h_posterior = DiagonalGaussianDistribution(moments_h)
-        w_posterior = DiagonalGaussianDistribution(moments_w)
-        
-        return t1_posterior, t2_posterior, t3_posterior, v1_posterior, v2_posterior, v3_posterior, l_posterior, h_posterior, w_posterior, c_pred
+        c_pred = z[..., -self.num_classes:] # torch.Size([8, num_classes])
+        # the rest are the moments. first POSE_6D_DIM + LHW_DIM are mu and last POSE_6D_DIM + LHW_DIM are std dev
+        bbox_mu = z[..., :POSE_6D_DIM + LHW_DIM] # torch.Size([8, 9])
+        bbox_std = z[..., POSE_6D_DIM + LHW_DIM:2*(POSE_6D_DIM + LHW_DIM)] # torch.Size([8, 9])
+        bbox_moments = torch.cat([bbox_mu, bbox_std], dim=-1) # torch.Size([8, 18])
+        bbox_posterior = DiagonalGaussianDistribution(bbox_moments)
+        return bbox_posterior, c_pred
     
     def _decode_pose(self, x, sample_posterior=True):
         """
@@ -146,26 +126,19 @@ class PoseAutoencoder(AutoencoderKL):
             Decoded pose tensor.
         """
         x = x.view(x.size(0), -1)  # flatten the input tensor
-        print("_decode_pose input shape: ", x.shape) # torch.Size([8, 4096])
+
         z = self.pose_decoder(x) # torch.Size([8, 19])
         
-        t1_posterior, t2_posterior, t3_posterior, \
-            v1_posterior, v2_posterior, v3_posterior, \
-                l_posterior, h_posterior, w_posterior, c_pred = self._decode_pose_to_distribution(z)
+        bbox_posterior, c_pred = self._decode_pose_to_distribution(z)
         
         if sample_posterior:
-            t1, t2, t3 = t1_posterior.sample(), t2_posterior.sample(), t3_posterior.sample()
-            v1, v2, v3 = v1_posterior.sample(), v2_posterior.sample(), v3_posterior.sample()
-            l,  h,  w  =  l_posterior.sample(),  h_posterior.sample(),  w_posterior.sample()
+            bbox_pred = bbox_posterior.sample()
         else:
-            t1, t2, t3 = t1_posterior.mode(), t2_posterior.mode(), t3_posterior.mode()
-            v1, v2, v3 = v1_posterior.mode(), v2_posterior.mode(), v3_posterior.mode()
-            l,  h,  w  =  l_posterior.mode(),  h_posterior.mode(),  w_posterior.mode()
+            bbox_pred = bbox_posterior.mode()
         
         c = c_pred
-        dec_pose = torch.cat([t1, t2, t3, v1, v2, v3, l, h, w, c], dim=1) # shape: torch.Size([8, 10])
-        pose_posteriors = [t1_posterior, t2_posterior, t3_posterior, v1_posterior, v2_posterior, v3_posterior, l_posterior, h_posterior, w_posterior]
-        return dec_pose, pose_posteriors
+        dec_pose = torch.cat([bbox_pred, c], dim=-1) # torch.Size([8, 19])
+        return dec_pose, bbox_posterior
     
     def _encode_pose(self, x):
         """
@@ -213,7 +186,7 @@ class PoseAutoencoder(AutoencoderKL):
             else:
                 z_obj = posterior_obj.mode()
             
-            dec_pose, pose_posteriors = self._decode_pose(pose_feat, sample_posterior)
+            dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior)
             enc_pose = self._encode_pose(dec_pose)
             
             assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
@@ -222,7 +195,7 @@ class PoseAutoencoder(AutoencoderKL):
             
             dec_obj = self.decode(z_obj_pose)
             
-            return dec_obj, dec_pose, posterior_obj, pose_posteriors
+            return dec_obj, dec_pose, posterior_obj, bbox_posterior
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
@@ -250,13 +223,13 @@ class PoseAutoencoder(AutoencoderKL):
         class_gt = self.get_class_input(batch, self.class_key)
         bbox_gt = self.get_bbox_input(batch, self.bbox_key)
         
-        dec_obj, dec_pose, posterior_obj, pose_posteriors = self.forward(rgb_gt)
+        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                             dec_obj, dec_pose,
                                             class_gt, bbox_gt,
-                                            posterior_obj, pose_posteriors, optimizer_idx, self.global_step,
+                                            posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -267,7 +240,7 @@ class PoseAutoencoder(AutoencoderKL):
             discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                                 dec_obj, dec_pose,
                                                 class_gt, bbox_gt,
-                                                posterior_obj, pose_posteriors, optimizer_idx, self.global_step,
+                                                posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
                                                 last_layer=self.get_last_layer(), split="train")
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -281,19 +254,19 @@ class PoseAutoencoder(AutoencoderKL):
         class_gt = self.get_class_input(batch, self.class_key)
         bbox_gt = self.get_bbox_input(batch, self.bbox_key)
          
-        dec_obj, dec_pose, posterior_obj, pose_posteriors = self(rgb_gt)
+        dec_obj, dec_pose, posterior_obj, bbox_posterior = self(rgb_gt)
        
         
         _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                       dec_obj, dec_pose,
                                       class_gt, bbox_gt,
-                                      posterior_obj, pose_posteriors, 0, self.global_step,
+                                      posterior_obj, bbox_posterior, 0, self.global_step,
                                       last_layer=self.get_last_layer(), split="val")
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
                                         class_gt, bbox_gt,
-                                        posterior_obj, pose_posteriors, 1, self.global_step,
+                                        posterior_obj, bbox_posterior, 1, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
@@ -315,16 +288,16 @@ class PoseAutoencoder(AutoencoderKL):
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
     
-    def _perturb_poses(self, pose_inputs, pitch_max=PITCH_MAX, yaw_max=YAW_MAX):
+    def _perturb_poses(self, pose_inputs, yaw_max=YAW_MAX):
         batch_size = pose_inputs.size(0)        
-        rotation_deg = torch.tensor([random.uniform(0, pitch_max) for _ in range(batch_size)])
+        yaw_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
         # elevation_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
-        rotation_rad = torch.tensor([radians(i) for i in rotation_deg]) 
+        yaw_rad = torch.tensor([radians(i) for i in yaw_deg]) 
         # elevation_rad = torch.tensor([radians(i) for i in elevation_deg])
         
         roll = torch.zeros(batch_size)
         pitch = torch.zeros(batch_size)
-        yaw = rotation_rad
+        yaw = yaw_rad
         
         if self.euler_convention == "ZYX":
             euler_angles = torch.stack([roll, yaw, pitch])
@@ -332,7 +305,6 @@ class PoseAutoencoder(AutoencoderKL):
             euler_angles = torch.stack([pitch, yaw, roll])
         else:
             raise ValueError(f"Invalid convention: {self.euler_convention}, must be either ZYX or XYZ")   
-        euler_angle = torch.stack([yaw, pitch, roll])
         translation = torch.zeros(batch_size, 3)
         
         pose_6d_perturbed_dim = POSE_6D_DIM + LHW_DIM + self.num_classes
@@ -358,11 +330,8 @@ class PoseAutoencoder(AutoencoderKL):
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         
-        # x = self.get_input(batch, self.image_key)
         x_rgb = self.get_input(batch, self.image_rgb_key)
         x_mask = self.get_mask_input(batch, self.image_mask_key)
-        
-        # x = x.to(self.device)
         x_rgb = x_rgb.to(self.device)
         
         if x_mask is not None:
@@ -373,22 +342,12 @@ class PoseAutoencoder(AutoencoderKL):
             
         if not only_inputs:
             
-            xrec, poserec, posterior_obj, pose_posteriors = self.forward(x_rgb) # torch.Size([8, 4, 64, 64])
+            xrec, poserec, posterior_obj, bbox_posterior = self.forward(x_rgb) # torch.Size([8, 4, 64, 64])
             xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
             
             xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
             xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :]
             
-            # xrec_mask = xrec[:, 3, :, :] # torch.Size([8, 64, 64])
-            # xrec_perturbed_pose_mask = xrec_perturbed_pose[:, 3, :, :]
-            
-            # xrec_mask = (xrec_mask * 255).byte().cpu().numpy()
-            # xrec_mask = np.clip(xrec_mask, 0, 255).astype(np.uint8)
-            # xrec_perturbed_pose_mask = (xrec_perturbed_pose_mask * 255).byte().cpu().numpy()
-            # xrec_perturbed_pose_mask = np.clip(xrec_perturbed_pose_mask, 0, 255).astype(np.uint8)
-
-            # print("xrec_rgb shape: ", xrec_rgb.shape) # torch.Size([4, 3, 256, 256])
-            # print("x_rgb shape: ", x_rgb.shape) # torch.Size([4, 256, 3, 256])
             x_rgb = x_rgb.permute(0, 2, 3, 1) # torch.Size([4, 3, 256, 256])
             
             if x_rgb.shape[1] > 3:
@@ -397,9 +356,7 @@ class PoseAutoencoder(AutoencoderKL):
                 x_rgb = self.to_rgb(x_rgb)
                 xrec_rgb = self.to_rgb(xrec_rgb)
                 xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
-
-            # log["reconstructions_mask"] = torch.tensor(xrec_mask)
-            # log["perturbed_pose_reconstruction_mask"] = torch.tensor(xrec_perturbed_pose_mask)            
+        
             # scale is 0, 1. scale to -1, 1
             xrec_rgb = self._rescale(xrec_rgb)
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
@@ -408,10 +365,6 @@ class PoseAutoencoder(AutoencoderKL):
         
         x_rgb = self._rescale(x_rgb)
         log["inputs_rgb"] = x_rgb
-        
-        # if x_mask is not None:
-        #     log["inputs_mask"] = x_mask
-        
         return log
     
     def _rescale(self, x):

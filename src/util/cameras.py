@@ -359,8 +359,6 @@ def get_ndc_to_patch_ndc_transform(
     K[:, 1, 1] = 2 * (patch_scale / scale)
     principal_point_scale = 2 * (principal_point / scale) 
     
-    # tx = -(2* (cx_patch.view(-1) / scale) + principal_point_scale[..., 0].view(-1))
-    # ty = -(2* (cy_patch.view(-1) / scale) + principal_point_scale[..., 1].view(-1))
     tx = cx_ndc
     ty = cy_ndc
     

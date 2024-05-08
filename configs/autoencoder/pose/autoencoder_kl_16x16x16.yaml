@@ -42,7 +42,7 @@ model:
         hidden_dim: 500
         n_out: 4
         num_layers: 2
-        activation: tanh
+        activation: swish
         softplus: False
         resid: False
         expand_coords: False
