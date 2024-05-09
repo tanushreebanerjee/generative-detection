@@ -1,7 +1,7 @@
 src/*.ipynb
 !src/test.ipynb
 data
-!data/splits
+!src/data
 scripts/slurm
 dataset_stats
 

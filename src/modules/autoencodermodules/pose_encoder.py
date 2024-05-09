@@ -1,9 +1,10 @@
 # src/modules/autoencodermodules/pose_encoder.py
 import torch.nn as nn
 from spatial_vae.models import SpatialGenerator
-from src.util.misc import swish_activation as swish
 import numpy as np
 import torch.nn.functional as F
+import torch
+from torch.autograd import Variable
 
 POSE_DIM = 6
 LHW_DIM = 3
@@ -60,7 +61,7 @@ class PoseEncoderSpatialVAE(SpatialGenerator):
         latent_dim = POSE_DIM + LHW_DIM + num_classes # 10 = 6 + 3 + 1
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
         if activation == "swish":
-            activation = swish
+            activation = nn.SiLU
         elif activation == "tanh":
             activation = nn.Tanh
         else:
@@ -80,13 +81,22 @@ class PoseEncoderSpatialVAE(SpatialGenerator):
         x0,x1 = np.meshgrid(xgrid, ygrid)
         x_coord = np.stack([x0.ravel(), x1.ravel()], 1)
         x_coord = torch.from_numpy(x_coord).float()
-        x = x_coord
-        x = x.expand(b, x.size(0), x.size(1))
-        self.x = x.contiguous()
+        if torch.cuda.is_available():
+            x_coord = x_coord.cuda()
+        
+        self.x = Variable(x_coord)
+       
     
     def forward(self, z):
         # x is (batch, num_coords, 2)
         # z is (batch, latent_dim)
+        
+        b = z.size(0) # batch size
+        print("z size 0 = b =", b)
+        x = self.x.expand(b, self.x.size(0), self.x.size(1))
+        x = x.contiguous()
+        
+        
         x = self.x
         
         if len(x.size()) < 3:

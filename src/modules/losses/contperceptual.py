@@ -80,21 +80,10 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         print("bbox_means: ", bbox_means.shape) # torch.Size([9]) 
         print("bbox_logvars: ", bbox_logvars.shape) # torch.Size([9])
 
-        parameters = torch.cat((bbox_means, bbox_logvars), dim=0) # torch.Size([18])
-        
+        parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
+        parameters = torch.tensor(parameters, device="cuda" if torch.cuda.is_available() else "cpu")
+        print("parameters: ", parameters.shape) 
         return DiagonalGaussianDistribution(parameters)
-    
-    def _create_distribution_from_stats(self, dataset_stats, key):
-        params = dataset_stats[key]
-        mean, logvar = torch.chunk(params, 2, dim=0)
-        # Reshape mean and logvar tensors to have the same shape along dim=1
-        mean = mean.view(1, -1)  # Reshape to 1x1 tensor
-        logvar = logvar.view(1, -1)  # Reshape to 1x1 tensor
-
-        # Concatenate mean and logvar tensors along dim=1
-        parameters = torch.cat((mean, logvar), dim=1)
-        distribution = DiagonalGaussianDistribution(parameters)
-        return distribution
        
     def compute_pose_loss(self, pred, gt):
         # need to get loss split for each part of the pose - t1, t2, t3, v1, v2, v3

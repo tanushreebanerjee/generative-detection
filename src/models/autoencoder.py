@@ -6,7 +6,7 @@ from src.modules.autoencodermodules.feat_decoder import FeatDecoder
 from src.modules.autoencodermodules.pose_encoder import PoseEncoderSpatialVAE as PoseEncoder
 from src.modules.autoencodermodules.pose_decoder import PoseDecoderSpatialVAE as PoseDecoder
 from ldm.util import instantiate_from_config
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
+from src.util.distributions import DiagonalGaussianDistribution
 from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
@@ -112,6 +112,7 @@ class PoseAutoencoder(AutoencoderKL):
         bbox_mu = z[..., :POSE_6D_DIM + LHW_DIM] # torch.Size([8, 9])
         bbox_std = z[..., POSE_6D_DIM + LHW_DIM:2*(POSE_6D_DIM + LHW_DIM)] # torch.Size([8, 9])
         bbox_moments = torch.cat([bbox_mu, bbox_std], dim=-1) # torch.Size([8, 18])
+        bbox_moments = bbox_moments.to(self.device)
         bbox_posterior = DiagonalGaussianDistribution(bbox_moments)
         return bbox_posterior, c_pred
     
@@ -300,9 +301,9 @@ class PoseAutoencoder(AutoencoderKL):
         yaw = yaw_rad
         
         if self.euler_convention == "ZYX":
-            euler_angles = torch.stack([roll, yaw, pitch])
+            euler_angles = torch.stack([yaw, roll, pitch])
         elif self.euler_convention == "XYZ":
-            euler_angles = torch.stack([pitch, yaw, roll])
+            euler_angles = torch.stack([pitch, roll, yaw])
         else:
             raise ValueError(f"Invalid convention: {self.euler_convention}, must be either ZYX or XYZ")   
         translation = torch.zeros(batch_size, 3)

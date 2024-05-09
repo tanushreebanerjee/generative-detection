@@ -79,6 +79,3 @@ def set_cache_directories(opts):
     """Set environment variables for cache directories."""
     os.environ["TRANSFORMERS_CACHE"] = opts.transformers_cache
     os.environ["TORCH_HOME"] = opts.torch_home
-
-def swish_activation():
-    return x*torch.sigmoid(x)

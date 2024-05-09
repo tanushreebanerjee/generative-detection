@@ -1,5 +1,5 @@
 import torch
-from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType, get_screen_to_ndc_transform, get_ndc_to_screen_transform
+from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType
 from pytorch3d.common.datatypes import Device
 from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
@@ -147,64 +147,6 @@ class PatchPerspectiveCameras(PerspectiveCameras):
             self, with_xyflip=False, image_size=image_size, patch_size=patch_size, patch_center=patch_center
         )
         return ndc_to_patch_ndc_transform # ndc --> patch ndc
-    
-    def z_camera_to_ndc(self, z: torch.Tensor) -> torch.Tensor:
-        """
-        Scale z values from camera space to NDC space.
-        
-        Args:
-            z: z values in camera space. A tensor of shape (N, H, W).
-        
-        Returns:
-            z: z values in NDC space. A tensor of shape (N, H, W).
-        """
-        # TODO: Check if this is correct
-        return 2 * z / (self.zfar - self.znear) - (self.zfar + self.znear) / (self.zfar - self.znear)
-    
-    def z_ndc_to_camera(self, z: torch.Tensor) -> torch.Tensor:
-        """
-        Scale z values from NDC space to camera space.
-        
-        Args:
-            z: z values in NDC space. A tensor of shape (N, H, W).
-        
-        Returns:
-            z: z values in camera space. A tensor of shape (N, H, W).
-        """
-        # TODO: Check if this is correct
-        return 0.5 * (z + 1) * (self.zfar - self.znear) + self.znear
-
-    def z_patch_to_ndc(self, z_ndc: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
-        """
-        Scale z values from NDC space to patch space.
-        """
-        # TODO: Check if this is correct
-        im_size = torch.min(image_size, dim=1).values
-        patch_size = torch.min(patch_size, dim=1).values
-        # send to cpu device
-        device = torch.device("cpu") if not torch.cuda.is_available() else torch.device("cuda")
-        im_size = im_size.to(device)
-        patch_size = patch_size.to(device)
-        z_ndc = z_ndc.to(device)
-        scale = patch_size / im_size 
-        z_patch = z_ndc * scale
-        return z_patch
-    
-    def z_ndc_to_patch(self, z_patch: torch.Tensor, patch_size: Tuple[int, int], image_size: Tuple[int, int]) -> torch.Tensor:
-        """
-        Scale z values from patch space to NDC space to make the network aware of the patch size.
-        """
-        # TODO: Check if this is correct
-        im_size = torch.min(image_size, dim=1).values
-        patch_size = torch.min(patch_size, dim=1).values
-        # send to cpu device
-        device = torch.device("cpu") if not torch.cuda.is_available() else torch.device("cuda")
-        im_size = im_size.to(device)
-        patch_size = patch_size.to(device)
-        z_patch = z_patch.to(device)
-        scale = im_size / patch_size
-        z_ndc = z_patch * scale
-        return z_ndc
 
 ################################################
 # Helper functions for patch perspective cameras
@@ -329,19 +271,10 @@ def get_ndc_to_patch_ndc_transform(
     cy_screen = cy_screen.to(device)
     
     screen_to_ndc_transform = cameras.get_ndc_camera_transform()
-    
-    # get_screen_to_ndc_transform(cameras=cameras, image_size=image_size, with_xyflip=with_xyflip)
-    
-    print("screen_to_ndc_transform in cameras", screen_to_ndc_transform.get_matrix())
-    
-    print("cx_screen", cx_screen, cx_screen.shape) # torch.Size([1, 1])
     point_screen = torch.cat([cx_screen, cy_screen, torch.ones_like(cx_screen)], dim=-1)
-    print("point_screen", point_screen, point_screen.shape)
     point_ndc = screen_to_ndc_transform.transform_points(point_screen)
     cx_ndc = point_ndc[..., 0]
     cy_ndc = point_ndc[..., 1]
-    print("cx_ndc", cx_ndc, cx_ndc.shape)
-    print("cy_ndc", cy_ndc, cy_ndc.shape)
     
     
     patch_size = patch_size.squeeze(0)
@@ -349,11 +282,6 @@ def get_ndc_to_patch_ndc_transform(
     scale = (image_size.min(dim=1).values - 0.0).to(device)
     patch_scale = (patch_size.min(dim=-1).values - 0.0).to(device)
     principal_point = cameras.get_principal_point()
-    
-    
-    print("principal_point in cameras", principal_point)
-    print("scale", scale)
-    print("patch_scale", patch_scale)
     
     K[:, 0, 0] = 2 * (patch_scale / scale)
     K[:, 1, 1] = 2 * (patch_scale / scale)
@@ -385,3 +313,29 @@ def get_ndc_to_patch_ndc_transform(
         )
         transform = transform.compose(xyflip_transform)
     return transform
+
+def z_patch_to_world(z_patch, patch_upsampled_size, patch_resampling_factor, focal_length):
+    z_world = (z_patch * patch_upsampled_size * patch_resampling_factor) / focal_length
+    return z_world
+
+def z_world_to_patch(z_world, patch_upsampled_size, patch_resampling_factor, focal_length):
+    z_patch = (z_world * focal_length) / (patch_upsampled_size * patch_resampling_factor)
+    return z_patch
+
+def z_patch_to_learned(z_patch, zmin, zmax):
+    z_learned = 2 * ((z_patch - zmin) / (zmax - zmin)) - 1
+    return z_learned
+
+def z_learned_to_patch(z_learned, zmin, zmax):
+    z_patch = 0.5 * (z_learned + 1) * (zmax - zmin) + zmin
+    return z_patch
+
+def z_world_to_learned(z_world, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
+    z_patch = z_world_to_patch(z_world, patch_upsampled_size, patch_resampling_factor, focal_length)
+    z_learned = z_patch_to_learned(z_patch, zmin, zmax)
+    return z_learned
+
+def z_learned_to_world(z_learned, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
+    z_patch = z_learned_to_patch(z_learned, zmin, zmax)
+    z_world = z_patch_to_world(z_patch, patch_upsampled_size, patch_resampling_factor, focal_length)
+    return z_world
