@@ -87,6 +87,7 @@ class PoseAutoencoder(AutoencoderKL):
         self.pose_encoder = instantiate_from_config(pose_encoder_config)
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
+        self.feat_dims = feat_dims
         
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
@@ -152,9 +153,7 @@ class PoseAutoencoder(AutoencoderKL):
             Encoded pose feature map tensor.
         """
         flattened_encoded_pose_feat_map = self.pose_encoder(x)        
-        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.z_channels, 
-                                                    int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)), 
-                                                    int(math.sqrt(flattened_encoded_pose_feat_map.shape[1]//self.z_channels)))
+        return flattened_encoded_pose_feat_map.view(flattened_encoded_pose_feat_map.size(0), self.feature_dims[0], self.feature_dims[1], self.feature_dims[2])
     
     def encode(self, x):
         h = self.encoder(x)

@@ -67,8 +67,14 @@ class PoseEncoderSpatialVAE(nn.Module):
             activation = nn.Tanh
         else:
             activation = nn.ReLU
+            
+        self.num_channels = num_channels
+        self.n = n
+        self.m = m
+        self.in_dim = 2 # 2 dim position: x, y
+        self.num_coords = n * m
         
-        self.coord_linear = nn.Linear(latent_dim, hidden_dim)
+        self.coord_linear = nn.Linear(self.in_dim * self.num_coords, hidden_dim)
         self.latent_dim = latent_dim
         if latent_dim > 0:
             self.latent_linear = nn.Linear(latent_dim, hidden_dim, bias=False)
@@ -91,24 +97,25 @@ class PoseEncoderSpatialVAE(nn.Module):
             x_coord = x_coord.cuda()
         
         self.x = Variable(x_coord)
+        
     
-    def forward(self, z):        
-        x = self.x.contiguous()
+    def forward(self, z):
+        b = z.size(0) # 4
+        x = self.x.expand(b, self.num_coords, self.in_dim) # (batch, num_coords, 2) 
+        x = x.contiguous()
+        if len(x.size()) < 3:
+            x = x.unsqueeze(0)
         
-        # print("x", x.size())
-        # print("z", z.size())
-        # print("self.coord_linear", self.coord_linear)
-        # print("self.latent_linear", self.latent_linear)
+        x = x.view(b, self.num_coords * self.in_dim) # (batch, num_coords*2) 
+        h_x = self.coord_linear(x) # h_x torch.Size([4, 500])
         
-        h_x = self.coord_linear(x) 
-        # print("h_x", h_x.size()) 
-        h_z = self.latent_linear(z)
-        # print("h_z", h_z.size())
+        if len(z.size()) < 2:
+            z = z.unsqueeze(0)
+        h_z = self.latent_linear(z) # h_z torch.Size([4, 500])
         
-        h = h_x + h_z
-        # print("h", h.size())
-        y = self.layers(h) # (batch*num_coords, nout) 
-        # print("self.layers", self.layers)
-        # print("y", y.size())      
+        h = h_x + h_z # h torch.Size([4, 500])
+        print("h", h.size())
+        y = self.layers(h) # y torch.Size([4, 4096])
+        print("y", y.size())
         return y
     

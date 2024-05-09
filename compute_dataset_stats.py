@@ -33,7 +33,7 @@ class AverageMeter():
         self.history = np.append(self.history, other_meter_history)
         return self
 
-def get_dataset_stats(dataset, save_dir="dataset_stats_new"):
+def get_dataset_stats(dataset, save_dir="dataset_stats"):
     os.makedirs(save_dir, exist_ok=True)
     t1_meter = AverageMeter()
     t2_meter = AverageMeter()
@@ -111,9 +111,9 @@ def main():
     }
     nusc_train = NuScenesTrain(**nusc_base_kwargs)
     nusc_val = NuScenesValidation(**nusc_base_kwargs)
-
-    train_stats, train_meters_dict = get_dataset_stats(nusc_train)
-    val_stats, val_meters_dict = get_dataset_stats(nusc_val)
+    save_dir = "dataset_stats"
+    train_stats, train_meters_dict = get_dataset_stats(nusc_train, save_dir=save_dir)
+    val_stats, val_meters_dict = get_dataset_stats(nusc_val, save_dir=save_dir)
     
     # get combined stats from train_meters_list and val_meters_list
     combined_stats = {}
@@ -122,7 +122,8 @@ def main():
         combined_stats[key] = meter.get_stats()
     print("Combined stats:")
     print(combined_stats)
-    with open(os.path.join("dataset_stats", "combined.pkl"), 'wb') as handle:
+    
+    with open(os.path.join(save_dir, "combined.pkl"), 'wb') as handle:
         pkl.dump(combined_stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
     
 if __name__ == "__main__":
