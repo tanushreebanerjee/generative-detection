@@ -290,9 +290,6 @@ def get_ndc_to_patch_ndc_transform(
     tx = cx_ndc
     ty = cy_ndc
     
-    print("tx", tx)
-    print("ty", ty)
-    
     K[:, 3, 0] = -2 * (patch_scale / scale) * tx
     K[:, 3, 1] = -2 * (patch_scale / scale) * ty
     K[:, 2, 2] = 1.0

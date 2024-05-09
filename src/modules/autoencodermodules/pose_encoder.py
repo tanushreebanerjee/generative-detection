@@ -1,6 +1,5 @@
 # src/modules/autoencodermodules/pose_encoder.py
 import torch.nn as nn
-from spatial_vae.models import SpatialGenerator
 import numpy as np
 import torch.nn.functional as F
 import torch
@@ -56,8 +55,10 @@ class PoseEncoder(nn.Module):
         """
         return self.fc(x)
 
-class PoseEncoderSpatialVAE(SpatialGenerator):
-    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="swish", **kwargs):
+class PoseEncoderSpatialVAE(nn.Module):
+    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="swish", hidden_dim=500, num_layers=2):
+        #softplus=False, resid=False, expand_coords=False, bilinear=False):
+        super(PoseEncoderSpatialVAE, self).__init__()
         latent_dim = POSE_DIM + LHW_DIM + num_classes # 10 = 6 + 3 + 1
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
         if activation == "swish":
@@ -67,13 +68,18 @@ class PoseEncoderSpatialVAE(SpatialGenerator):
         else:
             activation = nn.ReLU
         
-        kwargs.update({  
-            "n_out": n_out,
-            "latent_dim": latent_dim,
-            "activation": activation
-        })
-        
-        super().__init__(**kwargs)
+        self.coord_linear = nn.Linear(latent_dim, hidden_dim)
+        self.latent_dim = latent_dim
+        if latent_dim > 0:
+            self.latent_linear = nn.Linear(latent_dim, hidden_dim, bias=False)
+
+        layers = [activation()]
+        for _ in range(1,num_layers):
+            layers.append(nn.Linear(hidden_dim,hidden_dim))
+            layers.append(activation())
+        layers.append(nn.Linear(hidden_dim, n_out))
+
+        self.layers = nn.Sequential(*layers)
         
         ## x coordinate array
         xgrid = np.linspace(-1, 1, m)
@@ -85,55 +91,24 @@ class PoseEncoderSpatialVAE(SpatialGenerator):
             x_coord = x_coord.cuda()
         
         self.x = Variable(x_coord)
-       
     
-    def forward(self, z):
-        # x is (batch, num_coords, 2)
-        # z is (batch, latent_dim)
+    def forward(self, z):        
+        x = self.x.contiguous()
         
-        b = z.size(0) # batch size
-        print("z size 0 = b =", b)
-        x = self.x.expand(b, self.x.size(0), self.x.size(1))
-        x = x.contiguous()
+        print("x", x.size())
+        print("z", z.size())
+        print("self.coord_linear", self.coord_linear)
+        print("self.latent_linear", self.latent_linear)
         
+        h_x = self.coord_linear(x) 
+        print("h_x", h_x.size()) 
+        h_z = self.latent_linear(z)
+        print("h_z", h_z.size())
         
-        x = self.x
-        
-        if len(x.size()) < 3:
-            x = x.unsqueeze(0)
-        b = x.size(0)
-        n = x.size(1)
-        x = x.view(b*n, -1)
-        # if self.expand_coords:
-        #     x2 = x**2
-        #     xx = x[:,0]*x[:,1]
-        #     x = torch.cat([x, x2, xx.unsqueeze(1)], 1)
-
-        h_x = self.coord_linear(x)
-        h_x = h_x.view(b, n, -1)
-
-        h_z = 0
-        if hasattr(self, 'latent_linear'):
-            if len(z.size()) < 2:
-                z = z.unsqueeze(0)
-            h_z = self.latent_linear(z)
-            h_z = h_z.unsqueeze(1)
-
-        # h_bi = 0
-        # if hasattr(self, 'bilinear'):
-        #     if len(z.size()) < 2:
-        #         z = z.unsqueeze(0)
-        #     z = z.unsqueeze(1) # broadcast over coordinates
-        #     x = x.view(b, n, -1)
-        #     z = z.expand(b, x.size(1), z.size(2)).contiguous()
-        #     h_bi = self.bilinear(x, z)
-
-        h = h_x + h_z #+ h_bi # (batch, num_coords, hidden_dim)
-        h = h.view(b*n, -1)
-
-        y = self.layers(h) # (batch*num_coords, nout)
-        y = y.view(b, n, -1)
-
-        # if self.softplus: # only apply softplus to first output
-        #     y = torch.cat([F.softplus(y[:,:,:1]), y[:,:,1:]], 2)
+        h = h_x + h_z
+        print("h", h.size())
+        y = self.layers(h) # (batch*num_coords, nout) 
+        print("self.layers", self.layers)
+        print("y", y.size())      
         return y
+    

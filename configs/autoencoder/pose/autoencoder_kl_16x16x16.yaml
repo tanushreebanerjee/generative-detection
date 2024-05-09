@@ -40,13 +40,8 @@ model:
         n: 16
         m: 16
         hidden_dim: 500
-        n_out: 4
         num_layers: 2
         activation: swish
-        softplus: False
-        resid: False
-        expand_coords: False
-        bilinear: False
     ddconfig:
       double_z: True
       z_channels: 16
