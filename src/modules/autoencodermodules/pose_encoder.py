@@ -95,20 +95,20 @@ class PoseEncoderSpatialVAE(nn.Module):
     def forward(self, z):        
         x = self.x.contiguous()
         
-        print("x", x.size())
-        print("z", z.size())
-        print("self.coord_linear", self.coord_linear)
-        print("self.latent_linear", self.latent_linear)
+        # print("x", x.size())
+        # print("z", z.size())
+        # print("self.coord_linear", self.coord_linear)
+        # print("self.latent_linear", self.latent_linear)
         
         h_x = self.coord_linear(x) 
-        print("h_x", h_x.size()) 
+        # print("h_x", h_x.size()) 
         h_z = self.latent_linear(z)
-        print("h_z", h_z.size())
+        # print("h_z", h_z.size())
         
         h = h_x + h_z
-        print("h", h.size())
+        # print("h", h.size())
         y = self.layers(h) # (batch*num_coords, nout) 
-        print("self.layers", self.layers)
-        print("y", y.size())      
+        # print("self.layers", self.layers)
+        # print("y", y.size())      
         return y
     
