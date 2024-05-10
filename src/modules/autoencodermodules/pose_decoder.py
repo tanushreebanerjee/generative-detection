@@ -91,13 +91,7 @@ class PoseDecoderSpatialVAE(nn.Module):
         layers.append(nn.Linear(hidden_dim, latent_dim))
         
         self.layers = nn.Sequential(*layers)
-        print("PoseDecoderSpatialVAE kwargs: ", kwargs)
-        print("PoseDecoderSpatialVAE Expected input shape: (batch_size, num_channels, n, m)", (None, num_channels, n, m))
-        print("PoseDecoderSpatialVAE Expected output shape: (batch_size, inf_dim)", (None, inf_dim))
-        print("PoseDecoderSpatialVAE layers: ", self.layers)
     def forward(self, x):
         # x is (batch,num_coords)
-        print("PoseDecoderSpatialVAE actual input shape: ", x.shape)
         z = self.layers(x)
-        print("PoseDecoderSpatialVAE actual output shape: ", z.shape)
         return z

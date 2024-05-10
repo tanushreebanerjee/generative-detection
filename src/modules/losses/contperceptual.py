@@ -142,6 +142,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     
     def compute_pose_kl_loss(self, bbox_posterior):
         pose_kl_loss = bbox_posterior.kl(self.bbox_distribution)
+        # print("pose_kl_loss", pose_kl_loss, pose_kl_loss.shape)
+        pose_kl_loss = torch.sum(pose_kl_loss) / pose_kl_loss.shape[0] # mean over batch
         return pose_kl_loss
       
     def forward(self, 
