@@ -17,8 +17,8 @@ from PIL.Image import Resampling
 import numpy as np
 import logging
 
-L_MIN = 1.2
-L_MAX = 2.2
+L_MIN = 1.2 # TODO: Need to compute from dataset stats
+L_MAX = 2.2 # TODO: Need to compute from dataset stats
 
 LABEL_NAME2ID = {
     'car': 0, 
@@ -148,12 +148,12 @@ class NuScenesBase(MMDetNuScenesDataset):
                                  patch_resampling_factor=patch_resampling_factor, 
                                  focal_length=camera.focal_length, 
                                  patch_height=self.patch_size[0])
-        
+        print("zmin, zmax", zmin, zmax)
         z_learned = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
                                        patch_upsampled_size=self.patch_size[0], 
                                        patch_resampling_factor=patch_resampling_factor[0], 
                                        focal_length=camera.focal_length.squeeze()[0])
-        
+        ("z_learned", z_learned)
         if point_patch_ndc.dim() == 3:
             point_patch_ndc = point_patch_ndc.view(-1)
         x_patch, y_patch, _ = point_patch_ndc

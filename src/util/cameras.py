@@ -328,11 +328,17 @@ def z_learned_to_patch(z_learned, zmin, zmax):
     return z_patch
 
 def z_world_to_learned(z_world, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
+    # print("z_world", z_world)
     z_patch = z_world_to_patch(z_world, patch_upsampled_size, patch_resampling_factor, focal_length)
+    # print("z_patch", z_patch)
     z_learned = z_patch_to_learned(z_patch, zmin, zmax)
+    # print("z_learned", z_learned)
     return z_learned
 
 def z_learned_to_world(z_learned, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
+    # print("z_learned", z_learned)
     z_patch = z_learned_to_patch(z_learned, zmin, zmax)
+    # print("z_patch", z_patch)
     z_world = z_patch_to_world(z_patch, patch_upsampled_size, patch_resampling_factor, focal_length)
+    # print("z_world", z_world)
     return z_world

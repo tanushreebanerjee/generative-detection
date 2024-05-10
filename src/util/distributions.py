@@ -6,7 +6,6 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
     def __init__(self, parameters, deterministic=False):
         super(DiagonalGaussianDistribution, self).__init__(parameters, deterministic)
         self.device = parameters.device
-        print("DiagonalGaussianDistribution device: ", self.device)
         
     def kl(self, other=None):
         if self.deterministic:
@@ -19,15 +18,28 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
             else:
                 # make sure all tensors are on the same device
                 other_device = other.mean.device
-                print("DiagonalGaussianDistribution kl other_device: ", other_device)
                 self.mean = self.mean.to(other_device)
                 self.var = self.var.to(other_device)
                 self.logvar = self.logvar.to(other_device)
                 other.mean = other.mean.to(other_device)
                 other.var = other.var.to(other_device)
                 other.logvar = other.logvar.to(other_device)
+            
+                batch_size = self.mean.size(0)
+                bbox_pred_dim = self.mean.size(1)
                 
+                # adding batch dim
+                other_mean = other.mean.squeeze().unsqueeze(0) # other.mean torch.Size([1, 9])
+                other_var = other.var.squeeze().unsqueeze(0)
+                other_logvar = other.logvar.squeeze().unsqueeze(0)
+                
+              
+                num_dims = len(other_mean.size())
+                sum_dim = list(range(1, num_dims)) # [1]
+                
+                # other_logvar torch.Size([1, 9])
                 return 0.5 * torch.sum(
-                    torch.pow(self.mean - other.mean, 2) / other.var
-                    + self.var / other.var - 1.0 - self.logvar + other.logvar,
-                    dim=[1, 2, 3])
+                    torch.pow(self.mean - other_mean, 2) / other_var
+                    + self.var / other_var - 1.0 - self.logvar + other_logvar,
+                    dim=sum_dim)
+                

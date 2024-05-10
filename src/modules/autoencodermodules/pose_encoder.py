@@ -57,7 +57,6 @@ class PoseEncoder(nn.Module):
 
 class PoseEncoderSpatialVAE(nn.Module):
     def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="swish", hidden_dim=500, num_layers=2):
-        #softplus=False, resid=False, expand_coords=False, bilinear=False):
         super(PoseEncoderSpatialVAE, self).__init__()
         latent_dim = POSE_DIM + LHW_DIM + num_classes # 10 = 6 + 3 + 1
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
@@ -68,31 +67,41 @@ class PoseEncoderSpatialVAE(nn.Module):
         else:
             activation = nn.ReLU
             
-        self.num_channels = num_channels
-        self.n = n
-        self.m = m
+        self.num_channels = num_channels # 16
+        self.n = n # 16
+        self.m = m # 16
         self.in_dim = 2 # 2 dim position: x, y
-        self.num_coords = n * m
+        self.num_coords = n * m # 16 * 16 = 256
+        self.feat_size = 4 # TODO: try 10
+        self.h_dim = self.num_coords * self.feat_size # 16 * 16 * 4 = 1024
+        self.x_dim = self.in_dim * self.num_coords # 16, 16, 2 = 512
+        self.z_dim = latent_dim # 10
         
-        self.coord_linear = nn.Linear(self.in_dim * self.num_coords, hidden_dim)
-        self.latent_dim = latent_dim
+        # x --> h_x
+        self.coord_linear = nn.Linear(self.x_dim, self.h_dim) # (512, 1024)
+        
         if latent_dim > 0:
-            self.latent_linear = nn.Linear(latent_dim, hidden_dim, bias=False)
+            self.latent_linear = nn.Linear(self.z_dim, self.feat_size, bias=False) # (10, 4)
 
         layers = [activation()]
-        for _ in range(1,num_layers):
-            layers.append(nn.Linear(hidden_dim,hidden_dim))
+        for layer_id in range(1,num_layers):
+            
+            if layer_id == 1: 
+                layer = nn.Linear(self.h_dim, hidden_dim) # (1024, 500)
+            else:
+                layer = nn.Linear(hidden_dim, hidden_dim) # (500, 500)
+            layers.append(layer)
             layers.append(activation())
-        layers.append(nn.Linear(hidden_dim, n_out))
+        layers.append(nn.Linear(hidden_dim, n_out)) # (500, 4096)
 
-        self.layers = nn.Sequential(*layers)
+        self.layers = nn.Sequential(*layers) # h --> y
         
         ## x coordinate array
-        xgrid = np.linspace(-1, 1, m)
+        xgrid = np.linspace(-1, 1, m) 
         ygrid = np.linspace(1, -1, n)
         x0,x1 = np.meshgrid(xgrid, ygrid)
-        x_coord = np.stack([x0.ravel(), x1.ravel()], 1)
-        x_coord = torch.from_numpy(x_coord).float()
+        x_coord = np.stack([x0.ravel(), x1.ravel()], 1) # (256, 2)
+        x_coord = torch.from_numpy(x_coord).float() 
         if torch.cuda.is_available():
             x_coord = x_coord.cuda()
         
@@ -104,18 +113,20 @@ class PoseEncoderSpatialVAE(nn.Module):
         x = self.x.expand(b, self.num_coords, self.in_dim) # (batch, num_coords, 2) 
         x = x.contiguous()
         if len(x.size()) < 3:
-            x = x.unsqueeze(0)
+            x = x.unsqueeze(0) # (1, 16*16, 2)
         
-        x = x.view(b, self.num_coords * self.in_dim) # (batch, num_coords*2) 
-        h_x = self.coord_linear(x) # h_x torch.Size([4, 500])
+        x = x.view(b, self.num_coords * self.in_dim) # (batch, num_coords*2) = (4, 512)
+        h_x = self.coord_linear(x) # h_x torch.Size([4, 1024]) = b, 16 * 16 * 4
         
         if len(z.size()) < 2:
-            z = z.unsqueeze(0)
-        h_z = self.latent_linear(z) # h_z torch.Size([4, 500])
+            z = z.unsqueeze(0) # (1, 10)
+        h_z = self.latent_linear(z) # h_z torch.Size([4, 4]) = b, 4
         
-        h = h_x + h_z # h torch.Size([4, 500])
-        print("h", h.size())
+        # target size: # (4, 16, 16, 4). use tensor expand
+        h_z = h_z.unsqueeze(1).expand(b, self.num_coords, self.feat_size) # (4, 256, 4)
+        h_z = h_z.reshape(b, self.num_coords * self.feat_size) # (4, 1024)
+        
+        h = h_x + h_z # h torch.Size([4, 1024])
         y = self.layers(h) # y torch.Size([4, 4096])
-        print("y", y.size())
         return y
     
