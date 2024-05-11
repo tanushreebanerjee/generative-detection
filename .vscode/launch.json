@@ -1,13 +1,19 @@
 {
-    "name": "Python: Remote Attach",
-    "type": "python",
-    "request": "attach",
-    "port": 54321, // if step 1b applies, enter the number from step 5
-    "host": "node209", // if step 1b applies, enter the host from step 4
-    "pathMappings": [
+    "version": "0.2.0",
+    "configurations": [
         {
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "${workspaceFolder}"
+            "name": "Python: Remote Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "port": 54321, // if step 1b applies, enter the number from step 5
+            "host": "neuronic", // if step 1b applies, enter the host from step 4
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
+                }
+            ],
+            "subProcess" : true
         }
     ]
 }

@@ -17,8 +17,8 @@ from PIL.Image import Resampling
 import numpy as np
 import logging
 
-L_MIN = 1.2 # TODO: Need to compute from dataset stats
-L_MAX = 2.2 # TODO: Need to compute from dataset stats
+L_MIN = 0.5 
+L_MAX = 3.0
 
 LABEL_NAME2ID = {
     'car': 0, 
@@ -42,7 +42,7 @@ CAM_NAME2CAM_ID = {cam_name: i for i, cam_name in enumerate(CAMERA_NAMES)}
 CAM_ID2CAM_NAME = {i: cam_name for i, cam_name in enumerate(CAMERA_NAMES)}
 
 Z_NEAR = 0.01
-Z_FAR = 80.0
+Z_FAR = 55.0
 
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
@@ -60,6 +60,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
+        print(f"{self.__class__.__name__} initialized!")
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -71,7 +72,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         img_pil = Image.open(img_path)
         if img_pil is None:
             raise FileNotFoundError(f"Image not found at {img_path}")
-            
+
         # return croped list of images as defined by 2d bbox for each instance
         bbox = cam_instance.bbox # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
         center_2d = cam_instance.center_2d # Projected center location on the image, a list has shape (2,)
@@ -83,19 +84,20 @@ class NuScenesBase(MMDetNuScenesDataset):
             # make patch a square by taking max of width and height, centered at center_2d
             width = x2 - x1
             height = y2 - y1
-            
-            if width > height:
-                y1 = center_2d[1] - width // 2
-                y2 = center_2d[1] + width // 2
-            else:
-                x1 = center_2d[0] - height // 2
-                x2 = center_2d[0] + height // 2
-                
+            floored_center = np.floor(center_2d).astype(np.int32)
+            box_size = max(int(width), int(height))
+            box_size = box_size+1 if box_size%2 == 0 else box_size 
+            y1 = floored_center[1] - box_size // 2 - 1
+            y2 = floored_center[1] + box_size // 2 + 1
+            x1 = floored_center[0] - box_size // 2 - 1
+            x2 = floored_center[0] + box_size // 2 + 1
+
+            # TODO: Pad instead
+            # TODO: check dims
             # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
             if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
                 print("bbox out of bounds of image: x1, x2, y1, y2", x1, x2, y1, y2, "img size:", img_pil.size)
                 return None, None, None
-                
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
@@ -107,6 +109,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # ratio of original image to resized image
         try:
             resampling_factor = (resized_width / patch.size[0], resized_height / patch.size[1])
+            assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
         except ZeroDivisionError:
             print("patch size is 0", patch.size)
             return None, None, None
@@ -122,6 +125,11 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         object_centroid_3D = (x, y, z)
         patch_center = cam_instance.center_2d
+        bbox_2d = cam_instance.bbox
+        width = cam_instance.bbox[2] - cam_instance.bbox[0]
+        height = cam_instance.bbox[3] - cam_instance.bbox[1]
+        box_size = max(int(width), int(height))
+        box_size = box_size+1 if box_size%2 == 0 else box_size
         if len(patch_center) == 2:
             # add batch dimension
             patch_center = torch.tensor(patch_center, dtype=torch.float32).unsqueeze(0)
@@ -140,20 +148,28 @@ class NuScenesBase(MMDetNuScenesDataset):
         z_world = z
         
         def get_zminmax(min_val, max_val, patch_resampling_factor, focal_length, patch_height):
-            zmin = (min_val * focal_length.squeeze()[0]) / (patch_height * patch_resampling_factor[0])
-            zmax = (max_val * focal_length.squeeze()[0]) / (patch_height * patch_resampling_factor[0])
+            zmin = -(min_val * focal_length.squeeze()[0]) / (patch_height)
+            zmax = -(max_val * focal_length.squeeze()[0]) / (patch_height)
             return zmin, zmax
         
         zmin, zmax = get_zminmax(min_val=L_MIN, max_val=L_MAX, 
                                  patch_resampling_factor=patch_resampling_factor, 
                                  focal_length=camera.focal_length, 
                                  patch_height=self.patch_size[0])
-        print("zmin, zmax", zmin, zmax)
-        z_learned = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
-                                       patch_upsampled_size=self.patch_size[0], 
-                                       patch_resampling_factor=patch_resampling_factor[0], 
-                                       focal_length=camera.focal_length.squeeze()[0])
-        ("z_learned", z_learned)
+        z_learned_unscaled = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
+                                       patch_resampling_factor=patch_resampling_factor[0])
+        
+        z_learned_far = z_world_to_learned(z_world=Z_FAR, zmin=zmin, zmax=zmax, 
+                                       patch_resampling_factor=patch_resampling_factor[0])
+        z_learned_near = z_world_to_learned(z_world=Z_NEAR, zmin=zmin, zmax=zmax, 
+                                       patch_resampling_factor=patch_resampling_factor[0])
+        
+        def rescale_z_learned(val, min_val, max_val):
+            rescaled_val = 2*((val - min_val) / (max_val - min_val)) - 1
+            return rescaled_val
+        
+        z_learned = rescale_z_learned(z_learned_unscaled, z_learned_near, z_learned_far)
+        
         if point_patch_ndc.dim() == 3:
             point_patch_ndc = point_patch_ndc.view(-1)
         x_patch, y_patch, _ = point_patch_ndc
@@ -162,7 +178,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         convention = "XYZ"
         R = euler_angles_to_matrix(euler_angles, convention)
         
-        world_to_patch_transform = camera.get_patch_projection_transform(patch_size=patch_size, patch_center=patch_center) 
         translation = torch.tensor([x_patch, y_patch, z_learned], dtype=torch.float32)
         # A SE(3) matrix has the following form: ` [ R 0 ] [ T 1 ] , `
         se3_exp_map_matrix = torch.eye(4)
@@ -175,8 +190,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         # add batch dim if not present
         if se3_exp_map_matrix.dim() == 2:
             se3_exp_map_matrix = se3_exp_map_matrix.unsqueeze(0)
-        
-        rotation_matrix = R
         
         try: 
             pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
@@ -278,22 +291,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         cam_instance.class_id = cam_instance.bbox_label
         cam_instance.patch_size = patch_size_original
-        
-        bbox_3d = cam_instance.bbox_3d
-        x, y, z, l, h, w, yaw = bbox_3d
-        object_centroid_3D = (x, y, z)
-        object_centroid_3D = torch.tensor(object_centroid_3D, dtype=torch.float32)
-        if object_centroid_3D.dim() == 1:
-            object_centroid_3D = object_centroid_3D.view(1, 1, 3)
-        
-        assert object_centroid_3D.dim() == 3 or object_centroid_3D.dim() == 2, f"object_centroid_3D dim is {object_centroid_3D.dim()}"
-        assert isinstance(object_centroid_3D, torch.Tensor), f"object_centroid_3D is not a torch tensor"
-        
-        patch2ndc_transform = get_patch_ndc_to_ndc_transform(cameras=camera, 
-                                    with_xyflip=False, 
-                                    image_size=image_size,
-                                    patch_size=patch_size_original, 
-                                    patch_center=center_2d[..., :2])
         cam_instance.resampling_factor = resampling_factor
         return cam_instance
     
@@ -353,8 +350,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
         ret.patch_size = patch_size_original
         ret.patch_center_2d = patch_center_2d
-        ret.bbox_3d = ret_cam_instance.bbox_3d
-        ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of original image to resized image after bilinear interpolation
+        ret.bbox_3d_gt = ret_cam_instance.bbox_3d
+        ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 

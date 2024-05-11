@@ -311,12 +311,12 @@ def get_ndc_to_patch_ndc_transform(
         transform = transform.compose(xyflip_transform)
     return transform
 
-def z_patch_to_world(z_patch, patch_upsampled_size, patch_resampling_factor, focal_length):
-    z_world = (z_patch * patch_upsampled_size * patch_resampling_factor) / focal_length
+def z_patch_to_world(z_patch, patch_resampling_factor):
+    z_world = z_patch * patch_resampling_factor
     return z_world
 
-def z_world_to_patch(z_world, patch_upsampled_size, patch_resampling_factor, focal_length):
-    z_patch = (z_world * focal_length) / (patch_upsampled_size * patch_resampling_factor)
+def z_world_to_patch(z_world, patch_resampling_factor):
+    z_patch = z_world / patch_resampling_factor
     return z_patch
 
 def z_patch_to_learned(z_patch, zmin, zmax):
@@ -327,18 +327,12 @@ def z_learned_to_patch(z_learned, zmin, zmax):
     z_patch = 0.5 * (z_learned + 1) * (zmax - zmin) + zmin
     return z_patch
 
-def z_world_to_learned(z_world, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
-    # print("z_world", z_world)
-    z_patch = z_world_to_patch(z_world, patch_upsampled_size, patch_resampling_factor, focal_length)
-    # print("z_patch", z_patch)
+def z_world_to_learned(z_world, zmin, zmax, patch_resampling_factor):
+    z_patch = z_world_to_patch(z_world, patch_resampling_factor)
     z_learned = z_patch_to_learned(z_patch, zmin, zmax)
-    # print("z_learned", z_learned)
     return z_learned
 
-def z_learned_to_world(z_learned, zmin, zmax, patch_upsampled_size, patch_resampling_factor, focal_length):
-    # print("z_learned", z_learned)
+def z_learned_to_world(z_learned, zmin, zmax, patch_resampling_factor):
     z_patch = z_learned_to_patch(z_learned, zmin, zmax)
-    # print("z_patch", z_patch)
-    z_world = z_patch_to_world(z_patch, patch_upsampled_size, patch_resampling_factor, focal_length)
-    # print("z_world", z_world)
+    z_world = z_patch_to_world(z_patch, patch_resampling_factor)
     return z_world
