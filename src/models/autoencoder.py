@@ -18,9 +18,10 @@ from src.util.pose_transforms import euler_angles_translation2se3_log_map
 import numpy as np
 import logging
 
-POSE_6D_DIM = 6
+POSE_6D_DIM = 4
 PITCH_MAX = 360
-YAW_MAX = 30
+YAW_MAX = 60
+YAW_MIN = 20
 LHW_DIM = 3
 
 class Autoencoder(AutoencoderKL):
@@ -43,6 +44,7 @@ class PoseAutoencoder(AutoencoderKL):
                  image_mask_key=None,
                  image_rgb_key="patch",
                  pose_key="pose_6d",
+                 pose_perturbed_key="pose_6d_perturbed",
                  class_key="class_id",
                  bbox_key="bbox_sizes",
                  colorize_nlabels=None,
@@ -56,6 +58,7 @@ class PoseAutoencoder(AutoencoderKL):
         self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
+        self.pose_perturbed_key = pose_perturbed_key
         self.class_key = class_key
         self.bbox_key = bbox_key
         self.image_mask_key = image_mask_key
@@ -77,11 +80,6 @@ class PoseAutoencoder(AutoencoderKL):
         
         self.num_classes = lossconfig["params"]["num_classes"]
         enc_feat_dims = self._get_enc_feat_dims(ddconfig)
-        pose_feat_dims = POSE_6D_DIM + LHW_DIM + self.num_classes
-        
-        # feat_dim_config = {"enc_feat_dims": enc_feat_dims,
-        #                "pose_feat_dims": pose_feat_dims,
-        #                "activation": activation}
         
         self.pose_decoder = instantiate_from_config(pose_decoder_config)
         self.pose_encoder = instantiate_from_config(pose_encoder_config)
@@ -216,6 +214,10 @@ class PoseAutoencoder(AutoencoderKL):
         x = batch[k]
         return x
     
+    def _get_perturbed_pose(self, batch, k):
+        x = batch[k]
+        return x
+    
     def training_step(self, batch, batch_idx, optimizer_idx):
         rgb_gt = self.get_input(batch, self.image_rgb_key)
         pose_gt = self.get_pose_input(batch, self.pose_key)
@@ -288,39 +290,21 @@ class PoseAutoencoder(AutoencoderKL):
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []
     
-    def _perturb_poses(self, pose_inputs, yaw_max=YAW_MAX):
-        batch_size = pose_inputs.size(0)        
-        yaw_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
-        # elevation_deg = torch.tensor([random.uniform(0, yaw_max) for _ in range(batch_size)])
-        yaw_rad = torch.tensor([radians(i) for i in yaw_deg]) 
-        # elevation_rad = torch.tensor([radians(i) for i in elevation_deg])
-        
-        roll = torch.zeros(batch_size)
-        pitch = torch.zeros(batch_size)
-        yaw = yaw_rad
-        
-        if self.euler_convention == "ZYX":
-            euler_angles = torch.stack([yaw, roll, pitch])
-        elif self.euler_convention == "XYZ":
-            euler_angles = torch.stack([pitch, roll, yaw])
-        else:
-            raise ValueError(f"Invalid convention: {self.euler_convention}, must be either ZYX or XYZ")   
-        translation = torch.zeros(batch_size, 3)
-        
-        pose_6d_perturbed_dim = POSE_6D_DIM + LHW_DIM + self.num_classes
-        pose_6d_perturbed = torch.zeros(batch_size, pose_6d_perturbed_dim)
-        pose_6d_perturbed[:, :POSE_6D_DIM] = euler_angles_translation2se3_log_map(euler_angles, translation, self.euler_convention)
-        pose_6d_perturbed[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] = pose_inputs[:, 6:9]
-        pose_6d_perturbed[:, POSE_6D_DIM+LHW_DIM:] = pose_inputs[:, 9:]
-        
+    def _perturb_poses(self, batch, dec_pose):
+        pose_6d_perturbed = self._get_perturbed_pose(batch, self.pose_perturbed_key)
+        v3_perturbed = pose_6d_perturbed[:, -1]
+        pose_6d_perturbed_ret = dec_pose.clone()
+        pose_6d_perturbed_ret[:, 3] = v3_perturbed
+        assert pose_6d_perturbed_ret.shape == dec_pose.shape, f"pose_6d_perturbed_ret shape: {pose_6d_perturbed_ret.shape}"
+        assert pose_6d_perturbed_ret.shape[1] == POSE_6D_DIM, f"pose_6d_perturbed_ret shape: {pose_6d_perturbed_ret.shape}"
         return pose_6d_perturbed.to(self.device)
  
-    def _perturbed_pose_forward(self, posterior_obj, dec_pose, sample_posterior=True):
+    def _perturbed_pose_forward(self, posterior_obj, dec_pose, sample_posterior=True, batch):
         if sample_posterior:
             z_obj = posterior_obj.sample()
         else:
             z_obj = posterior_obj.mode()
-        dec_pose_perturbed = self._perturb_poses(dec_pose).reshape(dec_pose.size(0), -1)
+        dec_pose_perturbed = self._perturb_poses(batch, dec_pose).reshape(dec_pose.size(0), -1)
         enc_pose_perturbed = self._encode_pose(dec_pose_perturbed)
         z_obj_pose_perturbed = z_obj + enc_pose_perturbed
         dec_obj_pose_perturbed = self.decode(z_obj_pose_perturbed)
@@ -343,7 +327,7 @@ class PoseAutoencoder(AutoencoderKL):
         if not only_inputs:
             
             xrec, poserec, posterior_obj, bbox_posterior = self.forward(x_rgb) # torch.Size([8, 4, 64, 64])
-            xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec)
+            xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec, batch)
             
             xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
             xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :]

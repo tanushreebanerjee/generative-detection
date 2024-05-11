@@ -9,7 +9,7 @@ import pickle as pkl
 import math
 from mmdet.models.losses.focal_loss import FocalLoss
 
-POSE_6D_DIM = 6
+POSE_6D_DIM = 4
 LHW_DIM = 3
 PROB_THRESHOLD_OBJ = 0.2
 
@@ -65,11 +65,11 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     def _create_distribution_from_dataset_stats(self, dataset_stats):
         bbox_means = torch.zeros(POSE_6D_DIM + LHW_DIM)
         bbox_logvars = torch.zeros(POSE_6D_DIM + LHW_DIM)
-        for idx, key in enumerate(["t1", "t2", "t3", "v1", "v2", "v3", "l", "h", "w"]):
-            if key not in dataset_stats: # v1, v2, v3
-                mean = 0.
-                std_dev = 1.
-                logvar = 2 * math.log(std_dev)
+        for idx, key in enumerate(["t1", "t2", "t3", "v3", "l", "h", "w"]):
+            if key not in dataset_stats: 
+                mean = 0.0
+                std_dev = 1.0
+                logvar = 2. * math.log(std_dev)
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
             else: # t1, t2, t3, l, h, w
@@ -82,19 +82,19 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return DiagonalGaussianDistribution(parameters)
        
     def compute_pose_loss(self, pred, gt):
-        # need to get loss split for each part of the pose - t1, t2, t3, v1, v2, v3
+        # need to get loss split for each part of the pose - t1, t2, t3, v3
+        assert pred.shape == gt.shape, "Prediction and ground truth shapes do not match."
+        assert pred.shape[1] == POSE_6D_DIM, "Invalid pose dimensionality."
+        
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
         t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
+        v3_loss = self.pose_loss(pred[:, 3], gt[:, 3])
         
-        v1_loss = self.pose_loss(pred[:, 3], gt[:, 3])
-        v2_loss = self.pose_loss(pred[:, 4], gt[:, 4])
-        v3_loss = self.pose_loss(pred[:, 5], gt[:, 5])
-        
-        pose_loss = t1_loss + t2_loss + t3_loss + v1_loss + v2_loss + v3_loss
+        pose_loss = t1_loss + t2_loss + t3_loss + v3_loss
         weighted_pose_loss = self.pose_weight * pose_loss
         
-        return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v1_loss, v2_loss, v3_loss
+        return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss
 
     def _get_rec_loss(self, inputs, reconstructions):  
         rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
@@ -185,7 +185,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         class_loss, weighted_class_loss = self.compute_class_loss(class_gt, class_probs)
         bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec)
         
-        pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v1_loss, v2_loss, v3_loss = self.compute_pose_loss(pose_gt, pose_rec)
+        pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss = self.compute_pose_loss(pose_gt, pose_rec)
         mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
         
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
@@ -242,8 +242,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     "{}/t1_loss".format(split): t1_loss.detach().mean(),
                     "{}/t2_loss".format(split): t2_loss.detach().mean(),
                     "{}/t3_loss".format(split): t3_loss.detach().mean(),
-                    "{}/v1_loss".format(split): v1_loss.detach().mean(),
-                    "{}/v2_loss".format(split): v2_loss.detach().mean(),
                     "{}/v3_loss".format(split): v3_loss.detach().mean(),
                     "{}/bbox_kl_loss".format(split): bbox_kl_loss.detach().mean(),
                     "{}/weighted_bbox_kl_loss".format(split): self.kl_weight * bbox_kl_loss.detach().mean(),

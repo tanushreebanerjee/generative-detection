@@ -3,7 +3,7 @@ import torch.nn as nn
 import logging
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 
-POSE_DIM = 6
+POSE_DIM = 4
 LHW_DIM = 3
 HIDDEN_DIM_1_DIV = 4
 HIDDEN_DIM_2_DIV = 8

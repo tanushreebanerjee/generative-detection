@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch
 from torch.autograd import Variable
 
-POSE_DIM = 6
+POSE_DIM = 4
 LHW_DIM = 3
 HIDDEN_DIM_1_DIV = 8
 HIDDEN_DIM_2_DIV = 4

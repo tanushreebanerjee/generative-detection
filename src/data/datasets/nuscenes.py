@@ -118,6 +118,42 @@ class NuScenesBase(MMDetNuScenesDataset):
         patch_resized_tensor = transform(patch_resized)
         return patch_resized_tensor, patch_size_sq, resampling_factor
     
+    def _get_yaw_perturbed(self, yaw, perturb_degrees=20):
+        # perturb yaw by a random value between -perturb_degrees and perturb_degrees
+        perturb_radians = np.radians(perturb_degrees)
+        yaw_perturbed = yaw + np.random.uniform(-perturb_radians, perturb_radians)
+        return yaw_perturbed
+
+    def _get_pose_6d_perturbed(self, cam_instance):
+        bbox_3d = cam_instance.bbox_3d
+        x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
+        yaw = self._get_yaw_perturbed(yaw)
+        roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
+    
+        euler_angles = torch.tensor([pitch, roll, yaw], dtype=torch.float32)
+        convention = "XYZ"
+        R = euler_angles_to_matrix(euler_angles, convention)
+        # A SE(3) matrix has the following form: ` [ R 0 ] [ T 1 ] , `
+        se3_exp_map_matrix = torch.eye(4)
+        se3_exp_map_matrix[:3, :3] = R 
+
+        # form must be ` [ R 0 ] [ T 1 ] , ` so need to transpose
+        se3_exp_map_matrix = se3_exp_map_matrix.T
+        
+        # add batch dim if not present
+        if se3_exp_map_matrix.dim() == 2:
+            se3_exp_map_matrix = se3_exp_map_matrix.unsqueeze(0)
+        
+        try: 
+            pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
+        except Exception as e:
+            print("Error in se3_log_map", e)
+            return None, None
+          
+       
+        
+        return pose_6d
+        
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor):
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
@@ -283,7 +319,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         
         cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor)
-        
+        cam_instance.pose_6d_perturbed = self._get_pose_6d_perturbed(cam_instance)
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             print("pose_6d", cam_instance.pose_6d)
             print("bbox_sizes", cam_instance.bbox_sizes)
@@ -352,6 +388,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.patch_center_2d = patch_center_2d
         ret.bbox_3d_gt = ret_cam_instance.bbox_3d
         ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
+        ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 

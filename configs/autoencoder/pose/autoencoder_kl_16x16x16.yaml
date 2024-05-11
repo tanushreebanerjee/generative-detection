@@ -62,7 +62,7 @@ data:
     num_workers: 1
     wrap: True
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -79,7 +79,7 @@ data:
         patch_height: 256
         patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.nuscenes.NuScenesValidation
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
       params:
         data_root: data/nuscenes
         pipeline: []

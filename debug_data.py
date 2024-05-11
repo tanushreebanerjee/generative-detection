@@ -20,7 +20,7 @@ def main():
     item_idx = 35
     nusc_val = NuScenesValidationMini(**nusc_base_kwargs)
     nusc_item = nusc_val[item_idx]
-    print("nusc_item")
+    print("nusc_item", nusc_item)
     
 if __name__ == "__main__":
     main()
