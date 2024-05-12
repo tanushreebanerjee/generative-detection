@@ -299,7 +299,7 @@ class PoseAutoencoder(AutoencoderKL):
         assert pose_6d_perturbed_ret.shape[1] == POSE_6D_DIM, f"pose_6d_perturbed_ret shape: {pose_6d_perturbed_ret.shape}"
         return pose_6d_perturbed.to(self.device)
  
-    def _perturbed_pose_forward(self, posterior_obj, dec_pose, sample_posterior=True, batch):
+    def _perturbed_pose_forward(self, posterior_obj, dec_pose, batch, sample_posterior=True):
         if sample_posterior:
             z_obj = posterior_obj.sample()
         else:

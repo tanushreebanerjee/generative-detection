@@ -10,16 +10,18 @@ model:
       target: src.modules.losses.PoseLoss
       params:
         disc_start: 50001
-        kl_weight: 0.000001
+        kl_weight_obj: 1.0
+        kl_weight_bbox: 0.000001
         disc_weight: 0.5
-        pose_weight: 160
-        class_weight: 0.0
-        bbox_weight: 0.0
+        pose_weight: 500
+        class_weight: 1.0
+        bbox_weight: 500
         pose_loss_fn: "l2"
-        mask_weight: 25000
+        mask_weight: 0
         mask_loss_fn: "l2"
-        disc_in_channels: 4
+        disc_in_channels: 3
         num_classes: 1
+        dataset_stats_path: "dataset_stats/old-combined.pkl"
     pose_decoder_config:
       target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
       params: 
@@ -47,7 +49,7 @@ model:
       z_channels: 16
       resolution: 64
       in_channels: 3
-      out_ch: 4
+      out_ch: 3
       ch: 128
       ch_mult: [ 1,1,2,2,4]  # num_down = len(ch_mult)-1
       num_res_blocks: 2

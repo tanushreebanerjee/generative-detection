@@ -20,7 +20,7 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, pose_weight=1.0, mask_weight=1.0, class_weight=1.0, bbox_weight=1.0,
+    def __init__(self, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=1.0, class_weight=1.0, bbox_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, 
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl",
@@ -32,6 +32,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.bbox_weight = bbox_weight
         self.use_mask_loss = use_mask_loss
         self.num_classes = num_classes
+        self.kl_weight_obj = kl_weight_obj
+        self.kl_weight_bbox = kl_weight_bbox
         assert pose_loss_fn is not None, "Please provide a pose loss function."
         assert mask_loss_fn is not None, "Please provide a mask loss function."
         assert pose_loss_fn in ["l1", "l2", "mse"], \
@@ -83,6 +85,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
        
     def compute_pose_loss(self, pred, gt):
         # need to get loss split for each part of the pose - t1, t2, t3, v3
+        print
         assert pred.shape == gt.shape, "Prediction and ground truth shapes do not match."
         assert pred.shape[1] == POSE_6D_DIM, "Invalid pose dimensionality."
         
@@ -191,9 +194,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
         nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
         
-        kl_loss = self._get_kl_loss(posterior_obj)
+        kl_loss_obj = self._get_kl_loss(posterior_obj)
         
-        bbox_kl_loss = self.compute_pose_kl_loss(bbox_posterior)
+        kl_loss_obj_bbox = self.compute_pose_kl_loss(bbox_posterior)
     
         # now the GAN part
         if optimizer_idx == 0:
@@ -219,12 +222,12 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             disc_factor = adopt_weight(self.disc_factor, global_step, 
                                        threshold=self.discriminator_iter_start)
             loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
-                + (self.kl_weight * kl_loss) + (self.kl_weight * bbox_kl_loss) \
+                + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
                     + d_weight * disc_factor * g_loss
 
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                     "{}/logvar".format(split): self.logvar.detach(),
-                    "{}/kl_loss".format(split): kl_loss.detach().mean(), 
+                    "{}/kl_loss_obj".format(split): kl_loss_obj.detach().mean(), 
                     "{}/nll_loss".format(split): nll_loss.detach().mean(),
                     "{}/weighted_nll_loss".format(split): weighted_nll_loss.detach().mean(),
                     "{}/rec_loss".format(split): rec_loss.detach().mean(),
@@ -243,8 +246,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     "{}/t2_loss".format(split): t2_loss.detach().mean(),
                     "{}/t3_loss".format(split): t3_loss.detach().mean(),
                     "{}/v3_loss".format(split): v3_loss.detach().mean(),
-                    "{}/bbox_kl_loss".format(split): bbox_kl_loss.detach().mean(),
-                    "{}/weighted_bbox_kl_loss".format(split): self.kl_weight * bbox_kl_loss.detach().mean(),
+                    "{}/kl_loss_bbox".format(split): kl_loss_obj_bbox.detach().mean(),
                    }
             return loss, log
 

@@ -47,6 +47,8 @@ Z_FAR = 55.0
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
 
+POSE_DIM = 4
+
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
                  is_sweep=False, **kwargs):
@@ -86,6 +88,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             height = y2 - y1
             floored_center = np.floor(center_2d).astype(np.int32)
             box_size = max(int(width), int(height))
+            fill_factor = max(int(width), int(height)) - min(int(width), int(height)) # TODO: account for fill factor
             box_size = box_size+1 if box_size%2 == 0 else box_size 
             y1 = floored_center[1] - box_size // 2 - 1
             y2 = floored_center[1] + box_size // 2 + 1
@@ -116,7 +119,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
         transform = transforms.Compose([transforms.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
-        return patch_resized_tensor, patch_size_sq, resampling_factor
+        fill_factor_resampled = fill_factor * resampling_factor[0]
+        return patch_resized_tensor, patch_size_sq, resampling_factor, fill_factor_resampled
     
     def _get_yaw_perturbed(self, yaw, perturb_degrees=20):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
@@ -154,7 +158,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         return pose_6d
         
-    def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor):
+    def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor, fill_factor_resampled):
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
@@ -183,28 +187,31 @@ class NuScenesBase(MMDetNuScenesDataset):
         # TODO: scale z values from camera to learned
         z_world = z
         
-        def get_zminmax(min_val, max_val, patch_resampling_factor, focal_length, patch_height):
-            zmin = -(min_val * focal_length.squeeze()[0]) / (patch_height)
-            zmax = -(max_val * focal_length.squeeze()[0]) / (patch_height)
+        def get_zminmax(min_val, max_val, focal_length, patch_height):
+            # TODO: need to account for fill factor
+            zmin = -(min_val * focal_length.squeeze()[0]) / (patch_height - fill_factor_resampled)
+            zmax = -(max_val * focal_length.squeeze()[0]) / (patch_height - fill_factor_resampled)
             return zmin, zmax
         
         zmin, zmax = get_zminmax(min_val=L_MIN, max_val=L_MAX, 
-                                 patch_resampling_factor=patch_resampling_factor, 
                                  focal_length=camera.focal_length, 
                                  patch_height=self.patch_size[0])
+        
         z_learned_unscaled = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
                                        patch_resampling_factor=patch_resampling_factor[0])
         
-        z_learned_far = z_world_to_learned(z_world=Z_FAR, zmin=zmin, zmax=zmax, 
-                                       patch_resampling_factor=patch_resampling_factor[0])
-        z_learned_near = z_world_to_learned(z_world=Z_NEAR, zmin=zmin, zmax=zmax, 
-                                       patch_resampling_factor=patch_resampling_factor[0])
+        # z_learned_far = z_world_to_learned(z_world=Z_FAR, zmin=zmin, zmax=zmax, 
+        #                                patch_resampling_factor=patch_resampling_factor[0])
+        # z_learned_near = z_world_to_learned(z_world=Z_NEAR, zmin=zmin, zmax=zmax, 
+        #                                patch_resampling_factor=patch_resampling_factor[0])
         
-        def rescale_z_learned(val, min_val, max_val):
-            rescaled_val = 2*((val - min_val) / (max_val - min_val)) - 1
-            return rescaled_val
+        # def rescale_z_learned(val, min_val, max_val):
+        #     rescaled_val = 2*((val - min_val) / (max_val - min_val)) - 1
+        #     return rescaled_val
         
-        z_learned = rescale_z_learned(z_learned_unscaled, z_learned_near, z_learned_far)
+        # z_learned = rescale_z_learned(z_learned_unscaled, z_learned_near, z_learned_far)
+        
+        z_learned = z_learned_unscaled
         
         if point_patch_ndc.dim() == 3:
             point_patch_ndc = point_patch_ndc.view(-1)
@@ -239,7 +246,13 @@ class NuScenesBase(MMDetNuScenesDataset):
         w_pred = w / h
         
         bbox_sizes = torch.tensor([l_pred, h_pred, w_pred], dtype=torch.float32)
-        return pose_6d, bbox_sizes
+        
+        # remove v1, v2 from pose_6d = t1, t2, t3, v1, v2, v3
+        pose_6d_no_v1v2 = torch.zeros_like(pose_6d[:, :POSE_DIM])
+        pose_6d_no_v1v2[:, :3] = pose_6d[:, :POSE_DIM-1]
+        # set v3 as last val
+        pose_6d_no_v1v2[:, -1] = pose_6d[:, -1]
+        return pose_6d_no_v1v2, bbox_sizes
     
     
     def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
@@ -247,7 +260,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance = edict(cam_instance)
         
         ### must be original patch size!!
-        patch, patch_size_original, resampling_factor = self._generate_patch(img_path, cam_instance)
+        patch, patch_size_original, resampling_factor, fill_factor = self._generate_patch(img_path, cam_instance)
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
             print("patch", patch)
@@ -318,7 +331,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         
-        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor)
+        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, fill_factor)
         cam_instance.pose_6d_perturbed = self._get_pose_6d_perturbed(cam_instance)
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             print("pose_6d", cam_instance.pose_6d)
@@ -389,6 +402,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.bbox_3d_gt = ret_cam_instance.bbox_3d
         ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
         ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
+        if ret.pose_6d.dim() == 3:
+            ret.pose_6d = ret.pose_6d.squeeze(0)
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         return ret
 
