@@ -38,8 +38,6 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     t1_meter = AverageMeter()
     t2_meter = AverageMeter()
     t3_meter = AverageMeter()
-    v1_meter = AverageMeter()
-    v2_meter = AverageMeter()
     v3_meter = AverageMeter()
     l_meter = AverageMeter()
     h_meter = AverageMeter()
@@ -47,13 +45,11 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     pbar = tqdm.tqdm(total=len(dataset))
     for i in range(len(dataset)):
         data = dataset[i]
-        t1, t2, t3, v1, v2, v3 = data['pose_6d'][0]
+        t1, t2, t3, v3 = data['pose_6d'][0]
         l, h, w = data['bbox_sizes']
         t1_meter.update(t1)
         t2_meter.update(t2)
         t3_meter.update(t3)
-        v1_meter.update(v1)
-        v2_meter.update(v2)
         v3_meter.update(v3)
         l_meter.update(l)
         h_meter.update(h)
@@ -61,15 +57,13 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         
         pbar.update(1)
         if i % 100 == 0:
-            pbar.set_description(f"t1: {t1_meter.get_stats()} t2: {t2_meter.get_stats()} t3: {t3_meter.get_stats()} v1: {v1_meter.get_stats()} v2: {v2_meter.get_stats()} v3: {v3_meter.get_stats()} l: {l_meter.get_stats()} h: {h_meter.get_stats()} w: {w_meter.get_stats()}")
+            pbar.set_description(f"t1: {t1_meter.get_stats()} t2: {t2_meter.get_stats()} t3: {t3_meter.get_stats()} v3: {v3_meter.get_stats()} l: {l_meter.get_stats()} h: {h_meter.get_stats()} w: {w_meter.get_stats()}")
         
     # save stats to file and print to stdout
     stats = {
         "t1": t1_meter.get_stats(),
         "t2": t2_meter.get_stats(),
         "t3": t3_meter.get_stats(),
-        "v1": v1_meter.get_stats(),
-        "v2": v2_meter.get_stats(),
         "v3": v3_meter.get_stats(),
         "l": l_meter.get_stats(),
         "h": h_meter.get_stats(),
@@ -87,8 +81,6 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         "t1": t1_meter,
         "t2": t2_meter,
         "t3": t3_meter,
-        "v1": v1_meter,
-        "v2": v2_meter,
         "v3": v3_meter,
         "l": l_meter,
         "h": h_meter,
