@@ -9,6 +9,7 @@ from ldm.util import instantiate_from_config
 from src.util.distributions import DiagonalGaussianDistribution
 from torch.autograd import Variable
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import math
@@ -37,6 +38,7 @@ class PoseAutoencoder(AutoencoderKL):
                  ddconfig,
                  lossconfig,
                  embed_dim,
+                 dropout_prob,
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
@@ -54,6 +56,8 @@ class PoseAutoencoder(AutoencoderKL):
                  pose_encoder_config=None,
                  ):
         pl.LightningModule.__init__(self)
+        self.dropout_prob = dropout_prob
+        self.dropout = nn.Dropout(p=self.dropout_prob)
         self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
@@ -182,6 +186,9 @@ class PoseAutoencoder(AutoencoderKL):
                 z_obj = posterior_obj.sample() # torch.Size([4, 16, 16, 16])
             else:
                 z_obj = posterior_obj.mode()
+            
+            if self.dropout_prob > 0:
+                z_obj = self.dropout(z_obj)
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
