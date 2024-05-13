@@ -6,14 +6,15 @@
             "type": "debugpy",
             "request": "attach",
             "port": 54321, // if step 1b applies, enter the number from step 5
-            "host": "neuronic", // if step 1b applies, enter the host from step 4
+            "host": "neu329", // if step 1b applies, enter the host from step 4
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
                     "remoteRoot": "${workspaceFolder}"
                 }
             ],
-            "subProcess" : true
+            "subProcess" : true,
+            "justMyCode": true
         }
     ]
 }

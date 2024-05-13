@@ -20,7 +20,7 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=1.0, class_weight=1.0, bbox_weight=1.0,
+    def __init__(self, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, 
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl",
@@ -85,7 +85,6 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
        
     def compute_pose_loss(self, pred, gt):
         # need to get loss split for each part of the pose - t1, t2, t3, v3
-        print
         assert pred.shape == gt.shape, "Prediction and ground truth shapes do not match."
         assert pred.shape[1] == POSE_6D_DIM, "Invalid pose dimensionality."
         
@@ -100,14 +99,17 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss
 
     def _get_rec_loss(self, inputs, reconstructions):  
-        rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous())
+        # MSE RGB
+        rec_loss = torch.abs(inputs.contiguous() - reconstructions.contiguous()) # torch.Size([4, 3, 256, 256])
+        
+        # Perceptual loss
         if self.perceptual_weight > 0:
-            p_loss = self.perceptual_loss(inputs.contiguous(), reconstructions.contiguous())
-            rec_loss = rec_loss + self.perceptual_weight * p_loss
-        return rec_loss
+            p_loss = self.perceptual_loss(inputs.contiguous(), reconstructions.contiguous()) # torch.Size([4, 1, 1, 1])
+            rec_loss = rec_loss + self.perceptual_weight * p_loss # torch.Size([4, 3, 256, 256])
+        return rec_loss # torch.Size([4, 3, 256, 256])
 
     def _get_nll_loss(self, rec_loss, weights=None):
-        nll_loss = rec_loss / torch.exp(self.logvar) + self.logvar
+        nll_loss = rec_loss / torch.exp(self.logvar) + self.logvar # torch.Size([4, 3, 256, 256])
         weighted_nll_loss = nll_loss
         if weights is not None:
             weighted_nll_loss = weights*nll_loss
@@ -130,10 +132,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return mask_loss, weighted_mask_loss
     
     def compute_class_loss(self, class_gt, class_probs):
-        class_probs = class_probs.view(-1, self.num_classes)
-        class_gt = class_gt.view(-1)
-        class_probs = class_probs.to("cuda" if torch.cuda.is_available() else "cpu")
-        class_gt = class_gt.to(class_probs.device)
+        # class_gt: torch.Size([4])
+        # class_probs: torch.Size([4, 1])
         class_loss = self.class_loss_fn(class_probs, class_gt)
         weighted_class_loss = self.class_weight * class_loss
         return class_loss, weighted_class_loss
@@ -144,8 +144,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return bbox_loss, weighted_bbox_loss
     
     def compute_pose_kl_loss(self, bbox_posterior):
-        pose_kl_loss = bbox_posterior.kl(self.bbox_distribution)
-        # print("pose_kl_loss", pose_kl_loss, pose_kl_loss.shape)
+        pose_kl_loss = bbox_posterior.kl(self.bbox_distribution) # torch.Size([4])
         pose_kl_loss = torch.sum(pose_kl_loss) / pose_kl_loss.shape[0] # mean over batch
         return pose_kl_loss
       
@@ -157,33 +156,40 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 last_layer=None, cond=None, split="train",
                 weights=None):
         
-        rgb_gt = rgb_gt.permute(0, 2, 3, 1)
-        if mask_gt == None:
-            mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :])
+        # rgb_gt: torch.Size([4, 3, 256, 256])
+        # pose_gt: torch.Size([4, 4])
+        # mask_gt: torch.Size([4, 1, 256, 256]) / None
+        # dec_obj: torch.Size([4, 3, 256, 256])
+        # dec_pose: torch.Size([4, 8])
+        # class_gt: torch.Size([4])
+        # 
+        if mask_gt == None: # True
+            mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :]) # torch.Size([4, 1, 256, 256])
             self.use_mask_loss = False
+            gt_obj = rgb_gt # torch.Size([4, 3, 256, 256])
+        else:
+            gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
+        inputs, reconstructions = gt_obj, dec_obj # torch.Size([4, 3, 256, 256]), torch.Size([4, 3, 256, 256])
         
-        gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
-        inputs, reconstructions = gt_obj, dec_obj
+        inputs_rgb = rgb_gt # torch.Size([4, 3, 256, 256])
+        inputs_mask = mask_gt # torch.Size([4, 1, 256, 256])
         
-        inputs_rgb = rgb_gt
-        inputs_mask = mask_gt
-        
-        reconstructions_rgb = reconstructions[:, :3, :, :]
+
+        reconstructions_rgb = reconstructions[:, :3, :, :] # torch.Size([4, 3, 256, 256])
         
         # if reconstructions have alpha channel, store it in mask
         
         if reconstructions.shape[1] == 4:
             reconstructions_mask = reconstructions[:, 3:, :, :]
         else:
-            reconstructions_mask = torch.zeros_like(inputs_mask)
+            reconstructions_mask = torch.zeros_like(inputs_mask) # torch.Size([4, 1, 256, 256])
             self.use_mask_loss = False
         
         # first POSE_6D_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
-        pose_rec = dec_pose[:, :POSE_6D_DIM] # pose_rec:  torch.Size([8, 6]) 
-        if pose_gt.dim() == 3 and pose_gt.size(1) == 1:
-            pose_gt = pose_gt.squeeze(1) # pose_gt:  torch.Size([8, 6])
-        lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM]
-        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM:]
+        pose_rec = dec_pose[:, :POSE_6D_DIM] # torch.Size([4, 4])
+       
+        lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] # torch.Size([4, 3])
+        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM:] # torch.Size([4, 1])
             
         class_loss, weighted_class_loss = self.compute_class_loss(class_gt, class_probs)
         bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec)
@@ -203,7 +209,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             # generator update
             if cond is None:
                 assert not self.disc_conditional
-                logits_fake = self.discriminator(reconstructions.contiguous())
+                logits_fake = self.discriminator(reconstructions.contiguous()) # torch.Size([4, 1, 30, 30])
             else:
                 assert self.disc_conditional
                 logits_fake = self.discriminator(

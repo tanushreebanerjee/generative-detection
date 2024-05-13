@@ -62,7 +62,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
-        print(f"{self.__class__.__name__} initialized!")
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -100,7 +99,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
             if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
                 print("bbox out of bounds of image: x1, x2, y1, y2", x1, x2, y1, y2, "img size:", img_pil.size)
-                return None, None, None
+                return None, None, None, None
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
@@ -115,7 +114,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
         except ZeroDivisionError:
             print("patch size is 0", patch.size)
-            return None, None, None
+            return None, None, None, None
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
         transform = transforms.Compose([transforms.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
@@ -405,6 +404,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         if ret.pose_6d.dim() == 3:
             ret.pose_6d = ret.pose_6d.squeeze(0)
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
+        ret.pose_6d = ret.pose_6d.squeeze(0)
+        
         return ret
 
 @DATASETS.register_module()
