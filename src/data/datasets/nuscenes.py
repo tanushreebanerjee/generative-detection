@@ -98,7 +98,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             # TODO: check dims
             # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
             if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
-                print("bbox out of bounds of image: x1, x2, y1, y2", x1, x2, y1, y2, "img size:", img_pil.size)
                 return None, None, None, None
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -113,7 +112,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             resampling_factor = (resized_width / patch.size[0], resized_height / patch.size[1])
             assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
         except ZeroDivisionError:
-            print("patch size is 0", patch.size)
+            logging.info("patch size is 0", patch.size)
             return None, None, None, None
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
         transform = transforms.Compose([transforms.ToTensor()])
@@ -150,7 +149,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         try: 
             pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
         except Exception as e:
-            print("Error in se3_log_map", e)
+            logging.info("Error in se3_log_map", e)
             return None, None
           
        
@@ -236,7 +235,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         try: 
             pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
         except Exception as e:
-            print("Error in se3_log_map", e)
+            logging.info("Error in se3_log_map", e)
             return None, None
         
         # l and w pred as aspect ratio wrt h
@@ -262,8 +261,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         patch, patch_size_original, resampling_factor, fill_factor = self._generate_patch(img_path, cam_instance)
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
-            print("patch", patch)
-            print("patch_size_original", patch_size_original)
             return None
         
         
@@ -333,8 +330,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, fill_factor)
         cam_instance.pose_6d_perturbed = self._get_pose_6d_perturbed(cam_instance)
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
-            print("pose_6d", cam_instance.pose_6d)
-            print("bbox_sizes", cam_instance.bbox_sizes)
             return None
         
         cam_instance.class_id = cam_instance.bbox_label
