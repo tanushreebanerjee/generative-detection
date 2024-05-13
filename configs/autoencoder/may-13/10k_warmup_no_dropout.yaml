@@ -6,7 +6,7 @@ model:
     embed_dim: 16
     euler_convention: "XYZ"
     activation: "relu"
-    dropout_prob: 0.7
+    dropout_prob: 0
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:

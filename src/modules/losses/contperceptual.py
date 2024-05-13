@@ -21,11 +21,12 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
     def __init__(self, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
-                 pose_loss_fn=None, mask_loss_fn=None, 
+                 pose_loss_fn=None, mask_loss_fn=None, rec_warmup_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
-                 num_classes=1, dataset_stats_path="dataset_stats/combined.pkl",
+                 num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.rec_warmup_steps=rec_warmup_steps
         self.pose_weight = pose_weight
         self.mask_weight = mask_weight
         self.class_weight = class_weight
@@ -162,7 +163,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         # dec_obj: torch.Size([4, 3, 256, 256])
         # dec_pose: torch.Size([4, 8])
         # class_gt: torch.Size([4])
-        # 
+        
         if mask_gt == None: # True
             mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :]) # torch.Size([4, 1, 256, 256])
             self.use_mask_loss = False
@@ -227,10 +228,17 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
 
             disc_factor = adopt_weight(self.disc_factor, global_step, 
                                        threshold=self.discriminator_iter_start)
-            loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
+            
+            if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
+                loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
+                    + weighted_class_loss + weighted_bbox_loss \
                 + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
                     + d_weight * disc_factor * g_loss
-
+            else: # train only pose loss before rec_warmup_steps
+                loss = weighted_pose_loss \
+                    + weighted_class_loss + weighted_bbox_loss \
+                    + (self.kl_weight_bbox * kl_loss_obj_bbox)
+                
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                     "{}/logvar".format(split): self.logvar.detach(),
                     "{}/kl_loss_obj".format(split): kl_loss_obj.detach().mean(), 
