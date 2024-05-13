@@ -500,7 +500,7 @@ def main():
                 opt.step()
                 
             model.eval()
-            val_log = model.validation_step(batch, 0)
+            val_log = model.validation_step(batch, 1)
             img_log = model.log_images(batch)
             break
         

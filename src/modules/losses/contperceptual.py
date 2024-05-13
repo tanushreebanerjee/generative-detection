@@ -253,6 +253,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     "{}/t3_loss".format(split): t3_loss.detach().mean(),
                     "{}/v3_loss".format(split): v3_loss.detach().mean(),
                     "{}/kl_loss_bbox".format(split): kl_loss_obj_bbox.detach().mean(),
+                    "{}/weighted_kl_loss_bbox".format(split): self.kl_weight_bbox * kl_loss_obj_bbox.detach().mean(),
+                    "{}/weighted_kl_loss_obj".format(split): self.kl_weight_obj * kl_loss_obj.detach().mean(),
                    }
             return loss, log
 

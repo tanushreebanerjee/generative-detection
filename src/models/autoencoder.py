@@ -219,7 +219,8 @@ class PoseAutoencoder(AutoencoderKL):
         return x
     
     def training_step(self, batch, batch_idx, optimizer_idx):
-        rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 1, 3).to(self.device) # torch.Size([4, 3, 256, 256]) 
+        rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256]) 
+        rgb_gt = self._rescale(rgb_gt)
         pose_gt = self.get_pose_input(batch, self.pose_key).to(self.device) # torch.Size([4, 4]) #
         mask_gt = self.get_mask_input(batch, self.image_mask_key) # None
         mask_gt = mask_gt.to(self.device) if mask_gt is not None else None
@@ -252,7 +253,8 @@ class PoseAutoencoder(AutoencoderKL):
     
     def validation_step(self, batch, batch_idx):
         
-        rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 1, 3).to(self.device) # torch.Size([4, 3, 256, 256])
+        rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256])
+        rgb_gt = self._rescale(rgb_gt)
         pose_gt = self.get_pose_input(batch, self.pose_key).to(self.device) # torch.Size([4, 4])
         mask_gt = self.get_mask_input(batch, self.image_mask_key)
         mask_gt = mask_gt.to(self.device) if mask_gt is not None else None
@@ -316,7 +318,8 @@ class PoseAutoencoder(AutoencoderKL):
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         
-        x_rgb = self.get_input(batch, self.image_rgb_key).permute(0, 2, 1, 3).to(self.device).float()
+        x_rgb = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device).float()
+        x_rgb = self._rescale(x_rgb)
         x_mask = self.get_mask_input(batch, self.image_mask_key)
         x_mask = x_mask.to(self.device) if x_mask is not None else None
         
@@ -345,8 +348,12 @@ class PoseAutoencoder(AutoencoderKL):
             log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
             log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
-        log["inputs_rgb"] = x_rgb
+        log["inputs_rgb"] = torch.tensor(x_rgb)
         return log
+    
+    def _rescale(self, x):
+        # scale is -1
+        return 2. * (x - x.min()) / (x.max() - x.min()) - 1.
     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
