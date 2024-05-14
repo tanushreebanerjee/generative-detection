@@ -20,11 +20,11 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
+    def __init__(self, train_on_yaw=True, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, rec_warmup_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
-                 train_on_yaw=False, *args, **kwargs):
+                *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rec_warmup_steps=rec_warmup_steps
         self.pose_weight = pose_weight
