@@ -13,5 +13,7 @@ CONFIG_DIR=configs
 SPEC=16x16x16 # 8x8x64, 16x16x16, 32x32x4, 64x64x3
 CONFIG_SPEC=${MODEL}_kl_${SPEC}
 
-echo "python $SCRIPT_NAME --base configs/autoencoder/may-13/no_warmup_0.95_dropout.yaml -t --gpus $GPUS"
-python $SCRIPT_NAME --base configs/autoencoder/may-13/no_warmup_0.95_dropout.yaml -t --gpus $GPUS
+BASE_PATH=configs/autoencoder/may-14/three-stage.yaml
+CHKPT_PATH=logs/2024-05-13T06-22-26_no_rec_0.7_dropout
+echo "python $SCRIPT_NAME --base $BASE_PATH -r $CHKPT_PATH -t --gpus $GPUS"
+python $SCRIPT_NAME -b $BASE_PATH -r $CHKPT_PATH -t --gpus $GPUS

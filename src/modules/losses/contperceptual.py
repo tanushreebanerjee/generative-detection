@@ -229,15 +229,22 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             disc_factor = adopt_weight(self.disc_factor, global_step, 
                                        threshold=self.discriminator_iter_start)
             
-            if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
-                loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
-                    + weighted_class_loss + weighted_bbox_loss \
-                + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
-                    + d_weight * disc_factor * g_loss
-            else: # train only pose loss before rec_warmup_steps
+            
+            if self.rec_warmup_steps == -1:
+                # train only pose loss
                 loss = weighted_pose_loss \
                     + weighted_class_loss + weighted_bbox_loss \
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
+            else:
+                if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
+                    loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
+                        + weighted_class_loss + weighted_bbox_loss \
+                    + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
+                        + d_weight * disc_factor * g_loss
+                else: # train only pose loss before rec_warmup_steps
+                    loss = weighted_pose_loss \
+                        + weighted_class_loss + weighted_bbox_loss \
+                        + (self.kl_weight_bbox * kl_loss_obj_bbox)
                 
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                     "{}/logvar".format(split): self.logvar.detach(),

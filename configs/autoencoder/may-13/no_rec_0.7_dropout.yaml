@@ -10,14 +10,14 @@ model:
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
-        rec_warmup_steps: 10000
+        rec_warmup_steps: -1
         disc_start: 50001
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
         disc_weight: 0.5
         pose_weight: 80000
         class_weight: 1000000
-        bbox_weight: 2000000
+        bbox_weight: 200000
         pose_loss_fn: "l2"
         mask_weight: 0
         mask_loss_fn: "l2"

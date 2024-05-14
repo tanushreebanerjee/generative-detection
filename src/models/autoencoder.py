@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from torch.distributions.normal import Normal
 import math
 import random
 from math import radians
@@ -38,7 +39,6 @@ class PoseAutoencoder(AutoencoderKL):
                  ddconfig,
                  lossconfig,
                  embed_dim,
-                 dropout_prob,
                  euler_convention,
                  ckpt_path=None,
                  ignore_keys=[],
@@ -54,10 +54,18 @@ class PoseAutoencoder(AutoencoderKL):
                  feat_dims=[16, 16, 16],
                  pose_decoder_config=None,
                  pose_encoder_config=None,
+                 dropout_prob_init= 1.0,
+                 dropout_prob_final= 0.7,
+                 dropout_warmup_steps= 10000,
+                 add_noise_to_z_obj=True,
                  ):
         pl.LightningModule.__init__(self)
-        self.dropout_prob = dropout_prob
-        self.dropout = nn.Dropout(p=self.dropout_prob)
+        self.rec_warmup_steps = lossconfig["params"]["rec_warmup_steps"]
+        self.dropout_prob_final = dropout_prob_final # 0.7
+        self.dropout_prob_init = dropout_prob_init # 1.0
+        self.dropout_prob = self.dropout_prob_init
+        self.dropout_warmup_steps = dropout_warmup_steps # 10000 (after stage 1: encoder pretraining)
+        self.add_noise_to_z_obj = add_noise_to_z_obj
         self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
         self.pose_key = pose_key
@@ -165,6 +173,24 @@ class PoseAutoencoder(AutoencoderKL):
         posterior_obj = DiagonalGaussianDistribution(moments_obj) # torch.Size([4, 16, 16, 16]) sample
         return posterior_obj, pose_feat
     
+    def _get_dropout_prob(self):
+        """
+        Get the current dropout probability.
+        
+        Returns:
+            Dropout probability.
+        """
+        if self.global_step < self.rec_warmup_steps: # encoder pretraining phase
+            # set dropout probability to 1.0
+            dropout_prob = self.dropout_prob_init
+        elif self.global_step < self.dropout_warmup_steps + self.rec_warmup_steps: # pose conditioned generation phase
+            # linearly decrease dropout probability from initial to final value
+            dropout_prob = self.dropout_prob_init - (self.dropout_prob_init - self.dropout_prob_final) * (self.global_step - self.rec_warmup_steps) / self.dropout_warmup_steps # 1.0 - (1.0 - 0.7) * (10000 - 10000) / 10000 = 1.0
+        else: # VAE phase
+            # set dropout probability to dropout_prob_final
+            dropout_prob = self.dropout_prob_final
+        return dropout_prob
+    
     def forward(self, input_im, sample_posterior=True):
             """
             Forward pass of the autoencoder model.
@@ -182,13 +208,23 @@ class PoseAutoencoder(AutoencoderKL):
             # reshape input_im to (batch_size, 3, 256, 256)
             input_im = input_im.to(memory_format=torch.contiguous_format).float() # torch.Size([4, 3, 256, 256])
             posterior_obj, pose_feat = self.encode(input_im) # Distribution: torch.Size([4, 16, 16, 16]), torch.Size([4, 16, 16, 16])
+            
             if sample_posterior: # True
                 z_obj = posterior_obj.sample() # torch.Size([4, 16, 16, 16])
             else:
                 z_obj = posterior_obj.mode()
             
+            self.dropout_prob = self._get_dropout_prob()
+            
             if self.dropout_prob > 0:
-                z_obj = self.dropout(z_obj)
+                dropout = nn.Dropout(p=self.dropout_prob)
+                z_obj = dropout(z_obj)
+            
+            if self.add_noise_to_z_obj:
+                # draw from standard normal distribution
+                std_normal = Normal(0, 1)
+                z_obj_noise = std_normal.sample(posterior_obj.mean.shape).to(self.device) # torch.Size([4, 16, 16, 16])
+                z_obj = z_obj + z_obj_noise
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
@@ -233,9 +269,10 @@ class PoseAutoencoder(AutoencoderKL):
         mask_gt = mask_gt.to(self.device) if mask_gt is not None else None
         class_gt = self.get_class_input(batch, self.class_key).to(self.device) # torch.Size([4])
         bbox_gt = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3])
-        
+
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
+        self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar # last layer: torch.Size([3, 128, 3, 3])
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
