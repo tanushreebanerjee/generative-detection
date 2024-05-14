@@ -54,10 +54,10 @@ class PoseAutoencoder(AutoencoderKL):
                  feat_dims=[16, 16, 16],
                  pose_decoder_config=None,
                  pose_encoder_config=None,
-                 dropout_prob_init= 1.0,
-                 dropout_prob_final= 0.7,
-                 dropout_warmup_steps= 10000,
-                 add_noise_to_z_obj=True,
+                 dropout_prob_init=1.0,
+                 dropout_prob_final=0.7,
+                 dropout_warmup_steps=10000,
+                 add_noise_to_z_obj=True
                  ):
         pl.LightningModule.__init__(self)
         self.rec_warmup_steps = lossconfig["params"]["rec_warmup_steps"]
