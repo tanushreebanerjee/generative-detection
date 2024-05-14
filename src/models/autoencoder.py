@@ -57,10 +57,12 @@ class PoseAutoencoder(AutoencoderKL):
                  dropout_prob_init=1.0,
                  dropout_prob_final=0.7,
                  dropout_warmup_steps=10000,
-                 add_noise_to_z_obj=True
+                 add_noise_to_z_obj=True,
+                 train_on_yaw=False
                  ):
         pl.LightningModule.__init__(self)
         self.rec_warmup_steps = lossconfig["params"]["rec_warmup_steps"]
+        self.train_on_yaw = train_on_yaw
         self.dropout_prob_final = dropout_prob_final # 0.7
         self.dropout_prob_init = dropout_prob_init # 1.0
         self.dropout_prob = self.dropout_prob_init
@@ -240,6 +242,12 @@ class PoseAutoencoder(AutoencoderKL):
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
+
+        if self.train_on_yaw:
+            yaw = batch["yaw"]
+            # place yaw at index 3
+            x[:, 3] = yaw
+        
         x = x.to(memory_format=torch.contiguous_format).float()
         return x
     
@@ -259,6 +267,10 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _get_perturbed_pose(self, batch, k):
         x = batch[k]
+        if self.train_on_yaw:
+            yaw = batch["yaw_perturbed"]
+            # place yaw at index 3
+            x[:, 3] = yaw
         return x
     
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -279,7 +291,7 @@ class PoseAutoencoder(AutoencoderKL):
                                             dec_obj, dec_pose,
                                             class_gt, bbox_gt,
                                             posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
-                                            last_layer=self.get_last_layer(), split="train")
+                                            last_layer=self.get_last_layer(), split="train", train_on_yaw=self.train_on_yaw)
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return aeloss
@@ -290,7 +302,7 @@ class PoseAutoencoder(AutoencoderKL):
                                                 dec_obj, dec_pose,
                                                 class_gt, bbox_gt,
                                                 posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
-                                                last_layer=self.get_last_layer(), split="train")
+                                                last_layer=self.get_last_layer(), split="train", train_on_yaw=self.train_on_yaw)
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return discloss
@@ -313,13 +325,13 @@ class PoseAutoencoder(AutoencoderKL):
                                       dec_obj, dec_pose,
                                       class_gt, bbox_gt,
                                       posterior_obj, bbox_posterior, 0, self.global_step,
-                                      last_layer=self.get_last_layer(), split="val")
+                                      last_layer=self.get_last_layer(), split="val", train_on_yaw=self.train_on_yaw)
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
                                         class_gt, bbox_gt,
                                         posterior_obj, bbox_posterior, 1, self.global_step,
-                                        last_layer=self.get_last_layer(), split="val")
+                                        last_layer=self.get_last_layer(), split="val", train_on_yaw=self.train_on_yaw)
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
         self.log_dict(log_dict_ae)

@@ -24,7 +24,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                  pose_loss_fn=None, mask_loss_fn=None, rec_warmup_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
-                 *args, **kwargs):
+                 train_on_yaw=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rec_warmup_steps=rec_warmup_steps
         self.pose_weight = pose_weight
@@ -35,6 +35,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.num_classes = num_classes
         self.kl_weight_obj = kl_weight_obj
         self.kl_weight_bbox = kl_weight_bbox
+        self.train_on_yaw = train_on_yaw
         assert pose_loss_fn is not None, "Please provide a pose loss function."
         assert mask_loss_fn is not None, "Please provide a mask loss function."
         assert pose_loss_fn in ["l1", "l2", "mse"], \
@@ -53,6 +54,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             self.mask_loss = nn.MSELoss()
         else:
             raise ValueError("Invalid mask loss function. Please provide a valid mask loss function in ['l1', 'l2', 'mse'].")
+        
+        if self.train_on_yaw:
+            self.rot_loss_fn = nn.SmoothL1Loss()
         
         self.class_loss_fn = FocalLoss() #nn.CrossEntropyLoss()
         self.bbox_loss_fn = nn.MSELoss()
@@ -92,7 +96,12 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
         t3_loss = self.pose_loss(pred[:, 2], gt[:, 2])
-        v3_loss = self.pose_loss(pred[:, 3], gt[:, 3])
+        
+        if self.train_on_yaw:
+            # smoothL1(sin(theata_pred - theta_gt))
+            v3_loss = self.rot_loss_fn(torch.sin(pred[:, 3]), torch.sin(gt[:, 3]))
+        else:
+            v3_loss = self.pose_loss(pred[:, 3], gt[:, 3])
         
         pose_loss = t1_loss + t2_loss + t3_loss + v3_loss
         weighted_pose_loss = self.pose_weight * pose_loss

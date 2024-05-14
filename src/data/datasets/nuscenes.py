@@ -153,8 +153,8 @@ class NuScenesBase(MMDetNuScenesDataset):
             return None, None
           
        
-        
-        return pose_6d
+        yaw_perturbed = yaw
+        return pose_6d, yaw_perturbed
         
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor, fill_factor_resampled):
         bbox_3d = cam_instance.bbox_3d
@@ -250,7 +250,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         pose_6d_no_v1v2[:, :3] = pose_6d[:, :POSE_DIM-1]
         # set v3 as last val
         pose_6d_no_v1v2[:, -1] = pose_6d[:, -1]
-        return pose_6d_no_v1v2, bbox_sizes
+        return pose_6d_no_v1v2, bbox_sizes, yaw
     
     
     def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
@@ -327,8 +327,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         
-        cam_instance.pose_6d, cam_instance.bbox_sizes = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, fill_factor)
-        cam_instance.pose_6d_perturbed = self._get_pose_6d_perturbed(cam_instance)
+        cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, fill_factor)
+        cam_instance.pose_6d_perturbed, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             return None
         
@@ -400,7 +400,8 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d = ret.pose_6d.squeeze(0)
         assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
         ret.pose_6d = ret.pose_6d.squeeze(0)
-        
+        ret.yaw = ret_cam_instance.yaw
+        ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
         return ret
 
 @DATASETS.register_module()

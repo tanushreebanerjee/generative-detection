@@ -9,7 +9,7 @@ model:
     dropout_prob_final: 0.7
     dropout_warmup_steps: 10000
     add_noise_to_z_obj: True
-    train_on_yaw: False
+    train_on_yaw: True
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
