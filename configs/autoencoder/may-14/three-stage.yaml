@@ -14,7 +14,7 @@ model:
       target: src.modules.losses.PoseLoss
       params:
         rec_warmup_steps: 10000
-        disc_start: 0
+        disc_start: 10000
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
         disc_weight: 0.5

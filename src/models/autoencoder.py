@@ -267,11 +267,10 @@ class PoseAutoencoder(AutoencoderKL):
         return x
     
     def _get_perturbed_pose(self, batch, k):
-        x = batch[k]
+        x = batch[k].squeeze(1) # torch.Size([4, 6])
         if self.train_on_yaw:
-            yaw = batch["yaw_perturbed"]
-            # place yaw at index 3
-            x[:, 3] = yaw
+            x = torch.zeros_like(x) # torch.Size([4, 6])
+            x[:, -1] = batch["yaw_perturbed"] # torch.Size([4])
         return x
     
     def training_step(self, batch, batch_idx, optimizer_idx):

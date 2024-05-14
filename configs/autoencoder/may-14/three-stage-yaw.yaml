@@ -14,7 +14,7 @@ model:
       target: src.modules.losses.PoseLoss
       params:
         rec_warmup_steps: 10000
-        disc_start: 0
+        disc_start: 10000
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
         disc_weight: 0.5
@@ -70,7 +70,7 @@ data:
     wrap: True
     persistent_workers: False
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -87,7 +87,7 @@ data:
         patch_height: 256
         patch_aspect_ratio: 1.0
     validation:
-      target: src.data.datasets.nuscenes.NuScenesValidation
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
       params:
         data_root: data/nuscenes
         pipeline: []
