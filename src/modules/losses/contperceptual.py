@@ -11,7 +11,10 @@ from mmdet.models.losses.focal_loss import FocalLoss
 
 POSE_6D_DIM = 4
 LHW_DIM = 3
+FILL_FACTOR_DIM = 1
 PROB_THRESHOLD_OBJ = 0.2
+
+BBOX_DIM = POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
@@ -20,7 +23,9 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, train_on_yaw=True, kl_weight_obj=1.0, kl_weight_bbox=1e-6, pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
+    def __init__(self, train_on_yaw=True, kl_weight_obj=1.0, kl_weight_bbox=1e-6, 
+                 pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
+                 fill_factor_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, rec_warmup_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
@@ -29,6 +34,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.rec_warmup_steps=rec_warmup_steps
         self.pose_weight = pose_weight
         self.mask_weight = mask_weight
+        self.fill_factor_weight = fill_factor_weight
         self.class_weight = class_weight
         self.bbox_weight = bbox_weight
         self.use_mask_loss = use_mask_loss
@@ -60,6 +66,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         self.class_loss_fn = FocalLoss() #nn.CrossEntropyLoss()
         self.bbox_loss_fn = nn.MSELoss()
+        self.fill_factor_loss_fn = nn.MSELoss()
         
         # TODO: need to test this + store in the expected format
         with open(dataset_stats_path, "rb") as handle:
@@ -70,16 +77,25 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.bbox_distribution = self._create_distribution_from_dataset_stats(dataset_stats)
             
     def _create_distribution_from_dataset_stats(self, dataset_stats):
-        bbox_means = torch.zeros(POSE_6D_DIM + LHW_DIM)
-        bbox_logvars = torch.zeros(POSE_6D_DIM + LHW_DIM)
-        for idx, key in enumerate(["t1", "t2", "t3", "v3", "l", "h", "w"]):
-            if key not in dataset_stats: 
-                mean = 0.0
-                std_dev = 1.0
-                logvar = 2. * math.log(std_dev)
+        bbox_means = torch.zeros(BBOX_DIM)
+        bbox_logvars = torch.zeros(BBOX_DIM)
+        rot_param = "yaw" if self.train_on_yaw else "v3"
+        for idx, key in enumerate(["t1", "t2", "t3", rot_param, "l", "h", "w", "fill_factor"]):
+            if key not in dataset_stats:  # "yaw", "fill_factor"
+                
+                if key == "yaw":
+                    mean = 0.0
+                    std_dev = math.pi
+                elif key == "fill_factor":
+                    mean == 0.5
+                    std_dev = 0.1
+                else:
+                    raise Exception
+                logvar = 2 * torch.log(torch.tensor(std_dev, device="cuda" if torch.cuda.is_available() else "cpu"))
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
-            else: # t1, t2, t3, l, h, w
+                    
+            else: # t1, t2, t3, v3, l, h, w
                 mean, logvar = dataset_stats[key]
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
@@ -149,7 +165,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return class_loss, weighted_class_loss
     
     def compute_bbox_loss(self, bbox_gt, bbox_pred):
-        bbox_loss = nn.MSELoss()(bbox_gt, bbox_pred)
+        bbox_loss = self.bbox_loss_fn(bbox_gt, bbox_pred)
         weighted_bbox_loss = self.bbox_weight * bbox_loss
         return bbox_loss, weighted_bbox_loss
     
@@ -158,10 +174,15 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         pose_kl_loss = torch.sum(pose_kl_loss) / pose_kl_loss.shape[0] # mean over batch
         return pose_kl_loss
       
+    def compute_fill_factor_loss(self, fill_factor_gt, fill_factor_pred):
+        fill_factor_loss = self.fill_factor_loss_fn(fill_factor_gt, fill_factor_pred)
+        weighted_fill_factor_loss = self.fill_factor_weight * fill_factor_loss
+        return fill_factor_loss, weighted_fill_factor_loss
+    
     def forward(self, 
                 rgb_gt, mask_gt, pose_gt,
                 dec_obj, dec_pose,
-                class_gt, bbox_gt,
+                class_gt, bbox_gt, fill_factor_gt,
                 posterior_obj, bbox_posterior, optimizer_idx, global_step, 
                 last_layer=None, cond=None, split="train",
                 weights=None):
@@ -184,11 +205,9 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         inputs_rgb = rgb_gt # torch.Size([4, 3, 256, 256])
         inputs_mask = mask_gt # torch.Size([4, 1, 256, 256])
         
-
         reconstructions_rgb = reconstructions[:, :3, :, :] # torch.Size([4, 3, 256, 256])
         
         # if reconstructions have alpha channel, store it in mask
-        
         if reconstructions.shape[1] == 4:
             reconstructions_mask = reconstructions[:, 3:, :, :]
         else:
@@ -199,13 +218,15 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         pose_rec = dec_pose[:, :POSE_6D_DIM] # torch.Size([4, 4])
        
         lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] # torch.Size([4, 3])
-        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM:] # torch.Size([4, 1])
+        fill_factor_rec = dec_pose[:, POSE_6D_DIM+LHW_DIM:POSE_6D_DIM+LHW_DIM+FILL_FACTOR_DIM] # 4, 1
+        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM+FILL_FACTOR_DIM:] # torch.Size([4, 1])
             
         class_loss, weighted_class_loss = self.compute_class_loss(class_gt, class_probs)
         bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec)
         
         pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss = self.compute_pose_loss(pose_gt, pose_rec)
         mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
+        fill_factor_loss, weighted_fill_factor_loss = self.compute_fill_factor_loss(fill_factor_gt, fill_factor_rec.squeeze())
         
         rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
         nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
@@ -242,17 +263,17 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             if self.rec_warmup_steps == -1:
                 # train only pose loss
                 loss = weighted_pose_loss \
-                    + weighted_class_loss + weighted_bbox_loss \
+                    + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
             else:
                 if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
                     loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
-                        + weighted_class_loss + weighted_bbox_loss \
+                        + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
                         + d_weight * disc_factor * g_loss
                 else: # train only pose loss before rec_warmup_steps
                     loss = weighted_pose_loss \
-                        + weighted_class_loss + weighted_bbox_loss \
+                        + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                         + (self.kl_weight_bbox * kl_loss_obj_bbox)
                 
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
@@ -279,6 +300,8 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     "{}/kl_loss_bbox".format(split): kl_loss_obj_bbox.detach().mean(),
                     "{}/weighted_kl_loss_bbox".format(split): self.kl_weight_bbox * kl_loss_obj_bbox.detach().mean(),
                     "{}/weighted_kl_loss_obj".format(split): self.kl_weight_obj * kl_loss_obj.detach().mean(),
+                    "{}/fill_factor_loss".format(split): fill_factor_loss.detach().mean(),
+                    "{}/weighted_fill_factor_loss".format(split): weighted_fill_factor_loss.detach().mean(),
                    }
             return loss, log
 

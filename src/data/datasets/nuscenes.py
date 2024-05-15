@@ -16,6 +16,7 @@ from PIL import Image as Image
 from PIL.Image import Resampling
 import numpy as np
 import logging
+import math
 
 L_MIN = 0.5 
 L_MAX = 3.0
@@ -123,10 +124,21 @@ class NuScenesBase(MMDetNuScenesDataset):
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
         return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled
     
-    def _get_yaw_perturbed(self, yaw, perturb_degrees=20):
+    def _get_yaw_perturbed(self, yaw, perturb_degrees_min=30, perturb_degrees_max=90):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
+        
+        perturb_degrees = np.random.uniform(perturb_degrees_min, perturb_degrees_max)
         perturb_radians = np.radians(perturb_degrees)
-        yaw_perturbed = yaw + np.random.uniform(-perturb_radians, perturb_radians)
+        
+        # add or subtract with probability 0.5
+        yaw_perturbed = yaw + perturb_radians if np.random.rand() > 0.5 else yaw - perturb_radians
+        
+        # make sure yaw_perturbed is in -pi, pi, and if not, find equivalent
+        if yaw_perturbed < -math.pi:
+            yaw_perturbed = yaw_perturbed + (2 * math.pi)
+        elif yaw_perturbed > math.pi:
+            yaw_perturbed = yaw_perturbed - (2 * math.pi)
+        assert yaw_perturbed >= -math.pi and yaw_perturbed <= math.pi, f"yaw_perturbed is not in range -pi, pi: {yaw_perturbed}"
         return yaw_perturbed
 
     def _get_pose_6d_perturbed(self, cam_instance):
@@ -157,9 +169,13 @@ class NuScenesBase(MMDetNuScenesDataset):
           
        
         yaw_perturbed = yaw
-        return pose_6d, yaw_perturbed
+        v3_pert = pose_6d[:, -1]
+        return v3_pert, yaw_perturbed
         
-    def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor, padding_pixels_resampled):
+    def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor, fill_factor):
+        
+        # fill_factor = padding_pixels_resampled / self.patch_size[0]
+        padding_pixels_resampled = fill_factor * self.patch_size[0]
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
@@ -249,10 +265,12 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         ### must be original patch size!!
         patch, patch_size_original, resampling_factor, padding_pixels_resampled = self._generate_patch(img_path, cam_instance)
+        
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
             return None
         
+        fill_factor = padding_pixels_resampled / self.patch_size[0]
         
         # if no batch dimension, add it
         if patch_size_original.dim() == 1:
@@ -317,14 +335,19 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         
-        cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, padding_pixels_resampled)
-        cam_instance.pose_6d_perturbed, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
+        cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance, patch_size_original, resampling_factor, fill_factor)
+        
+        cam_instance.v3_pert, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
+        pose_pert = cam_instance.pose_6d.clone()
+        pose_pert[:, -1] = cam_instance.v3_pert
+        cam_instance.pose_6d_perturbed = pose_pert
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             return None
         
         cam_instance.class_id = cam_instance.bbox_label
         cam_instance.patch_size = patch_size_original
         cam_instance.resampling_factor = resampling_factor
+        cam_instance.fill_factor = fill_factor
         return cam_instance
     
     def __getitem__(self, idx):
@@ -392,6 +415,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.pose_6d = ret.pose_6d.squeeze(0)
         ret.yaw = ret_cam_instance.yaw
         ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
+        ret.fill_factor = ret_cam_instance.fill_factor
         return ret
 
 @DATASETS.register_module()

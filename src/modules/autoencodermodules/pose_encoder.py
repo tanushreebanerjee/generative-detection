@@ -7,6 +7,7 @@ from torch.autograd import Variable
 
 POSE_DIM = 4
 LHW_DIM = 3
+FILL_FACTOR_DIM=1
 HIDDEN_DIM_1_DIV = 8
 HIDDEN_DIM_2_DIV = 4
 
@@ -58,7 +59,7 @@ class PoseEncoder(nn.Module):
 class PoseEncoderSpatialVAE(nn.Module):
     def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="swish", hidden_dim=500, num_layers=2):
         super(PoseEncoderSpatialVAE, self).__init__()
-        latent_dim = POSE_DIM + LHW_DIM + num_classes # 10 = 6 + 3 + 1
+        latent_dim = POSE_DIM + LHW_DIM + FILL_FACTOR_DIM + num_classes # 10 = 6 + 3 + 1
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
         if activation == "swish":
             activation = nn.SiLU
