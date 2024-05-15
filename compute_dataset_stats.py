@@ -31,7 +31,7 @@ class AverageMeter():
         
     def combine(self, other_meter):
         self.sum += other_meter.sum
-        self.squaredsum += other_meter.squared_sum
+        self.squared_sum += other_meter.squared_sum
         self.n += other_meter.n
         return self
 
@@ -96,6 +96,10 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         "yaw": yaw_meter,
         "fill_factor": fill_factor_meter,
     }
+    
+    for key, meter in meters_dict.items():
+        print(f"{key}: sum={meter.sum}, squared_sum={meter.squared_sum}, n={meter.n}")
+    
     return stats, meters_dict
 
 def main():

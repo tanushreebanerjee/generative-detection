@@ -27,7 +27,7 @@ model:
         mask_loss_fn: "l2"
         disc_in_channels: 3
         num_classes: 1
-        dataset_stats_path: "dataset_stats/combined-old.pkl"
+        dataset_stats_path: "dataset_stats/NuScenesTrain-old.pkl"
     pose_decoder_config:
       target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
       params: 
@@ -67,7 +67,7 @@ data:
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 4
-    num_workers: 0
+    num_workers: 10
     wrap: True
     persistent_workers: False
     train:

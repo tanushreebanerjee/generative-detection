@@ -6,24 +6,28 @@ model:
     embed_dim: 16
     euler_convention: "XYZ"
     activation: "relu"
-    dropout_prob: 0.7
+    dropout_prob_final: 0.7
+    dropout_warmup_steps: 10000
+    add_noise_to_z_obj: True
+    train_on_yaw: True
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
         rec_warmup_steps: 10000
-        disc_start: 50001
+        disc_start: 10000
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
         disc_weight: 0.5
         pose_weight: 80000
+        fill_factor_weight: 500000
         class_weight: 1000000
-        bbox_weight: 2000000
-        pose_loss_fn: "l2"
+        bbox_weight: 200000
+        pose_loss_fn: "l1"
         mask_weight: 0
         mask_loss_fn: "l2"
         disc_in_channels: 3
         num_classes: 1
-        dataset_stats_path: "dataset_stats/combined.pkl"
+        dataset_stats_path: "dataset_stats/NuScenesTrain-old.pkl"
     pose_decoder_config:
       target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
       params: 
@@ -63,7 +67,7 @@ data:
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 4
-    num_workers: 0
+    num_workers: 10
     wrap: True
     persistent_workers: False
     train:
