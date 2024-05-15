@@ -113,13 +113,21 @@ class PatchPerspectiveCameras(PerspectiveCameras):
                                    eps: Optional[float] = None, **kwargs) -> torch.Tensor:
         # camera --> ndc points
         points = points.to(self.device)
-        points_ndc = self.transform_points_ndc(points, eps=None)
+        # points_ndc = self.transform_points_ndc(points, eps=None)
+        points_screen = self.transform_points_screen(points)
+        points_ndc = self.get_ndc_camera_transform().transform_points(points_screen)
         
         # ndc --> patch ndc transform
         ndc_to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) 
         
         # ndc --> patch ndc points
-        points_patch_ndc = ndc_to_patch_ndc_transform.transform_points(points_ndc, eps=None)
+        points_patch_ndc = ndc_to_patch_ndc_transform.transform_points(points_ndc, eps=1e-7)
+        
+        # if first 2 values are > 0.5 print
+        if points_patch_ndc.dim() == 3:
+            points_patch_ndc = points_patch_ndc.view(-1)
+        x_patch, y_patch, _ = points_patch_ndc
+        
         return points_patch_ndc
     
     def get_patch_ndc_camera_transform(self,
@@ -224,7 +232,7 @@ def get_ndc_to_patch_ndc_transform(
     ]
 
     """
-    
+    device = cameras.device
     # We require the image size, which is necessary for the transform
     if image_size is None:
         msg = "For NDC to screen conversion, image_size=(height, width) needs to be specified."
@@ -250,25 +258,25 @@ def get_ndc_to_patch_ndc_transform(
     
     batch_size = image_size.shape[0]
     image_sizes = image_size.view(batch_size, 1, 2)
-    image_heights, image_widths = image_sizes[..., 0], image_sizes[..., 1]
+    # image_heights, image_widths = image_sizes[..., 0], image_sizes[..., 1]
     
     patch_size = patch_size.view(batch_size, 1, 2)
-    patch_height, patch_width = patch_size[..., 0], patch_size[..., 1]
+    # patch_height, patch_width = patch_size[..., 0], patch_size[..., 1]
     
-    patch_center = patch_center.view(batch_size, 1, 2)
+    patch_center = patch_center.view(batch_size, 1, 2).to(cameras.device)
     cx_screen, cy_screen = patch_center[..., 0], patch_center[..., 1]
 
     # For non square images, we scale the points such that the aspect ratio is preserved.
     # send to available device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # send to device
-    patch_width = patch_width.to(device)
-    patch_height = patch_height.to(device)
-    image_widths = image_widths.to(device)
-    image_heights = image_heights.to(device)
-    cx_screen = cx_screen.to(device)
-    cy_screen = cy_screen.to(device)
+    # patch_width = patch_width.to(device)
+    # patch_height = patch_height.to(device)
+    # image_widths = image_widths.to(device)
+    # image_heights = image_heights.to(device)
+    # cx_screen = cx_screen.to(device)
+    # cy_screen = cy_screen.to(device)
     
     screen_to_ndc_transform = cameras.get_ndc_camera_transform()
     point_screen = torch.cat([cx_screen, cy_screen, torch.ones_like(cx_screen)], dim=-1)
@@ -283,15 +291,14 @@ def get_ndc_to_patch_ndc_transform(
     patch_scale = (patch_size.min(dim=-1).values - 0.0).to(device)
     principal_point = cameras.get_principal_point()
     
-    K[:, 0, 0] = 2 * (patch_scale / scale)
-    K[:, 1, 1] = 2 * (patch_scale / scale)
-    principal_point_scale = 2 * (principal_point / scale) 
+    K[:, 0, 0] = (patch_scale / scale)
+    K[:, 1, 1] = (patch_scale / scale)
     
-    tx = cx_ndc
-    ty = cy_ndc
+    # tx = cx_ndc
+    # ty = cy_ndc
     
-    K[:, 3, 0] = -2 * (patch_scale / scale) * tx
-    K[:, 3, 1] = -2 * (patch_scale / scale) * ty
+    K[:, 3, 0] = -(patch_scale / scale) * cx_ndc
+    K[:, 3, 1] = -(patch_scale / scale) * cy_ndc
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
