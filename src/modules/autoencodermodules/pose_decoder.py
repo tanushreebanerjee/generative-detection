@@ -5,6 +5,7 @@ from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 
 POSE_DIM = 4
 LHW_DIM = 3
+FILL_FACTOR_DIM=1
 HIDDEN_DIM_1_DIV = 4
 HIDDEN_DIM_2_DIV = 8
 
@@ -60,7 +61,7 @@ class PoseDecoderSpatialVAE(nn.Module):
     def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
         super(PoseDecoderSpatialVAE, self).__init__()
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
-        inf_dim = ((POSE_DIM + LHW_DIM) * 2) + num_classes # (6 + 3) * 2  + 1 = 19
+        inf_dim = ((POSE_DIM + LHW_DIM + FILL_FACTOR_DIM) * 2) + num_classes # (6 + 3 + 1) * 2  + 1 = 21
         activation = nn.Tanh if activation == "tanh" else nn.ReLU
         
         kwargs.update({

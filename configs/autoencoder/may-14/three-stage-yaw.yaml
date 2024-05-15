@@ -19,6 +19,7 @@ model:
         kl_weight_bbox: 0.000001
         disc_weight: 0.5
         pose_weight: 80000
+        fill_factor_weight: 500000
         class_weight: 1000000
         bbox_weight: 200000
         pose_loss_fn: "l1"
@@ -26,7 +27,7 @@ model:
         mask_loss_fn: "l2"
         disc_in_channels: 3
         num_classes: 1
-        dataset_stats_path: "dataset_stats/combined.pkl"
+        dataset_stats_path: "dataset_stats/combined-old.pkl"
     pose_decoder_config:
       target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
       params: 

@@ -7,30 +7,32 @@ import json
 import pickle as pkl
 
 class AverageMeter():
-    def __init__(self, history=None):
+    def __init__(self):
         self.reset()
-        if history is not None:
-            self.history = history
 
     def reset(self):
-        self.history = np.array([])
+        self.sum = 0
+        self.squared_sum = 0
+        self.n = 0
         
     def get_stats(self):
         # return mean and logvar concatenated as "moments" in an array
-        mean = np.mean(self.history)
-        std = np.std(self.history)
-        logvar = np.log(std**2)
-        moments = np.array([mean, logvar])
-        moments = torch.from_numpy(moments).float()
+        mean = self.sum / self.n
+        squared_sum_expectation = self.squared_sum / self.n
+        var = squared_sum_expectation - mean**2
+        logvar = np.log(var + 1e-8) 
+        moments = torch.tensor([mean, logvar], dtype=torch.float32)
         return moments
     
-    def update(self, val, n=1):
-        # self.history is a numpy array
-        self.history = np.append(self.history, val)
+    def update(self, val):
+        self.sum += val
+        self.squared_sum += val**2
+        self.n += 1
         
-    def combine(self, other_meter_history):
-        # combine self.history with other_meter_history
-        self.history = np.append(self.history, other_meter_history)
+    def combine(self, other_meter):
+        self.sum += other_meter.sum
+        self.squaredsum += other_meter.squared_sum
+        self.n += other_meter.n
         return self
 
 def get_dataset_stats(dataset, save_dir="dataset_stats"):
@@ -42,11 +44,15 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     l_meter = AverageMeter()
     h_meter = AverageMeter()
     w_meter = AverageMeter()
+    yaw_meter = AverageMeter()
+    fill_factor_meter = AverageMeter()
     pbar = tqdm.tqdm(total=len(dataset))
     for i in range(len(dataset)):
         data = dataset[i]
-        t1, t2, t3, v3 = data['pose_6d'][0]
+        t1, t2, t3, v3 = data['pose_6d']
         l, h, w = data['bbox_sizes']
+        yaw = data["yaw"]
+        fill_factor = data["fill_factor"]
         t1_meter.update(t1)
         t2_meter.update(t2)
         t3_meter.update(t3)
@@ -54,10 +60,10 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         l_meter.update(l)
         h_meter.update(h)
         w_meter.update(w)
+        yaw_meter.update(yaw)
+        fill_factor_meter.update(fill_factor)
         
         pbar.update(1)
-        if i % 100 == 0:
-            pbar.set_description(f"t1: {t1_meter.get_stats()} t2: {t2_meter.get_stats()} t3: {t3_meter.get_stats()} v3: {v3_meter.get_stats()} l: {l_meter.get_stats()} h: {h_meter.get_stats()} w: {w_meter.get_stats()}")
         
     # save stats to file and print to stdout
     stats = {
@@ -68,6 +74,8 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         "l": l_meter.get_stats(),
         "h": h_meter.get_stats(),
         "w": w_meter.get_stats(),
+        "yaw": yaw_meter.get_stats(),
+        "fill_factor": fill_factor_meter.get_stats(),
     }
 
     print(f"{dataset.__class__.__name__} stats:")
@@ -85,6 +93,8 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         "l": l_meter,
         "h": h_meter,
         "w": w_meter,
+        "yaw": yaw_meter,
+        "fill_factor": fill_factor_meter,
     }
     return stats, meters_dict
 
@@ -110,7 +120,7 @@ def main():
     # get combined stats from train_meters_list and val_meters_list
     combined_stats = {}
     for key, meter in train_meters_dict.items():
-        meter = meter.combine(val_meters_dict[key].history)
+        meter = meter.combine(val_meters_dict[key])
         combined_stats[key] = meter.get_stats()
     print("Combined stats:")
     print(combined_stats)

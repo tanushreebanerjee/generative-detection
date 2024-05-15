@@ -502,8 +502,7 @@ def main():
             model.eval()
             val_log = model.validation_step(batch, 1)
             img_log = model.log_images(batch)
-            break
-        
+
         return loss, val_log, img_log
         
     loss, val_log, img_log = run_one_iteration(model, data)
