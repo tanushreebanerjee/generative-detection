@@ -31,7 +31,7 @@ class AverageMeter():
         
     def combine(self, other_meter):
         self.sum += other_meter.sum
-        self.squaredsum += other_meter.squared_sum
+        self.squared_sum += other_meter.squared_sum
         self.n += other_meter.n
         return self
 
@@ -81,7 +81,7 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
     print(f"{dataset.__class__.__name__} stats:")
     for k, v in stats.items():
         print(f"{k}: {v}")
-        
+       
     with open(os.path.join(save_dir, f"{dataset.__class__.__name__}.pkl"), 'wb') as handle:
         pkl.dump(stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
     
@@ -96,6 +96,13 @@ def get_dataset_stats(dataset, save_dir="dataset_stats"):
         "yaw": yaw_meter,
         "fill_factor": fill_factor_meter,
     }
+    
+    for key, meter in meters_dict.items():
+        print(f"{dataset.__class__.__name__} {key} meter:")
+        print(f"{key}: sum={meter.sum}, squared_sum={meter.squared_sum}, n={meter.n}")
+        print(f"{key}: mean={meter.sum/meter.n}, var={meter.squared_sum/meter.n - (meter.sum/meter.n)**2}")
+        print(f"{key}: logvar={np.log(meter.squared_sum/meter.n - (meter.sum/meter.n)**2 + 1e-8)}")
+    
     return stats, meters_dict
 
 def main():
@@ -125,7 +132,7 @@ def main():
     print("Combined stats:")
     print(combined_stats)
     
-    with open(os.path.join(save_dir, "combined.pkl"), 'wb') as handle:
+    with open(os.path.join(save_dir, "combined_train_val.pkl"), 'wb') as handle:
         pkl.dump(combined_stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
     
 if __name__ == "__main__":
