@@ -234,15 +234,21 @@ class PoseAutoencoder(AutoencoderKL):
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
-            enc_pose = self._encode_pose(dec_pose) # torch.Size([4, 16, 16, 16])
             
-            assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
+            if self.global_step < self.rec_warmup_steps:
+                # return only the pose, and dont run the decoder
+                return None, dec_pose, posterior_obj, bbox_posterior
             
-            z_obj_pose = z_obj + enc_pose # torch.Size([4, 16, 16, 16])
+            else:
+                enc_pose = self._encode_pose(dec_pose) # torch.Size([4, 16, 16, 16])
+                
+                assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
+                
+                z_obj_pose = z_obj + enc_pose # torch.Size([4, 16, 16, 16])
+                
+                dec_obj = self.decode(z_obj_pose) # torch.Size([4, 3, 256, 256])
             
-            dec_obj = self.decode(z_obj_pose) # torch.Size([4, 3, 256, 256])
-            
-            return dec_obj, dec_pose, posterior_obj, bbox_posterior
+                return dec_obj, dec_pose, posterior_obj, bbox_posterior
         
     def get_pose_input(self, batch, k):
         x = batch[k] 
@@ -396,21 +402,22 @@ class PoseAutoencoder(AutoencoderKL):
         if not only_inputs:
             # torch.Size([4, 3, 256, 256]) torch.Size([4, 8]) torch.Size([4, 16, 16, 16]) torch.Size([4, 7])
             xrec, poserec, posterior_obj, bbox_posterior = self.forward(x_rgb)
-            xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec, batch) #torch.Size([4, 3, 256, 256])
+            if self.global_step > self.rec_warmup_steps:
+                xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec, batch) #torch.Size([4, 3, 256, 256])
+                
+                xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
+                xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :] # torch.Size([4, 3, 256, 256])
+                
+                if x_rgb.shape[1] > 3:
+                    # colorize with random projection
+                    assert xrec_rgb.shape[1] > 3
+                    x_rgb = self.to_rgb(x_rgb)
+                    xrec_rgb = self.to_rgb(xrec_rgb)
+                    xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
             
-            xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
-            xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :] # torch.Size([4, 3, 256, 256])
-            
-            if x_rgb.shape[1] > 3:
-                # colorize with random projection
-                assert xrec_rgb.shape[1] > 3
-                x_rgb = self.to_rgb(x_rgb)
-                xrec_rgb = self.to_rgb(xrec_rgb)
-                xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
-        
-            # scale is 0, 1. scale to -1, 1
-            log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-            log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
+                # scale is 0, 1. scale to -1, 1
+                log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
+                log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
         
         log["inputs_rgb"] = torch.tensor(x_rgb)
         return log

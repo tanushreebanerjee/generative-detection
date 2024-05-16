@@ -194,26 +194,39 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         # dec_pose: torch.Size([4, 8])
         # class_gt: torch.Size([4])
         
-        if mask_gt == None: # True
-            mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :]) # torch.Size([4, 1, 256, 256])
-            self.use_mask_loss = False
-            gt_obj = rgb_gt # torch.Size([4, 3, 256, 256])
+        is_encoder_pretraining_phase = True if (dec_pose == None or global_step < self.rec_warmup_steps) else False
+        if not is_encoder_pretraining_phase:
+            if mask_gt == None: # True
+                mask_gt = torch.zeros_like(rgb_gt[:, :1, :, :]) # torch.Size([4, 1, 256, 256])
+                self.use_mask_loss = False
+                gt_obj = rgb_gt # torch.Size([4, 3, 256, 256])
+            else:
+                gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
+                
+            if is_encoder_pretraining_phase: 
+                dec_obj = torch.zeros_like(gt_obj) # torch.Size([4, 4, 256, 256])
+            
+            inputs, reconstructions = gt_obj, dec_obj # torch.Size([4, 3, 256, 256]), torch.Size([4, 3, 256, 256])
+            
+            inputs_rgb = rgb_gt # torch.Size([4, 3, 256, 256])
+            inputs_mask = mask_gt # torch.Size([4, 1, 256, 256])
+            
+            reconstructions_rgb = reconstructions[:, :3, :, :] # torch.Size([4, 3, 256, 256])
+            
+            # if reconstructions have alpha channel, store it in mask
+            if reconstructions.shape[1] == 4:
+                reconstructions_mask = reconstructions[:, 3:, :, :]
+            else:
+                reconstructions_mask = torch.zeros_like(inputs_mask) # torch.Size([4, 1, 256, 256])
+                self.use_mask_loss = False
         else:
-            gt_obj = torch.cat((rgb_gt, mask_gt), dim=1)
-        inputs, reconstructions = gt_obj, dec_obj # torch.Size([4, 3, 256, 256]), torch.Size([4, 3, 256, 256])
-        
-        inputs_rgb = rgb_gt # torch.Size([4, 3, 256, 256])
-        inputs_mask = mask_gt # torch.Size([4, 1, 256, 256])
-        
-        reconstructions_rgb = reconstructions[:, :3, :, :] # torch.Size([4, 3, 256, 256])
-        
-        # if reconstructions have alpha channel, store it in mask
-        if reconstructions.shape[1] == 4:
-            reconstructions_mask = reconstructions[:, 3:, :, :]
-        else:
-            reconstructions_mask = torch.zeros_like(inputs_mask) # torch.Size([4, 1, 256, 256])
-            self.use_mask_loss = False
-        
+            inputs = None
+            reconstructions = None
+            inputs_rgb = None
+            inputs_mask = None
+            reconstructions_rgb = None
+            reconstructions_mask = None
+
         # first POSE_6D_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
         pose_rec = dec_pose[:, :POSE_6D_DIM] # torch.Size([4, 4])
        
@@ -225,56 +238,61 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec)
         
         pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss = self.compute_pose_loss(pose_gt, pose_rec)
-        mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
         fill_factor_loss, weighted_fill_factor_loss = self.compute_fill_factor_loss(fill_factor_gt, fill_factor_rec.squeeze())
-        
-        rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
-        nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
-        
-        kl_loss_obj = self._get_kl_loss(posterior_obj)
-        
         kl_loss_obj_bbox = self.compute_pose_kl_loss(bbox_posterior)
-    
+        
+        if not is_encoder_pretraining_phase:
+            mask_loss, weighted_mask_loss = self.get_mask_loss(inputs_mask, reconstructions_mask)
+            rec_loss = self._get_rec_loss(inputs_rgb, reconstructions_rgb)
+            nll_loss, weighted_nll_loss = self._get_nll_loss(rec_loss, weights)
+            kl_loss_obj = self._get_kl_loss(posterior_obj)
+        
+        else:
+            mask_loss = torch.tensor(0.0)
+            weighted_mask_loss = torch.tensor(0.0)
+            rec_loss = torch.tensor(0.0)
+            nll_loss = torch.tensor(0.0)
+            weighted_nll_loss = torch.tensor(0.0)
+            kl_loss_obj = torch.tensor(0.0)
+
         # now the GAN part
         if optimizer_idx == 0:
-            # generator update
-            if cond is None:
-                assert not self.disc_conditional
-                logits_fake = self.discriminator(reconstructions.contiguous()) # torch.Size([4, 1, 30, 30])
-            else:
-                assert self.disc_conditional
-                logits_fake = self.discriminator(
-                    torch.cat((reconstructions.contiguous(), cond), dim=1))
-            g_loss = -torch.mean(logits_fake)
+            if not is_encoder_pretraining_phase:
+                # generator update
+                if cond is None:
+                    assert not self.disc_conditional
+                    logits_fake = self.discriminator(reconstructions.contiguous()) # torch.Size([4, 1, 30, 30])
+                else:
+                    assert self.disc_conditional
+                    logits_fake = self.discriminator(
+                        torch.cat((reconstructions.contiguous(), cond), dim=1))
+                g_loss = -torch.mean(logits_fake)
 
-            if self.disc_factor > 0.0:
-                try:
-                    d_weight = self.calculate_adaptive_weight(nll_loss, g_loss, last_layer=last_layer)
-                except RuntimeError:
-                    assert not self.training
+                if self.disc_factor > 0.0:
+                    try:
+                        d_weight = self.calculate_adaptive_weight(nll_loss, g_loss, last_layer=last_layer)
+                    except RuntimeError:
+                        assert not self.training
+                        d_weight = torch.tensor(0.0)
+                else:
                     d_weight = torch.tensor(0.0)
-            else:
-                d_weight = torch.tensor(0.0)
 
-            disc_factor = adopt_weight(self.disc_factor, global_step, 
-                                       threshold=self.discriminator_iter_start)
+                disc_factor = adopt_weight(self.disc_factor, global_step, 
+                                        threshold=self.discriminator_iter_start)
+            else:
+                g_loss = torch.tensor(0.0)
+                d_weight = torch.tensor(0.0)
+                disc_factor = torch.tensor(0.0)
             
-            
-            if self.rec_warmup_steps == -1:
-                # train only pose loss
+            if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
+                loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
+                    + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
+                + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
+                    + d_weight * disc_factor * g_loss
+            else: # train only pose loss before rec_warmup_steps
                 loss = weighted_pose_loss \
                     + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
-            else:
-                if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
-                    loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
-                        + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
-                    + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
-                        + d_weight * disc_factor * g_loss
-                else: # train only pose loss before rec_warmup_steps
-                    loss = weighted_pose_loss \
-                        + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
-                        + (self.kl_weight_bbox * kl_loss_obj_bbox)
                 
             log =  {"{}/total_loss".format(split): loss.clone().detach().mean(), 
                     "{}/logvar".format(split): self.logvar.detach(),
@@ -306,19 +324,24 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             return loss, log
 
         if optimizer_idx == 1:
-            # second pass for discriminator update
-            if cond is None:
-                logits_real = self.discriminator(inputs.contiguous().detach())
-                logits_fake = self.discriminator(reconstructions.contiguous().detach())
-            else:
-                logits_real = self.discriminator(
-                    torch.cat((inputs.contiguous().detach(), cond), dim=1))
-                logits_fake = self.discriminator(
-                    torch.cat((reconstructions.contiguous().detach(), cond), dim=1))
+            if not is_encoder_pretraining_phase:
+                # second pass for discriminator update
+                if cond is None:
+                    logits_real = self.discriminator(inputs.contiguous().detach())
+                    logits_fake = self.discriminator(reconstructions.contiguous().detach())
+                else:
+                    logits_real = self.discriminator(
+                        torch.cat((inputs.contiguous().detach(), cond), dim=1))
+                    logits_fake = self.discriminator(
+                        torch.cat((reconstructions.contiguous().detach(), cond), dim=1))
 
-            disc_factor = adopt_weight(self.disc_factor, global_step, 
-                                       threshold=self.discriminator_iter_start)
-            d_loss = disc_factor * self.disc_loss(logits_real, logits_fake)
+                disc_factor = adopt_weight(self.disc_factor, global_step, 
+                                        threshold=self.discriminator_iter_start)
+                d_loss = disc_factor * self.disc_loss(logits_real, logits_fake)
+            else:
+                d_loss = torch.tensor(0.0)
+                logits_real = torch.tensor(0.0)
+                logits_fake = torch.tensor(0.0)
 
             log = {"{}/disc_loss".format(split): d_loss.clone().detach().mean(),
                    "{}/logits_real".format(split): logits_real.detach().mean(),
