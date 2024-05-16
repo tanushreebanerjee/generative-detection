@@ -284,10 +284,10 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 d_weight = torch.tensor(0.0)
                 disc_factor = torch.tensor(0.0)
             
-            if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
+            if not is_encoder_pretraining_phase: # train rec loss only after rec_warmup_steps
                 loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
                     + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
-                + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
+                    + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
                     + d_weight * disc_factor * g_loss
             else: # train only pose loss before rec_warmup_steps
                 loss = weighted_pose_loss \
