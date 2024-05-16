@@ -13,5 +13,5 @@ CONFIG_DIR=configs
 SPEC=16x16x16 # 8x8x64, 16x16x16, 32x32x4, 64x64x3
 CONFIG_SPEC=${MODEL}_kl_${SPEC}
 
-echo "python $SCRIPT_NAME --b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --gpus $GPUS"
+echo "python $SCRIPT_NAME -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --gpus $GPUS"
 python $SCRIPT_NAME -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --gpus $GPUS
