@@ -87,6 +87,7 @@ data:
         label_names: ["car"]
         patch_height: 256
         patch_aspect_ratio: 1.0
+        perturb_center: True
     validation:
       target: src.data.datasets.nuscenes.NuScenesValidation
       params:
@@ -104,6 +105,7 @@ data:
         label_names: ["car"]
         patch_height: 256
         patch_aspect_ratio: 1.0
+        perturb_center: False
 
 lightning:
   callbacks:
@@ -130,3 +132,4 @@ lightning:
     profiler: advanced
     max_epochs: 1000
     strategy: ddp
+    accumulate_grad_batches: 8

@@ -52,7 +52,7 @@ POSE_DIM = 4
 
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
-                 is_sweep=False, **kwargs):
+                 is_sweep=False, perturb_center=True, **kwargs):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
@@ -63,7 +63,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
-        
+        self.perturb_center = perturb_center
     def __len__(self):
         self.num_samples = super().__len__()
         self.num_cameras = len(CAMERA_NAMES)
@@ -262,6 +262,16 @@ class NuScenesBase(MMDetNuScenesDataset):
     def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
         # get a easy dict / edict with the same keys as the CamInstance class
         cam_instance = edict(cam_instance)
+        
+        if self.perturb_center:
+            # random perturb center
+            center_o = cam_instance.center_2d
+            # perturb center by a random value between -patch_size/4 and patch_size/4
+            perturb_pixels_max = patch_size[0] // 4
+            perturb_pixels_h = np.random.randint(-perturb_pixels_max, perturb_pixels_max)
+            perturb_pixels_w = np.random.randint(-perturb_pixels_max, perturb_pixels_max)
+            center_perturbed = [center_o[0] + perturb_pixels_w, center_o[1] + perturb_pixels_h]
+            cam_instance.center_2d = center_perturbed
         
         ### must be original patch size!!
         patch, patch_size_original, resampling_factor, padding_pixels_resampled = self._generate_patch(img_path, cam_instance)

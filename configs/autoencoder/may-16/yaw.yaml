@@ -87,7 +87,7 @@ data:
         label_names: ["car"]
         patch_height: 256
         patch_aspect_ratio: 1.0
-        perturb_center: True
+        perturb_center: False
     validation:
       target: src.data.datasets.nuscenes.NuScenesValidation
       params:

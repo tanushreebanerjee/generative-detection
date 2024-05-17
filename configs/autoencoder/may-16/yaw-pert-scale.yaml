@@ -105,7 +105,7 @@ data:
         label_names: ["car"]
         patch_height: 256
         patch_aspect_ratio: 1.0
-        perturb_center: False
+        perturb_center: True
 
 lightning:
   callbacks:
