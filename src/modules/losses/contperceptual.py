@@ -91,7 +91,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     std_dev = 0.1
                 else:
                     raise Exception
-                logvar = 2 * torch.log(torch.tensor(std_dev, device="cuda" if torch.cuda.is_available() else "cpu"))
+                logvar = 2 * torch.log(torch.tensor(std_dev))
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
                     
@@ -101,7 +101,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 bbox_logvars[idx] = logvar
                 
         parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
-        parameters = torch.tensor(parameters, device="cuda" if torch.cuda.is_available() else "cpu")
+        parameters = torch.tensor(parameters)
         return DiagonalGaussianDistribution(parameters)
        
     def compute_pose_loss(self, pred, gt):

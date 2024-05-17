@@ -8,15 +8,12 @@ import torch.multiprocessing as mp
 import signal
 from packaging import version
 from omegaconf import OmegaConf
-
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer import Trainer
 
 from src.util.misc import log_opts, set_submodule_paths, set_cache_directories
 set_submodule_paths(submodule_dir="submodules")
 from ldm.util import instantiate_from_config
-
-import ptvsd
 
 def get_parser(**parser_kwargs):
     """
@@ -208,7 +205,7 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             }
         },
     }
-    default_logger_cfg = default_logger_cfgs["testtube"]
+    default_logger_cfg = default_logger_cfgs["wandb"]
     if "logger" in lightning_config:
         logger_cfg = lightning_config.logger
     else:
@@ -373,7 +370,7 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
     # configure learning rate
     bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
     if not cpu:
-        ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+        ngpu = lightning_config.trainer.devices # len(lightning_config.trainer.gpus.strip(",").split(','))
     else:
         ngpu = 1
     if 'accumulate_grad_batches' in lightning_config.trainer:

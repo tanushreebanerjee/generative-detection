@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import logging
 import torch
 import torch.multiprocessing as mp
+import tqdm
 
 import signal
 from packaging import version
@@ -16,7 +17,6 @@ from src.util.misc import log_opts, set_submodule_paths, set_cache_directories
 set_submodule_paths(submodule_dir="submodules")
 from ldm.util import instantiate_from_config
 
-import ptvsd
 
 def get_parser(**parser_kwargs):
     """
@@ -373,7 +373,7 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
     # configure learning rate
     bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
     if not cpu:
-        ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+        ngpu = lightning_config.trainer.devices #len(lightning_config.trainer.gpus.strip(",").split(','))
     else:
         ngpu = 1
     if 'accumulate_grad_batches' in lightning_config.trainer:
@@ -480,15 +480,14 @@ def main():
 
     signal.signal(signal.SIGUSR1, melk)
     signal.signal(signal.SIGUSR2, divein)
-
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = model.to(device)
     # run one iteration of model training without calling .fit for debugging
     def run_one_iteration(model, data):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model = model.to(device)
-        
         dataloader = data.train_dataloader()
         opts, _ = model.configure_optimizers()
-        for batch in dataloader:
+        for batch in tqdm.tqdm(dataloader):
             model.train()
             loss = model.training_step(batch, 0, optimizer_idx=0)
             
@@ -508,4 +507,5 @@ def main():
     loss, val_log, img_log = run_one_iteration(model, data)
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn')
     main()
