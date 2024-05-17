@@ -26,12 +26,12 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     def __init__(self, train_on_yaw=True, kl_weight_obj=1.0, kl_weight_bbox=1e-6, 
                  pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
                  fill_factor_weight=1.0,
-                 pose_loss_fn=None, mask_loss_fn=None, rec_warmup_steps=0,
+                 pose_loss_fn=None, mask_loss_fn=None, encoder_pretrain_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
                 *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rec_warmup_steps=rec_warmup_steps
+        self.encoder_pretrain_steps=encoder_pretrain_steps
         self.pose_weight = pose_weight
         self.mask_weight = mask_weight
         self.fill_factor_weight = fill_factor_weight
@@ -247,7 +247,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     torch.cat((reconstructions.contiguous(), cond), dim=1))
             g_loss = -torch.mean(logits_fake)
 
-            if self.disc_factor > 0.0:
+            if self.disc_factor > 0.0 and global_step > self.encoder_pretrain_steps:
                 try:
                     d_weight = self.calculate_adaptive_weight(nll_loss, g_loss, last_layer=last_layer)
                 except RuntimeError:
@@ -260,18 +260,18 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                                        threshold=self.discriminator_iter_start)
             
             
-            if self.rec_warmup_steps == -1:
+            if self.encoder_pretrain_steps == -1:
                 # train only pose loss
                 loss = weighted_pose_loss \
                     + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
             else:
-                if global_step > self.rec_warmup_steps: # train rec loss only after rec_warmup_steps
+                if global_step > self.encoder_pretrain_steps: # train rec loss only after encoder_pretrain_steps
                     loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
                         + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
                         + d_weight * disc_factor * g_loss
-                else: # train only pose loss before rec_warmup_steps
+                else: # train only pose loss before encoder_pretrain_steps
                     loss = weighted_pose_loss \
                         + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                         + (self.kl_weight_bbox * kl_loss_obj_bbox)

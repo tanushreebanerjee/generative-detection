@@ -9,5 +9,5 @@ MODEL=autoencoder
 MODE=train
 SCRIPT_NAME=${MODE}.py
 
-echo "python $SCRIPT_NAME -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --gpus $GPUS"
-srun python $SCRIPT_NAME -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --gpus $GPUS
+echo "python $SCRIPT_NAME -b configs/autoencoder/may17/aug_sc.yaml -t --gpus $GPUS"
+srun python $SCRIPT_NAME -b configs/autoencoder/may17/aug_sc.yaml -t --gpus $GPUS

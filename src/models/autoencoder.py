@@ -58,17 +58,19 @@ class PoseAutoencoder(AutoencoderKL):
                  pose_encoder_config=None,
                  dropout_prob_init=1.0,
                  dropout_prob_final=0.7,
-                 dropout_warmup_steps=10000,
+                 dropout_warmup_steps=5000,
+                 pose_conditioned_generation_steps=10000,
                  add_noise_to_z_obj=True,
                  train_on_yaw=True,
                  ):
         pl.LightningModule.__init__(self)
-        self.rec_warmup_steps = lossconfig["params"]["rec_warmup_steps"]
+        self.encoder_pretrain_steps = lossconfig["params"]["encoder_pretrain_steps"]
         self.train_on_yaw = train_on_yaw
         self.dropout_prob_final = dropout_prob_final # 0.7
         self.dropout_prob_init = dropout_prob_init # 1.0
         self.dropout_prob = self.dropout_prob_init
         self.dropout_warmup_steps = dropout_warmup_steps # 10000 (after stage 1: encoder pretraining)
+        self.pose_conditioned_generation_steps = pose_conditioned_generation_steps # 10000
         self.add_noise_to_z_obj = add_noise_to_z_obj
         self.feature_dims = feat_dims
         self.image_rgb_key = image_rgb_key
@@ -186,15 +188,21 @@ class PoseAutoencoder(AutoencoderKL):
         Returns:
             Dropout probability.
         """
-        if self.global_step < self.rec_warmup_steps: # encoder pretraining phase
+        if self.global_step < self.encoder_pretrain_steps: # encoder pretraining phase
             # set dropout probability to 1.0
             dropout_prob = self.dropout_prob_init
-        elif self.global_step < self.dropout_warmup_steps + self.rec_warmup_steps: # pose conditioned generation phase
+        
+        elif self.global_step < self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
+            dropout_prob = self.dropout_prob_init
+        
+        elif self.global_step < self.dropout_warmup_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
             # linearly decrease dropout probability from initial to final value
-            dropout_prob = self.dropout_prob_init - (self.dropout_prob_init - self.dropout_prob_final) * (self.global_step - self.rec_warmup_steps) / self.dropout_warmup_steps # 1.0 - (1.0 - 0.7) * (10000 - 10000) / 10000 = 1.0
+            dropout_prob = self.dropout_prob_init - (self.dropout_prob_init - self.dropout_prob_final) * (self.global_step - self.encoder_pretrain_steps) / self.dropout_warmup_steps # 1.0 - (1.0 - 0.7) * (10000 - 10000) / 10000 = 1.0
+        
         else: # VAE phase
             # set dropout probability to dropout_prob_final
             dropout_prob = self.dropout_prob_final
+        
         return dropout_prob
     
     def forward(self, input_im, sample_posterior=True):
@@ -234,13 +242,17 @@ class PoseAutoencoder(AutoencoderKL):
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
-            enc_pose = self._encode_pose(dec_pose) # torch.Size([4, 16, 16, 16])
             
-            assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
-            
-            z_obj_pose = z_obj + enc_pose # torch.Size([4, 16, 16, 16])
-            
-            dec_obj = self.decode(z_obj_pose) # torch.Size([4, 3, 256, 256])
+            if self.global_step < self.encoder_pretrain_steps: # no reconstruction loss in this phase
+                dec_obj = torch.zeros_like(input_im).to(self.device) # torch.Size([4, 3, 256, 256])
+            else:
+                enc_pose = self._encode_pose(dec_pose) # torch.Size([4, 16, 16, 16])
+                
+                assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
+                
+                z_obj_pose = z_obj + enc_pose # torch.Size([4, 16, 16, 16])
+                
+                dec_obj = self.decode(z_obj_pose) # torch.Size([4, 3, 256, 256])
             
             return dec_obj, dec_pose, posterior_obj, bbox_posterior
         

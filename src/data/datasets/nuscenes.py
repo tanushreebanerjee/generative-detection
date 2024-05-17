@@ -50,9 +50,11 @@ NUSC_IMG_HEIGHT = 900
 
 POSE_DIM = 4
 
+PATCH_SIZES = [25, 50, 100, 200, 400]
+
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
-                 is_sweep=False, perturb_center=True, **kwargs):
+                 is_sweep=False, perturb_center=False, perturb_scale=False, **kwargs):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
@@ -64,6 +66,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
         self.perturb_center = perturb_center
+        self.perturb_scale = perturb_scale
+        
     def __len__(self):
         self.num_samples = super().__len__()
         self.num_cameras = len(CAMERA_NAMES)
@@ -78,37 +82,67 @@ class NuScenesBase(MMDetNuScenesDataset):
         # return croped list of images as defined by 2d bbox for each instance
         bbox = cam_instance.bbox # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
         center_2d = cam_instance.center_2d # Projected center location on the image, a list has shape (2,)
+        
+        # if center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
+        if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
+            return None, None, None, None
+        
         # use interpolation torch to get crop of image from bbox of size patch_size
         # need to use torch for interpolation, not cv2
-        x1, y1, x2, y2 = bbox
+        x1, y1, x2, y2 = bbox # actual object bbox
+        is_corner_case = False
+        # check if x1, y1, x2, y2 are within the image. if not, get the intersection with the image
+        if x1 >= img_pil.size[0] or y1 >= img_pil.size[1] or x2 <= 0 or y2 <= 0:
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(img_pil.size[0], x2)
+            y2 = min(img_pil.size[1], y2)
+        
+            # compute center of bbox
+            center_2d = [(x1 + x2) / 2, (y1 + y2) / 2] # center of bbox after intersection
+            is_corner_case = True
+            
         try:
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             # make patch a square by taking max of width and height, centered at center_2d
             width = x2 - x1
             height = y2 - y1
             floored_center = np.floor(center_2d).astype(np.int32)
-            box_size = max(int(width), int(height))
+            if is_corner_case:
+                # need to make sure box_size is within image bounds
+                box_size = min(int(width), int(height))
+            else:
+                box_size = max(int(width), int(height))
+            
+            if self.perturb_scale and not is_corner_case:
+                # make box_size one of PATCH_SIZES centered at center_2d 
+                bbox_size_diffs = [abs(box_size - patch_size) for patch_size in PATCH_SIZES]
+                box_size = PATCH_SIZES[bbox_size_diffs.index(min(bbox_size_diffs))]
+                # make sure scaled box is within image, and still a square
+                if floored_center[0] - box_size // 2 < 0:
+                    floored_center[0] = box_size // 2
+                if floored_center[1] - box_size // 2 < 0:
+                    floored_center[1] = box_size // 2
+                if floored_center[0] + box_size // 2 > img_pil.size[0]:
+                    floored_center[0] = img_pil.size[0] - box_size // 2
+                if floored_center[1] + box_size // 2 > img_pil.size[1]:
+                    floored_center[1] = img_pil.size[1] - box_size // 2
+                    
             if int(width) > int(height):
-                padding_pixels = int(width) - int(height) # TODO: add fill factor pred
+                padding_pixels = int(width) - int(height) 
             else:
                 padding_pixels = 0
-            box_size = box_size+1 if box_size%2 == 0 else box_size 
-            y1 = floored_center[1] - box_size // 2 - 1
-            y2 = floored_center[1] + box_size // 2 + 1
-            x1 = floored_center[0] - box_size // 2 - 1
-            x2 = floored_center[0] + box_size // 2 + 1
-
-            # TODO: Pad instead
-            # TODO: check dims
-            # check if x1, x2, y1, y2 are within bounds of image. if not, return None, None
-            if x1 < 0 or x2 > img_pil.size[0] or y1 < 0 or y2 > img_pil.size[1]:
-                return None, None, None, None
+            # box_size = box_size+1 if box_size%2 == 0 else box_size 
+            y1 = floored_center[1] - box_size // 2 
+            y2 = floored_center[1] + box_size // 2 
+            x1 = floored_center[0] - box_size // 2 
+            x2 = floored_center[0] + box_size // 2 
+              
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
-            # return full image if error occurs
-            patch = img
+            return None, None, None, None
         
         resized_width, resized_height = self.patch_size
         # ratio of original image to resized image
@@ -258,6 +292,30 @@ class NuScenesBase(MMDetNuScenesDataset):
         pose_6d_no_v1v2[:, -1] = pose_6d[:, -1]
         return pose_6d_no_v1v2, bbox_sizes, yaw
     
+    def get_perturbed_patch(self, center_2d, bbox):
+        # given: original center_2d and bbox
+        x1, y1, x2, y2 = bbox
+        center_x, center_y = center_2d
+
+        # Calculate width and height of the bounding box
+        bbox_width = x2 - x1
+        bbox_height = y2 - y1
+        
+        # Calculate the maximum perturbation distance
+        max_perturb = 0.5 * min(bbox_width, bbox_height)
+        
+        # Random perturbation in x direction within the max perturbation limit
+        x_perturb = np.random.uniform(-max_perturb, max_perturb)
+        
+        # Calculate corresponding y perturbation to maintain visibility condition
+        max_y_perturb = np.sqrt(max_perturb**2 - x_perturb**2)
+        y_perturb = np.random.uniform(-max_y_perturb, max_y_perturb)
+        
+        # Perturbed center coordinates
+        perturbed_center_x = int(center_x + x_perturb)
+        perturbed_center_y = int(center_y + y_perturb)
+        
+        return [perturbed_center_x, perturbed_center_y]
     
     def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
         # get a easy dict / edict with the same keys as the CamInstance class
@@ -266,11 +324,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         if self.perturb_center:
             # random perturb center
             center_o = cam_instance.center_2d
-            # perturb center by a random value between -patch_size/4 and patch_size/4
-            perturb_pixels_max = patch_size[0] // 4
-            perturb_pixels_h = np.random.randint(-perturb_pixels_max, perturb_pixels_max)
-            perturb_pixels_w = np.random.randint(-perturb_pixels_max, perturb_pixels_max)
-            center_perturbed = [center_o[0] + perturb_pixels_w, center_o[1] + perturb_pixels_h]
+            bbox_o = cam_instance.bbox
+            center_perturbed = self.get_perturbed_patch(center_o, bbox_o)
             cam_instance.center_2d = center_perturbed
         
         ### must be original patch size!!

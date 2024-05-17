@@ -6,14 +6,16 @@ model:
     embed_dim: 16
     euler_convention: "XYZ"
     activation: "relu"
+    dropout_prob_init: 1.0
     dropout_prob_final: 0.7
-    dropout_warmup_steps: 10000
+    pose_conditioned_generation_steps: 7000
+    dropout_warmup_steps: 5000
     add_noise_to_z_obj: True
-    train_on_yaw: False
+    train_on_yaw: True
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
-        rec_warmup_steps: 10000
+        encoder_pretrain_steps: 750
         disc_start: 10000
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
@@ -67,9 +69,9 @@ data:
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
     batch_size: 4
-    num_workers: 10
+    num_workers: 8
     wrap: True
-    persistent_workers: False
+    persistent_workers: True
     train:
       target: src.data.datasets.nuscenes.NuScenesTrain
       params:
@@ -130,7 +132,7 @@ lightning:
 
   trainer:
     benchmark: True
-    accumulate_grad_batches: 2
+    accumulate_grad_batches: 4
     profiler: advanced
     max_epochs: 1000
     strategy: ddp
