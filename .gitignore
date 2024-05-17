@@ -8,6 +8,8 @@ dataset_stats
 taming
 logs
 .out
+slurm_output
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

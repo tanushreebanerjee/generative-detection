@@ -736,3 +736,451 @@ INFO:torch.distributed.distributed_c10d:Rank 1: Completed store-based barrier fo
 You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
 You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
 You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+node209:732141:732141 [0] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
+node209:732141:732141 [0] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
+node209:732141:732141 [0] NCCL INFO NET/IB : No device found.
+node209:732141:732141 [0] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
+node209:732141:732141 [0] NCCL INFO Using network Socket
+NCCL version 2.10.3+cuda11.6
+node209:732144:732144 [3] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
+node209:732144:732144 [3] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
+node209:732143:732143 [2] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
+node209:732143:732143 [2] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
+node209:732144:732144 [3] NCCL INFO NET/IB : No device found.
+node209:732143:732143 [2] NCCL INFO NET/IB : No device found.
+node209:732144:732144 [3] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
+node209:732144:732144 [3] NCCL INFO Using network Socket
+node209:732143:732143 [2] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
+node209:732143:732143 [2] NCCL INFO Using network Socket
+node209:732142:732142 [1] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
+node209:732142:732142 [1] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
+node209:732142:732142 [1] NCCL INFO NET/IB : No device found.
+node209:732142:732142 [1] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
+node209:732142:732142 [1] NCCL INFO Using network Socket
+node209:732141:732562 [0] NCCL INFO Channel 00/02 :    0   1   2   3
+node209:732141:732562 [0] NCCL INFO Channel 01/02 :    0   1   2   3
+node209:732141:732562 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1
+node209:732141:732562 [0] NCCL INFO Setting affinity for GPU 0 to ff,fff00000,000fffff
+node209:732142:732565 [1] NCCL INFO Trees [0] 2/-1/-1->1->0 [1] 2/-1/-1->1->0
+node209:732142:732565 [1] NCCL INFO Setting affinity for GPU 1 to ff,fff00000,000fffff
+node209:732143:732564 [2] NCCL INFO Trees [0] 3/-1/-1->2->1 [1] 3/-1/-1->2->1
+node209:732143:732564 [2] NCCL INFO Setting affinity for GPU 2 to ff,fff00000,000fffff
+node209:732144:732563 [3] NCCL INFO Trees [0] -1/-1/-1->3->2 [1] -1/-1/-1->3->2
+node209:732144:732563 [3] NCCL INFO Setting affinity for GPU 3 to ff,fff00000,000fffff
+node209:732142:732565 [1] NCCL INFO Channel 00 : 1[5e000] -> 2[5f000] via P2P/IPC
+node209:732143:732564 [2] NCCL INFO Channel 00 : 2[5f000] -> 3[62000] via P2P/IPC
+node209:732144:732563 [3] NCCL INFO Channel 00 : 3[62000] -> 0[5b000] via P2P/IPC
+node209:732141:732562 [0] NCCL INFO Channel 00 : 0[5b000] -> 1[5e000] via P2P/IPC
+node209:732142:732565 [1] NCCL INFO Channel 01 : 1[5e000] -> 2[5f000] via P2P/IPC
+node209:732143:732564 [2] NCCL INFO Channel 01 : 2[5f000] -> 3[62000] via P2P/IPC
+node209:732144:732563 [3] NCCL INFO Channel 01 : 3[62000] -> 0[5b000] via P2P/IPC
+node209:732141:732562 [0] NCCL INFO Channel 01 : 0[5b000] -> 1[5e000] via P2P/IPC
+node209:732143:732564 [2] NCCL INFO Connected all rings
+node209:732141:732562 [0] NCCL INFO Connected all rings
+node209:732142:732565 [1] NCCL INFO Connected all rings
+node209:732144:732563 [3] NCCL INFO Connected all rings
+node209:732144:732563 [3] NCCL INFO Channel 00 : 3[62000] -> 2[5f000] via P2P/IPC
+node209:732143:732564 [2] NCCL INFO Channel 00 : 2[5f000] -> 1[5e000] via P2P/IPC
+node209:732142:732565 [1] NCCL INFO Channel 00 : 1[5e000] -> 0[5b000] via P2P/IPC
+node209:732143:732564 [2] NCCL INFO Channel 01 : 2[5f000] -> 1[5e000] via P2P/IPC
+node209:732144:732563 [3] NCCL INFO Channel 01 : 3[62000] -> 2[5f000] via P2P/IPC
+node209:732142:732565 [1] NCCL INFO Channel 01 : 1[5e000] -> 0[5b000] via P2P/IPC
+node209:732144:732563 [3] NCCL INFO Connected all trees
+node209:732144:732563 [3] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
+node209:732144:732563 [3] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
+node209:732141:732562 [0] NCCL INFO Connected all trees
+node209:732141:732562 [0] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
+node209:732141:732562 [0] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
+node209:732143:732564 [2] NCCL INFO Connected all trees
+node209:732143:732564 [2] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
+node209:732143:732564 [2] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
+node209:732142:732565 [1] NCCL INFO Connected all trees
+node209:732142:732565 [1] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
+node209:732142:732565 [1] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
+node209:732143:732564 [2] NCCL INFO comm 0x7f14a8003010 rank 2 nranks 4 cudaDev 2 busId 5f000 - Init COMPLETE
+node209:732141:732562 [0] NCCL INFO comm 0x7ff08c003010 rank 0 nranks 4 cudaDev 0 busId 5b000 - Init COMPLETE
+node209:732144:732563 [3] NCCL INFO comm 0x7f4f54003010 rank 3 nranks 4 cudaDev 3 busId 62000 - Init COMPLETE
+node209:732141:732141 [0] NCCL INFO Launch mode Parallel
+node209:732142:732565 [1] NCCL INFO comm 0x7f21ec003010 rank 1 nranks 4 cudaDev 1 busId 5e000 - Init COMPLETE
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:09 - mmengine - INFO - ------------------------------
+05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+INFO:root:Project config
+INFO:root:model:
+  base_learning_rate: 4.5e-06
+  target: src.models.autoencoder.PoseAutoencoder
+  params:
+    monitor: val/rec_loss
+    embed_dim: 16
+    euler_convention: XYZ
+    activation: relu
+    dropout_prob_init: 1.0
+    dropout_prob_final: 0.7
+    pose_conditioned_generation_steps: 7000
+    dropout_warmup_steps: 5000
+    add_noise_to_z_obj: true
+    train_on_yaw: true
+    lossconfig:
+      target: src.modules.losses.PoseLoss
+      params:
+        encoder_pretrain_steps: 750
+        disc_start: 10000
+        kl_weight_obj: 1.0
+        kl_weight_bbox: 1.0e-06
+        disc_weight: 0.5
+        pose_weight: 80000
+        fill_factor_weight: 500000
+        class_weight: 1000000
+        bbox_weight: 200000
+        pose_loss_fn: l1
+        mask_weight: 0
+        mask_loss_fn: l2
+        disc_in_channels: 3
+        num_classes: 1
+        dataset_stats_path: dataset_stats/NuScenesTrain-old.pkl
+        train_on_yaw: true
+    pose_decoder_config:
+      target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
+      params:
+        num_classes: 1
+        num_channels: 16
+        'n': 16
+        m: 16
+        hidden_dim: 500
+        num_layers: 2
+        activation: tanh
+        resid: false
+    pose_encoder_config:
+      target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
+      params:
+        num_classes: 1
+        num_channels: 16
+        'n': 16
+        m: 16
+        hidden_dim: 500
+        num_layers: 2
+        activation: swish
+    ddconfig:
+      double_z: true
+      z_channels: 16
+      resolution: 64
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult:
+      - 1
+      - 1
+      - 2
+      - 2
+      - 4
+      num_res_blocks: 2
+      attn_resolutions:
+      - 16
+      dropout: 0.0
+data:
+  data_root: data/nuscenes
+  target: src.data.preprocessing.data_modules.DataModuleFromConfig
+  params:
+    batch_size: 8
+    num_workers: 0
+    wrap: true
+    persistent_workers: false
+    train:
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
+      params:
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality:
+          use_camera: true
+          use_lidar: false
+        filter_empty_gt: false
+        test_mode: false
+        with_velocity: false
+        use_valid_flag: false
+        label_names:
+        - car
+        patch_height: 256
+        patch_aspect_ratio: 1.0
+        perturb_center: true
+        perturb_scale: true
+    validation:
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
+      params:
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality:
+          use_camera: true
+          use_lidar: false
+        filter_empty_gt: false
+        test_mode: false
+        with_velocity: false
+        use_valid_flag: false
+        label_names:
+        - car
+        patch_height: 256
+        patch_aspect_ratio: 1.0
+        perturb_center: false
+
+INFO:root:Lightning config
+INFO:root:callbacks:
+  image_logger:
+    target: src.util.callbacks.ImageLogger
+    params:
+      batch_frequency: 1000
+      max_images: 8
+      increase_log_steps: true
+      disable_local_logging: false
+  progress_bar:
+    target: src.util.callbacks.TQDMProgressBar
+    params:
+      refresh_rate: 1
+      process_position: 0
+  device_stats_monitor:
+    target: src.util.callbacks.DeviceStatsMonitor
+trainer:
+  accumulate_grad_batches: 1
+  accelerator: gpu
+  max_epochs: 1000
+  devices: '4'
+
+
+  | Name            | Type                  | Params
+----------------------------------------------------------
+0 | encoder         | FeatEncoder           | 26.7 M
+1 | decoder         | FeatDecoder           | 39.0 M
+2 | loss            | PoseLoss              | 17.5 M
+3 | quant_conv_obj  | Conv2d                | 1.1 K 
+4 | quant_conv_pose | Conv2d                | 528   
+5 | post_quant_conv | Conv2d                | 272   
+6 | pose_decoder    | PoseDecoderSpatialVAE | 2.3 M 
+7 | pose_encoder    | PoseEncoderSpatialVAE | 3.1 M 
+----------------------------------------------------------
+73.8 M    Trainable params
+14.7 M    Non-trainable params
+88.6 M    Total params
+354.204   Total estimated model params size (MB)
+SLURM auto-requeueing enabled. Setting signal handlers.
+SLURM auto-requeueing enabled. Setting signal handlers.
+SLURM auto-requeueing enabled. Setting signal handlers.
+SLURM auto-requeueing enabled. Setting signal handlers.
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:84: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 8. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/rec_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/total_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logvar', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/kl_loss_obj', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/nll_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_nll_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/d_weight', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/disc_factor', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/g_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/pose_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_pose_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/mask_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_mask_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/class_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_class_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/bbox_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_bbox_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t1_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t2_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t3_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/v3_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/kl_loss_bbox', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_kl_loss_bbox', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_kl_loss_obj', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/fill_factor_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_fill_factor_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/disc_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logits_real', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logits_fake', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+  warning_cache.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
