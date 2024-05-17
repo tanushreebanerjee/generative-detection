@@ -1,0 +1,738 @@
+[rank: 3] Global seed set to 23
+[rank: 1] Global seed set to 23
+[rank: 2] Global seed set to 23
+[rank: 0] Global seed set to 23
+INFO:root:Options: {
+  "transformers_cache": ".cache/transformers_cache",
+  "torch_home": ".cache/torch_home",
+  "logging_level": "INFO",
+  "name": "od_vae_test_1gpu",
+  "resume": "",
+  "base": [
+    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
+  ],
+  "train": true,
+  "no_test": false,
+  "project": null,
+  "debug": false,
+  "seed": 23,
+  "postfix": "",
+  "logdir": "logs",
+  "scale_lr": true,
+  "logger": true,
+  "enable_checkpointing": true,
+  "default_root_dir": null,
+  "gradient_clip_val": null,
+  "gradient_clip_algorithm": null,
+  "num_nodes": 1,
+  "num_processes": null,
+  "devices": "4",
+  "gpus": null,
+  "auto_select_gpus": null,
+  "tpu_cores": null,
+  "ipus": null,
+  "enable_progress_bar": true,
+  "overfit_batches": 0.0,
+  "track_grad_norm": -1,
+  "check_val_every_n_epoch": 1,
+  "fast_dev_run": false,
+  "accumulate_grad_batches": null,
+  "max_epochs": null,
+  "min_epochs": null,
+  "max_steps": -1,
+  "min_steps": null,
+  "max_time": null,
+  "limit_train_batches": null,
+  "limit_val_batches": null,
+  "limit_test_batches": null,
+  "limit_predict_batches": null,
+  "val_check_interval": null,
+  "log_every_n_steps": 50,
+  "accelerator": null,
+  "strategy": null,
+  "sync_batchnorm": false,
+  "precision": 32,
+  "enable_model_summary": true,
+  "num_sanity_val_steps": 2,
+  "resume_from_checkpoint": null,
+  "profiler": null,
+  "benchmark": null,
+  "reload_dataloaders_every_n_epochs": 0,
+  "auto_lr_find": false,
+  "replace_sampler_ddp": true,
+  "detect_anomaly": false,
+  "auto_scale_batch_size": false,
+  "plugins": null,
+  "amp_backend": null,
+  "amp_level": null,
+  "move_metrics_to_cpu": false,
+  "multiple_trainloader_mode": "max_size_cycle",
+  "inference_mode": true
+}
+INFO:root:Options: {
+  "transformers_cache": ".cache/transformers_cache",
+  "torch_home": ".cache/torch_home",
+  "logging_level": "INFO",
+  "name": "od_vae_test_1gpu",
+  "resume": "",
+  "base": [
+    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
+  ],
+  "train": true,
+  "no_test": false,
+  "project": null,
+  "debug": false,
+  "seed": 23,
+  "postfix": "",
+  "logdir": "logs",
+  "scale_lr": true,
+  "logger": true,
+  "enable_checkpointing": true,
+  "default_root_dir": null,
+  "gradient_clip_val": null,
+  "gradient_clip_algorithm": null,
+  "num_nodes": 1,
+  "num_processes": null,
+  "devices": "4",
+  "gpus": null,
+  "auto_select_gpus": null,
+  "tpu_cores": null,
+  "ipus": null,
+  "enable_progress_bar": true,
+  "overfit_batches": 0.0,
+  "track_grad_norm": -1,
+  "check_val_every_n_epoch": 1,
+  "fast_dev_run": false,
+  "accumulate_grad_batches": null,
+  "max_epochs": null,
+  "min_epochs": null,
+  "max_steps": -1,
+  "min_steps": null,
+  "max_time": null,
+  "limit_train_batches": null,
+  "limit_val_batches": null,
+  "limit_test_batches": null,
+  "limit_predict_batches": null,
+  "val_check_interval": null,
+  "log_every_n_steps": 50,
+  "accelerator": null,
+  "strategy": null,
+  "sync_batchnorm": false,
+  "precision": 32,
+  "enable_model_summary": true,
+  "num_sanity_val_steps": 2,
+  "resume_from_checkpoint": null,
+  "profiler": null,
+  "benchmark": null,
+  "reload_dataloaders_every_n_epochs": 0,
+  "auto_lr_find": false,
+  "replace_sampler_ddp": true,
+  "detect_anomaly": false,
+  "auto_scale_batch_size": false,
+  "plugins": null,
+  "amp_backend": null,
+  "amp_level": null,
+  "move_metrics_to_cpu": false,
+  "multiple_trainloader_mode": "max_size_cycle",
+  "inference_mode": true
+}
+INFO:root:Options: {
+  "transformers_cache": ".cache/transformers_cache",
+  "torch_home": ".cache/torch_home",
+  "logging_level": "INFO",
+  "name": "od_vae_test_1gpu",
+  "resume": "",
+  "base": [
+    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
+  ],
+  "train": true,
+  "no_test": false,
+  "project": null,
+  "debug": false,
+  "seed": 23,
+  "postfix": "",
+  "logdir": "logs",
+  "scale_lr": true,
+  "logger": true,
+  "enable_checkpointing": true,
+  "default_root_dir": null,
+  "gradient_clip_val": null,
+  "gradient_clip_algorithm": null,
+  "num_nodes": 1,
+  "num_processes": null,
+  "devices": "4",
+  "gpus": null,
+  "auto_select_gpus": null,
+  "tpu_cores": null,
+  "ipus": null,
+  "enable_progress_bar": true,
+  "overfit_batches": 0.0,
+  "track_grad_norm": -1,
+  "check_val_every_n_epoch": 1,
+  "fast_dev_run": false,
+  "accumulate_grad_batches": null,
+  "max_epochs": null,
+  "min_epochs": null,
+  "max_steps": -1,
+  "min_steps": null,
+  "max_time": null,
+  "limit_train_batches": null,
+  "limit_val_batches": null,
+  "limit_test_batches": null,
+  "limit_predict_batches": null,
+  "val_check_interval": null,
+  "log_every_n_steps": 50,
+  "accelerator": null,
+  "strategy": null,
+  "sync_batchnorm": false,
+  "precision": 32,
+  "enable_model_summary": true,
+  "num_sanity_val_steps": 2,
+  "resume_from_checkpoint": null,
+  "profiler": null,
+  "benchmark": null,
+  "reload_dataloaders_every_n_epochs": 0,
+  "auto_lr_find": false,
+  "replace_sampler_ddp": true,
+  "detect_anomaly": false,
+  "auto_scale_batch_size": false,
+  "plugins": null,
+  "amp_backend": null,
+  "amp_level": null,
+  "move_metrics_to_cpu": false,
+  "multiple_trainloader_mode": "max_size_cycle",
+  "inference_mode": true
+}
+INFO:root:Options: {
+  "transformers_cache": ".cache/transformers_cache",
+  "torch_home": ".cache/torch_home",
+  "logging_level": "INFO",
+  "name": "od_vae_test_1gpu",
+  "resume": "",
+  "base": [
+    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
+  ],
+  "train": true,
+  "no_test": false,
+  "project": null,
+  "debug": false,
+  "seed": 23,
+  "postfix": "",
+  "logdir": "logs",
+  "scale_lr": true,
+  "logger": true,
+  "enable_checkpointing": true,
+  "default_root_dir": null,
+  "gradient_clip_val": null,
+  "gradient_clip_algorithm": null,
+  "num_nodes": 1,
+  "num_processes": null,
+  "devices": "4",
+  "gpus": null,
+  "auto_select_gpus": null,
+  "tpu_cores": null,
+  "ipus": null,
+  "enable_progress_bar": true,
+  "overfit_batches": 0.0,
+  "track_grad_norm": -1,
+  "check_val_every_n_epoch": 1,
+  "fast_dev_run": false,
+  "accumulate_grad_batches": null,
+  "max_epochs": null,
+  "min_epochs": null,
+  "max_steps": -1,
+  "min_steps": null,
+  "max_time": null,
+  "limit_train_batches": null,
+  "limit_val_batches": null,
+  "limit_test_batches": null,
+  "limit_predict_batches": null,
+  "val_check_interval": null,
+  "log_every_n_steps": 50,
+  "accelerator": null,
+  "strategy": null,
+  "sync_batchnorm": false,
+  "precision": 32,
+  "enable_model_summary": true,
+  "num_sanity_val_steps": 2,
+  "resume_from_checkpoint": null,
+  "profiler": null,
+  "benchmark": null,
+  "reload_dataloaders_every_n_epochs": 0,
+  "auto_lr_find": false,
+  "replace_sampler_ddp": true,
+  "detect_anomaly": false,
+  "auto_scale_batch_size": false,
+  "plugins": null,
+  "amp_backend": null,
+  "amp_level": null,
+  "move_metrics_to_cpu": false,
+  "multiple_trainloader_mode": "max_size_cycle",
+  "inference_mode": true
+}
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
+  warnings.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
+  warnings.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
+  warnings.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
+  warnings.warn(
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  parameters = torch.tensor(parameters)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  parameters = torch.tensor(parameters)
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  parameters = torch.tensor(parameters)
+INFO:root:Monitoring val/rec_loss as checkpoint metric.
+INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+INFO:root:Merged modelckpt-cfg: 
+{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  parameters = torch.tensor(parameters)
+INFO:root:Monitoring val/rec_loss as checkpoint metric.
+INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+INFO:root:Merged modelckpt-cfg: 
+{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+INFO:root:Monitoring val/rec_loss as checkpoint metric.
+INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+INFO:root:Merged modelckpt-cfg: 
+{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+wandb: Currently logged in as: ostjul (ostjul13). Use `wandb login --relogin` to force relogin
+wandb: WARNING Path logs/2024-05-17T17-37-52_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory.
+wandb: WARNING Path logs/2024-05-17T17-37-52_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 16, 4, 4) = 256 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
+Loaded dataset stats:
+{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 16, 4, 4) = 256 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
+Loaded dataset stats:
+{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 16, 4, 4) = 256 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
+Loaded dataset stats:
+{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:57 - mmengine - INFO - ------------------------------
+05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+INFO:root:#### Data #####
+INFO:root:train, WrappedDataset, 1938
+INFO:root:validation, WrappedDataset, 486
+INFO:root:accumulate_grad_batches = 1
+INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
+[rank: 2] Global seed set to 23
+Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+INFO:root:#### Data #####
+INFO:root:train, WrappedDataset, 1938
+INFO:root:validation, WrappedDataset, 486
+INFO:root:accumulate_grad_batches = 1
+INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
+[rank: 3] Global seed set to 23
+Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+05/17 17:37:58 - mmengine - INFO - ------------------------------
+05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
+05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+INFO:root:#### Data #####
+INFO:root:train, WrappedDataset, 1938
+INFO:root:validation, WrappedDataset, 486
+INFO:root:accumulate_grad_batches = 1
+INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
+[rank: 1] Global seed set to 23
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+wandb: Tracking run with wandb version 0.17.0
+wandb: Run data is saved locally in /tmp/wandb/run-20240517_173756-2024-05-17T17-37-52_od_vae_test_1gpu
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run 2024-05-17T17-37-52_od_vae_test_1gpu
+wandb: ⭐️ View project at https://wandb.ai/ostjul13/lightning_logs
+wandb: 🚀 View run at https://wandb.ai/ostjul13/lightning_logs/runs/2024-05-17T17-37-52_od_vae_test_1gpu
+INFO:root:Monitoring val/rec_loss as checkpoint metric.
+INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+INFO:root:Merged modelckpt-cfg: 
+{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 512 in_channels
+Working with z of shape (1, 16, 4, 4) = 256 dimensions.
+making attention of type 'vanilla' with 512 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+making attention of type 'vanilla' with 256 in_channels
+loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
+Loaded dataset stats:
+{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
+05/17 17:38:03 - mmengine - INFO - ------------------------------
+05/17 17:38:03 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:03 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:03 - mmengine - INFO - ------------------------------
+05/17 17:38:03 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:03 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:04 - mmengine - INFO - ------------------------------
+05/17 17:38:04 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:04 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:05 - mmengine - INFO - ------------------------------
+05/17 17:38:05 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:05 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+INFO:root:#### Data #####
+INFO:root:train, WrappedDataset, 1938
+INFO:root:validation, WrappedDataset, 486
+INFO:root:accumulate_grad_batches = 1
+INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
+05/17 17:38:06 - mmengine - INFO - ------------------------------
+05/17 17:38:06 - mmengine - INFO - The length of training dataset: 1938
+05/17 17:38:06 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 5051   |
+| truck                | 525    |
+| trailer              | 60     |
+| bus                  | 369    |
+| construction_vehicle | 196    |
+| bicycle              | 191    |
+| motorcycle           | 212    |
+| pedestrian           | 3657   |
+| traffic_cone         | 1339   |
+| barrier              | 2323   |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+05/17 17:38:06 - mmengine - INFO - ------------------------------
+05/17 17:38:06 - mmengine - INFO - The length of training dataset: 486
+05/17 17:38:06 - mmengine - INFO - The number of instances per category in the dataset:
++----------------------+--------+
+| category             | number |
++----------------------+--------+
+| car                  | 2568   |
+| truck                | 124    |
+| trailer              | 0      |
+| bus                  | 41     |
+| construction_vehicle | 0      |
+| bicycle              | 52     |
+| motorcycle           | 259    |
+| pedestrian           | 1358   |
+| traffic_cone         | 39     |
+| barrier              | 0      |
++----------------------+--------+
+INFO:root:Using label names: ['car'], label ids: [0]
+[rank: 0] Global seed set to 23
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 2
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 3
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 1
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 0
+INFO:torch.distributed.distributed_c10d:Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 4 processes
+----------------------------------------------------------------------------------------------------
+
+You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+INFO:torch.distributed.distributed_c10d:Rank 3: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
+INFO:torch.distributed.distributed_c10d:Rank 2: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
+INFO:torch.distributed.distributed_c10d:Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
+You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
