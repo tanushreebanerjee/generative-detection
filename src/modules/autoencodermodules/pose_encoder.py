@@ -57,7 +57,7 @@ class PoseEncoder(nn.Module):
         return self.fc(x)
 
 class PoseEncoderSpatialVAE(nn.Module):
-    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="swish", hidden_dim=500, num_layers=2):
+    def __init__(self, num_classes=2, num_channels=16, n=16, m=16, activation="swish", hidden_dim=500, num_layers=2):
         super(PoseEncoderSpatialVAE, self).__init__()
         latent_dim = POSE_DIM + LHW_DIM + FILL_FACTOR_DIM + num_classes # 10 = 6 + 3 + 1
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
