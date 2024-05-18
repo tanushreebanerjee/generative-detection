@@ -68,8 +68,8 @@ data:
   data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 16
-    num_workers: 24
+    batch_size: 32
+    num_workers: 16
     wrap: True
     persistent_workers: True
     train:

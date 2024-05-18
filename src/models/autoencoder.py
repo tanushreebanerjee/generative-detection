@@ -353,7 +353,7 @@ class PoseAutoencoder(AutoencoderKL):
                                         posterior_obj, bbox_posterior, 1, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 
-        self.log("val/rec_loss", log_dict_ae["val/rec_loss"])
+        self.log("val/rec_loss", log_dict_ae["val/rec_loss"], sync_dist=True)
         self.log_dict(log_dict_ae)
         self.log_dict(log_dict_disc)
         return self.log_dict

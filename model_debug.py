@@ -507,5 +507,6 @@ def main():
     loss, val_log, img_log = run_one_iteration(model, data)
 
 if __name__ == "__main__":
+    torch.set_float32_matmul_precision('medium')
     mp.set_start_method('spawn')
     main()

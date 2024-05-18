@@ -509,5 +509,6 @@ def main():
             logging.info(f"{trainer.profiler.summary()}")
 
 if __name__ == "__main__":
+    torch.set_float32_matmul_precision('medium')
     mp.set_start_method('spawn')
     main()

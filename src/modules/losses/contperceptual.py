@@ -101,7 +101,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 bbox_logvars[idx] = logvar
                 
         parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
-        parameters = torch.tensor(parameters)
+        # parameters = torch.tensor(parameters)
         return DiagonalGaussianDistribution(parameters)
        
     def compute_pose_loss(self, pred, gt):

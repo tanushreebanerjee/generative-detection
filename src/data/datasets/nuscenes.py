@@ -417,6 +417,7 @@ class NuScenesBase(MMDetNuScenesDataset):
     
     def __getitem__(self, idx):
         ret = edict()
+        
         sample_idx = idx // self.num_cameras
         cam_idx = idx % self.num_cameras
         sample_info = edict(super().__getitem__(sample_idx))
@@ -437,7 +438,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 return self.__getitem__(0)
             else:
                 return self.__getitem__(idx + 1)
-         
+        # Choose random camera
         random_idx = np.random.randint(0, len(cam_instances))
         cam_instance = cam_instances[random_idx]
         
@@ -450,11 +451,11 @@ class NuScenesBase(MMDetNuScenesDataset):
             else:
                 return self.__getitem__(idx + 1)
         
-        full_im_path = os.path.join(self.img_root, cam_name, img_file)
-        full_img = Image.open(full_im_path)
-        transform = transforms.Compose([transforms.ToTensor()])
-        full_img_tensor = transform(full_img)
-        ret.full_img = full_img_tensor
+        # full_im_path = os.path.join(self.img_root, cam_name, img_file)
+        # full_img = Image.open(full_im_path)
+        # transform = transforms.Compose([transforms.ToTensor()])
+        # full_img_tensor = transform(full_img)
+        # ret.full_img = full_img_tensor
         ret.patch = ret_cam_instance.patch
         ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
         pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
@@ -465,10 +466,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
         patch_size_original = ret_cam_instance.patch_size
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        patch_size_original = patch_size_original #.to(device=device)
-        patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-        patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        # patch_size_original = patch_size_original #.to(device=device)
+        # patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
+        patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
         ret.patch_size = patch_size_original
         ret.patch_center_2d = patch_center_2d
         ret.bbox_3d_gt = ret_cam_instance.bbox_3d
