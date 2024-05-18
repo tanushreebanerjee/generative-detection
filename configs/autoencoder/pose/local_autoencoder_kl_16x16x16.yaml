@@ -68,12 +68,12 @@ data:
   data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 16
-    num_workers: 16
+    batch_size: 32
+    num_workers: 1
     wrap: True
     persistent_workers: True
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -92,7 +92,7 @@ data:
         perturb_center: True
         perturb_scale: True
     validation:
-      target: src.data.datasets.nuscenes.NuScenesValidation
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -135,4 +135,3 @@ lightning:
     max_epochs: 1000
     strategy: ddp
     detect_anomaly: True
-    precision: 32

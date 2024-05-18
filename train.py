@@ -233,6 +233,7 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
                 "filename": "{epoch:06}",
                 "verbose": True,
                 "save_last": True,
+                'save_weights_only': True
             }
         }
     if hasattr(model, "monitor"):
@@ -317,7 +318,7 @@ def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_conf
                         "filename": "{epoch:06}-{step:09}",
                         "verbose": True,
                         'save_top_k': -1,
-                        'every_n_train_steps': 10000,
+                        'every_n_train_steps': 10001,
                         'save_weights_only': True
                     }
                     }
@@ -390,6 +391,15 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
         logging.info(f"Setting learning rate to {model.learning_rate:.2e}")
         
     return model
+
+# from pytorch_lightning.plugins import DDPPlugin
+# from pytorch_lightning import LightningDistributedModule
+# class CustomDDPPlugin(DDPPlugin):
+#     def configure_ddp(self):
+#         self.pre_configure_ddp()
+#         self._model = self._setup_model(LightningDistributedModule(self.model))
+#         self._register_ddp_hooks()
+#         self._model._set_static_graph() # THIS IS THE MAGIC LINE
 
 def main():
     """

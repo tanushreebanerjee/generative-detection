@@ -420,14 +420,16 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         sample_idx = idx // self.num_cameras
         cam_idx = idx % self.num_cameras
-        sample_info = edict(super().__getitem__(sample_idx))
+        sample_info = super().__getitem__(sample_idx)
+        # sample_info = edict(super().__getitem__(sample_idx))
         cam_name = CAM_ID2CAM_NAME[cam_idx]
         ret.sample_idx = sample_idx
         ret.cam_idx = cam_idx
         ret.cam_name = cam_name
-        sample_img_info = edict(sample_info.images[cam_name])
+        sample_img_info = edict(sample_info['images'][cam_name])
         ret.update(sample_img_info)
-        cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
+        # cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
+        cam_instances = sample_info['cam_instances'][cam_name] # list of dicts for each instance in the current camera image
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
