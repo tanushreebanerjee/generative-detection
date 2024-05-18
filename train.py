@@ -41,7 +41,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--transformers_cache",type=str,default=".cache/transformers_cache", help="transformers cache directory",)
     parser.add_argument("--torch_home", type=str, default=".cache/torch_home", help="torch home directory")
     parser.add_argument("--logging_level", type=str, default="INFO", help="logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-    parser.add_argument("-n", "--name", type=str, const=True, default="", nargs="?", help="postfix for logdir")
+    parser.add_argument("-n", "--name", type=str, const=True, default="test", nargs="?", help="postfix for logdir")
     parser.add_argument("-r", "--resume", type=str, const=True, default="", nargs="?", help="resume from logdir or checkpoint in logdir")
     parser.add_argument("-b", "--base", nargs="*", metavar="base_config.yaml", default=list(), help="paths to base configs. Loaded from left-to-right. Parameters can be overwritten or added with command-line options of the form `--key value`.")
     parser.add_argument("-t", "--train", type=str2bool, const=True, default=False, nargs="?", help="train")

@@ -91,7 +91,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # if center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
-            return None, None, None, None
+            return None, None, None, None, None
         
         x1, y1, x2, y2 = bbox # actual object bbox
         is_corner_case = False
@@ -157,7 +157,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
-            return None, None, None, None
+            return None, None, None, None, None
         
         resized_width, resized_height = self.patch_size
         # ratio of original image to resized image
@@ -166,7 +166,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
         except ZeroDivisionError:
             logging.info("patch size is 0", patch.size)
-            return None, None, None, None
+            return None, None, None, None, None
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
         # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
         mask_bool = np.zeros((patch.size[1], patch.size[0]), dtype=bool)
@@ -508,9 +508,9 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
             ret.fill_factor = ret_cam_instance.fill_factor
             mask_2d_bbox = ret_cam_instance.mask_2d_bbox
-                if mask_2d_bbox.dim() == 2:
-                    mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
-                ret.mask_2d_bbox = mask_2d_bbox
+            if mask_2d_bbox.dim() == 2:
+                mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+            ret.mask_2d_bbox = mask_2d_bbox
     
         else:  # get random crop without overlap
             # bbox = [x1, y1, x2, y2]

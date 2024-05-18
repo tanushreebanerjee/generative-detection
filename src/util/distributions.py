@@ -5,7 +5,7 @@ from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
     def __init__(self, parameters, deterministic=False):
         super(DiagonalGaussianDistribution, self).__init__(parameters, deterministic)
-        self.device = parameters.device
+        # self.device = parameters.device
         
     def kl(self, other=None):
         if self.deterministic:
@@ -17,21 +17,21 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
                                        dim=[1, 2, 3])
             else:
                 # make sure all tensors are on the same device
-                other_device = other.mean.device
-                self.mean = self.mean.to(other_device)
-                self.var = self.var.to(other_device)
-                self.logvar = self.logvar.to(other_device)
-                other.mean = other.mean.to(other_device)
-                other.var = other.var.to(other_device)
-                other.logvar = other.logvar.to(other_device)
+                # other_device = other.mean.device
+                # self.mean = self.mean.to(other_device)
+                # self.var = self.var.to(other_device)
+                # self.logvar = self.logvar.to(other_device)
+                # other.mean = other.mean.to(other_device)
+                # other.var = other.var.to(other_device)
+                # other.logvar = other.logvar.to(other_device)
             
                 batch_size = self.mean.size(0)
                 bbox_pred_dim = self.mean.size(1)
                 
                 # adding batch dim
-                other_mean = other.mean.squeeze().unsqueeze(0) # other.mean torch.Size([1, 9])
-                other_var = other.var.squeeze().unsqueeze(0)
-                other_logvar = other.logvar.squeeze().unsqueeze(0)
+                other_mean = other.mean.squeeze().unsqueeze(0).to(self.mean) # other.mean torch.Size([1, 9])
+                other_var = other.var.squeeze().unsqueeze(0).to(self.mean)
+                other_logvar = other.logvar.squeeze().unsqueeze(0).to(self.mean)
                 
               
                 num_dims = len(other_mean.size())
