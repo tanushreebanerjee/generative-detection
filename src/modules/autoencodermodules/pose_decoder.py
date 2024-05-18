@@ -58,7 +58,7 @@ class PoseDecoder(nn.Module):
     
    
 class PoseDecoderSpatialVAE(nn.Module):
-    def __init__(self, num_classes=1, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
+    def __init__(self, num_classes=2, num_channels=16, n=16, m=16, activation="tanh", **kwargs):
         super(PoseDecoderSpatialVAE, self).__init__()
         n_out = num_channels * n * m # 16 * 16 * 16 = 4096
         inf_dim = ((POSE_DIM + LHW_DIM + FILL_FACTOR_DIM) * 2) + num_classes # (6 + 3 + 1) * 2  + 1 = 21

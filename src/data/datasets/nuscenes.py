@@ -4,7 +4,6 @@ from mmdet3d.registry import DATASETS
 from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset as MMDetNuScenesDataset
 from torch.utils.data import Dataset
 from src.util.misc import EasyDict as edict
-import cv2
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
 from src.util.cameras import get_ndc_to_patch_ndc_transform, get_patch_ndc_to_ndc_transform
@@ -17,6 +16,8 @@ from PIL.Image import Resampling
 import numpy as np
 import logging
 import math
+import torchvision.ops as ops
+import random
 
 L_MIN = 0.5 
 L_MAX = 3.0
@@ -31,7 +32,8 @@ LABEL_NAME2ID = {
     'motorcycle': 6,
     'pedestrian': 7,
     'traffic_cone': 8,
-    'barrier': 9
+    'barrier': 9,
+    'background': 10
 }
 
 LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
@@ -49,12 +51,15 @@ NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
 
 POSE_DIM = 4
+LHW_DIM = 3
+BBOX_3D_DIM = 7
 
 PATCH_SIZES = [25, 50, 100, 200, 400]
 
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
-                 is_sweep=False, perturb_center=False, perturb_scale=False, **kwargs):
+                 is_sweep=False, perturb_center=False, perturb_scale=False, 
+                 negative_sample_prob=0.5, **kwargs):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
@@ -67,6 +72,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
         self.perturb_center = perturb_center
         self.perturb_scale = perturb_scale
+        self.negative_sample_prob = negative_sample_prob
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -87,32 +93,39 @@ class NuScenesBase(MMDetNuScenesDataset):
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
             return None, None, None, None
         
-        # use interpolation torch to get crop of image from bbox of size patch_size
-        # need to use torch for interpolation, not cv2
         x1, y1, x2, y2 = bbox # actual object bbox
         is_corner_case = False
-        # check if x1, y1, x2, y2 are within the image. if not, get the intersection with the image
-        if x1 >= img_pil.size[0] or y1 >= img_pil.size[1] or x2 <= 0 or y2 <= 0:
-            x1 = max(0, x1)
-            y1 = max(0, y1)
-            x2 = min(img_pil.size[0], x2)
-            y2 = min(img_pil.size[1], y2)
         
-            # compute center of bbox
-            center_2d = [(x1 + x2) / 2, (y1 + y2) / 2] # center of bbox after intersection
-            is_corner_case = True
-            
         try:
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             # make patch a square by taking max of width and height, centered at center_2d
             width = x2 - x1
             height = y2 - y1
             floored_center = np.floor(center_2d).astype(np.int32)
-            if is_corner_case:
-                # need to make sure box_size is within image bounds
-                box_size = min(int(width), int(height))
-            else:
-                box_size = max(int(width), int(height))
+            box_size = max(int(width), int(height))
+            
+            if x1 >= img_pil.size[0] or y1 >= img_pil.size[1] or x2 <= 0 or y2 <= 0:
+                is_corner_case = True
+                # get intersection of bbox with image
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(img_pil.size[0], x2)
+                y2 = min(img_pil.size[1], y2)
+                
+                width = x2 - x1
+                height = y2 - y1
+                # get max
+                max_dim = max(width, height)
+                
+                # choose center of patch as min diff from PATCH_SIZES
+                dim_diffs = [abs(max_dim - patch_size) for patch_size in PATCH_SIZES]
+                patch_size = PATCH_SIZES[dim_diffs.index(min(dim_diffs))]
+
+                x1 = x1 + (width - patch_size) // 2 
+                y1 = y1 + (height - patch_size) // 2
+                x2 = x1 + patch_size
+                y2 = y1 + patch_size
+                center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
             
             if self.perturb_scale and not is_corner_case:
                 # make box_size one of PATCH_SIZES centered at center_2d 
@@ -132,7 +145,9 @@ class NuScenesBase(MMDetNuScenesDataset):
                 padding_pixels = int(width) - int(height) 
             else:
                 padding_pixels = 0
-            # box_size = box_size+1 if box_size%2 == 0 else box_size 
+                
+            # make sure box_size is odd so that center is at a pixel
+            box_size = box_size+1 if box_size%2 == 0 else box_size 
             y1 = floored_center[1] - box_size // 2 
             y2 = floored_center[1] + box_size // 2 
             x1 = floored_center[0] - box_size // 2 
@@ -153,10 +168,24 @@ class NuScenesBase(MMDetNuScenesDataset):
             logging.info("patch size is 0", patch.size)
             return None, None, None, None
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
+        # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
+        mask_bool = np.zeros((patch.size[1], patch.size[0]), dtype=bool)
+        # Set the area inside the bounding box to True
+        # get original 2d bbox coords
+        x1_full, y1_full, x2_full, y2_full = cam_instance.bbox
+        x1_patch = int(x1_full - x1)
+        y1_patch = int(y1_full - y1)
+        x2_patch = int(x2_full - x1)
+        y2_patch = int(y2_full - y1)
+        
+        mask_bool[y1_patch:y2_patch, x1_patch:x2_patch] = True
+        mask_pil = Image.fromarray(mask_bool)
+        mask_resized = mask_pil.resize((resized_width, resized_height), resample=Resampling.NEAREST, reducing_gap=1.0)
         transform = transforms.Compose([transforms.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
+        mask_resized = transform(mask_resized)
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
-        return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled
+        return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled, mask_resized
     
     def _get_yaw_perturbed(self, yaw, perturb_degrees_min=30, perturb_degrees_max=90):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
@@ -318,7 +347,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         return [perturbed_center_x, perturbed_center_y]
     
     def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
-        # get a easy dict / edict with the same keys as the CamInstance class
         cam_instance = edict(cam_instance)
         
         if self.perturb_center:
@@ -328,9 +356,8 @@ class NuScenesBase(MMDetNuScenesDataset):
             center_perturbed = self.get_perturbed_patch(center_o, bbox_o)
             cam_instance.center_2d = center_perturbed
         
-        ### must be original patch size!!
-        patch, patch_size_original, resampling_factor, padding_pixels_resampled = self._generate_patch(img_path, cam_instance)
-        
+        patch, patch_size_original, resampling_factor, padding_pixels_resampled, mask_resampled = self._generate_patch(img_path, cam_instance)
+        cam_instance.mask_2d_bbox = mask_resampled
         # patch_size = torch.tensor(patch_size, dtype=torch.float32)
         if patch is None or patch_size_original is None:
             return None
@@ -367,8 +394,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             zfar=Z_FAR,
             device="cpu",#"cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
-        
-        # projection_transform = camera.get_projection_transform()
         
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d
@@ -433,58 +458,117 @@ class NuScenesBase(MMDetNuScenesDataset):
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
-        if len(cam_instances) == 0:
-            # iter next sample if no instances present
-            # prevent querying idx outside of bounds
-            if idx + 1 >= self.__len__():
-                return self.__getitem__(0)
-            else:
-                return self.__getitem__(idx + 1)
-        # Choose random camera
-        random_idx = np.random.randint(0, len(cam_instances))
-        cam_instance = cam_instances[random_idx]
-        
-        img_file = sample_img_info.img_path.split("/")[-1]
-        
-        ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-        if ret_cam_instance is None:
-            if idx + 1 >= self.__len__():
-                return self.__getitem__(0)
-            else:
-                return self.__getitem__(idx + 1)
-        
-        # full_im_path = os.path.join(self.img_root, cam_name, img_file)
-        # full_img = Image.open(full_im_path)
-        # transform = transforms.Compose([transforms.ToTensor()])
-        # full_img_tensor = transform(full_img)
-        # ret.full_img = full_img_tensor
-        ret.patch = ret_cam_instance.patch
-        ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
-        pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
-        # set requires grad = False
-        pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
-        pose_6d = pose_6d.detach().requires_grad_(False)
-        bbox_sizes = bbox_sizes.detach().requires_grad_(False)
-        
-        ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
-        patch_size_original = ret_cam_instance.patch_size
-        # device = "cuda" if torch.cuda.is_available() else "cpu"
-        # patch_size_original = patch_size_original #.to(device=device)
-        # patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-        patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
-        ret.patch_size = patch_size_original
-        ret.patch_center_2d = patch_center_2d
-        ret.bbox_3d_gt = ret_cam_instance.bbox_3d
-        ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
-        ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
-        if ret.pose_6d.dim() == 3:
+        if np.random.rand() > (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
+            if len(cam_instances) == 0:
+                # iter next sample if no instances present
+                # prevent querying idx outside of bounds
+                if idx + 1 >= self.__len__():
+                    return self.__getitem__(0)
+                else:
+                    return self.__getitem__(idx + 1)
+            
+            random_idx = np.random.randint(0, len(cam_instances))
+            cam_instance = cam_instances[random_idx]
+            
+            img_file = sample_img_info.img_path.split("/")[-1]
+            
+            ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            if ret_cam_instance is None:
+                if idx + 1 >= self.__len__():
+                    return self.__getitem__(0)
+                else:
+                    return self.__getitem__(idx + 1)
+            
+            # full_im_path = os.path.join(self.img_root, cam_name, img_file)
+            # full_img = Image.open(full_im_path)
+            # transform = transforms.Compose([transforms.ToTensor()])
+            # full_img_tensor = transform(full_img)
+            # ret.full_img = full_img_tensor
+            ret.patch = ret_cam_instance.patch
+            ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
+            pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
+            # set requires grad = False
+            pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
+            pose_6d = pose_6d.detach().requires_grad_(False)
+            bbox_sizes = bbox_sizes.detach().requires_grad_(False)
+            
+            ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
+            patch_size_original = ret_cam_instance.patch_size
+            patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
+            ret.patch_size = patch_size_original
+            ret.patch_center_2d = patch_center_2d
+            ret.bbox_3d_gt = ret_cam_instance.bbox_3d
+            ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
+            ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
+            if ret.pose_6d.dim() == 3:
+                ret.pose_6d = ret.pose_6d.squeeze(0)
+            assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
             ret.pose_6d = ret.pose_6d.squeeze(0)
-        assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
-        ret.pose_6d = ret.pose_6d.squeeze(0)
-        ret.yaw = ret_cam_instance.yaw
-        ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
-        ret.fill_factor = ret_cam_instance.fill_factor
+            ret.yaw = ret_cam_instance.yaw
+            ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
+            ret.fill_factor = ret_cam_instance.fill_factor
+            mask_2d_bbox = ret_cam_instance.mask_2d_bbox
+                if mask_2d_bbox.dim() == 2:
+                    mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+                ret.mask_2d_bbox = mask_2d_bbox
+    
+        else:  # get random crop without overlap
+            # bbox = [x1, y1, x2, y2]
+            bbox_2d_list = [cam_instance['bbox'] for cam_instance in cam_instances]
+            img_file = sample_img_info.img_path.split("/")[-1]
+            # get random crop from image, and make sure it does not overlap with any bbox
+            img_path = os.path.join(self.img_root, cam_name, img_file)
+            img_pil = Image.open(img_path)
+            if img_pil is None:
+                raise FileNotFoundError(f"Image not found at {img_path}")
+            
+            background_patch = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_SIZES)
+            background_patch_original_size = background_patch.size
+            background_patch = background_patch.resize(self.patch_size, resample=Resampling.BILINEAR)
+            transform = transforms.Compose([transforms.ToTensor()])
+            background_patch_tensor = transform(background_patch)
+            ret.patch = background_patch_tensor
+            ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
+            ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+            ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
+            ret.patch_size = torch.tensor(self.patch_size, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
+            ret.patch_center_2d = torch.tensor([self.patch_size[0] // 2, self.patch_size[1] // 2], dtype=torch.float32)
+            ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
+            ret.resampling_factor = (self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1])
+            ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
+            ret.yaw = 0.0
+            ret.yaw_perturbed = 0.0
+            ret.fill_factor = 0.0
+            mask_2d_bbox = torch.zeros(self.patch_size[0], self.patch_size[1], dtype=torch.float32)
+            if mask_2d_bbox.dim() == 2:
+                mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+            ret.mask_2d_bbox = mask_2d_bbox
         return ret
+    
+    def get_random_crop_without_overlap(self, img_pil, bbox_2d_list, patch_sizes):
+        width, height = img_pil.size
+        bbox_tensor = torch.tensor(bbox_2d_list, dtype=torch.float)
+        is_found = False
+        while not is_found:
+            # Randomly choose a patch size
+            patch_size = random.choice(patch_sizes)
+            crop_width = crop_height = patch_size
+            
+            # Randomly select the top-left corner of the crop
+            crop_x = random.randint(0, width - crop_width)
+            crop_y = random.randint(0, height - crop_height)
+            
+            # Define the crop as a bounding box
+            crop_box = torch.tensor([[crop_x, crop_y, crop_x + crop_width, crop_y + crop_height]], dtype=torch.float)
+
+            # Calculate IoU between the crop box and all bounding boxes
+            iou = ops.box_iou(crop_box, bbox_tensor)
+            
+            # Check if there is no overlap (IoU == 0 for all boxes)
+            if torch.all(iou == 0):
+                is_found = True
+                
+        return img_pil.crop((crop_x, crop_y, crop_x + crop_width, crop_y + crop_height))
 
 @DATASETS.register_module()
 class NuScenesTrain(NuScenesBase):

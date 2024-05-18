@@ -175,7 +175,5 @@ https://conda.anaconda.org/anaconda/linux-64/ipykernel-6.25.0-py310h2f386ee_0.ta
 https://conda.anaconda.org/conda-forge/linux-64/blas-2.121-mkl.conda
 https://conda.anaconda.org/pytorch/linux-64/pytorch-1.12.0-py3.10_cuda11.6_cudnn8.3.2_0.tar.bz2
 https://conda.anaconda.org/pytorch/linux-64/torchaudio-0.12.0-py310_cu116.tar.bz2
-https://repo.anaconda.com/pkgs/main/linux-64/torchmetrics-1.1.2-py310h06a4308_0.conda
 https://conda.anaconda.org/pytorch/linux-64/torchvision-0.13.0-py310_cu116.tar.bz2
-https://conda.anaconda.org/conda-forge/noarch/pytorch-lightning-2.1.4-pyhd8ed1ab_0.conda
 https://conda.anaconda.org/pytorch3d/linux-64/pytorch3d-0.7.5-py310_cu116_pyt1120.tar.bz2

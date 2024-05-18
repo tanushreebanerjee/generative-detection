@@ -301,7 +301,8 @@ class PoseAutoencoder(AutoencoderKL):
         class_gt = self.get_class_input(batch, self.class_key).to(self.device) # torch.Size([4])
         bbox_gt = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3])
         fill_factor_gt = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float()
-
+        mask_2d_bbox = batch["mask_2d_bbox"]
+        
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
@@ -310,7 +311,7 @@ class PoseAutoencoder(AutoencoderKL):
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                             dec_obj, dec_pose,
                                             class_gt, bbox_gt, fill_factor_gt,
-                                            posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
+                                            posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
                                             last_layer=self.get_last_layer(), split="train")
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -321,7 +322,7 @@ class PoseAutoencoder(AutoencoderKL):
             discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                                 dec_obj, dec_pose,
                                                 class_gt, bbox_gt, fill_factor_gt,
-                                                posterior_obj, bbox_posterior, optimizer_idx, self.global_step,
+                                                posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
                                                 last_layer=self.get_last_layer(), split="train")
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
@@ -339,18 +340,18 @@ class PoseAutoencoder(AutoencoderKL):
         fill_factor_gt = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float() 
         # torch.Size([4, 3, 256, 256]) torch.Size([4, 8]) torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
-       
+        mask_2d_bbox = batch["mask_2d_bbox"]
         
         _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                       dec_obj, dec_pose,
                                       class_gt, bbox_gt,fill_factor_gt,
-                                      posterior_obj, bbox_posterior, 0, self.global_step,
+                                      posterior_obj, bbox_posterior, 0, self.global_step, mask_2d_bbox,
                                       last_layer=self.get_last_layer(), split="val")
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
                                         class_gt, bbox_gt,fill_factor_gt,
-                                        posterior_obj, bbox_posterior, 1, self.global_step,
+                                        posterior_obj, bbox_posterior, 1, self.global_step, mask_2d_bbox,
                                         last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"], sync_dist=True)
