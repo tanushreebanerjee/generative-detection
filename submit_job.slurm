@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=od_vae_test_1gpu
-#SBATCH --output=slurm_output/od_vae_test_1gpu_%j.out
+#SBATCH --job-name=od_vae_full_4gpu
+#SBATCH --output=slurm_output/od_vae_full_4gpu_%j.out
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=10G
@@ -21,4 +21,4 @@ conda activate test_mmdet3d
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
-srun python3 train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name od_vae_test_1gpu --devices 4
+srun python3 train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name od_vae_full_4gpu --devices 4

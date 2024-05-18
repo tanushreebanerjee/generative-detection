@@ -1,430 +1,0 @@
-[rank: 0] Global seed set to 23
-INFO:root:Options: {
-  "transformers_cache": ".cache/transformers_cache",
-  "torch_home": ".cache/torch_home",
-  "logging_level": "INFO",
-  "name": "od_vae_test_1gpu",
-  "resume": "",
-  "base": [
-    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
-  ],
-  "train": true,
-  "no_test": false,
-  "project": null,
-  "debug": false,
-  "seed": 23,
-  "postfix": "",
-  "logdir": "logs",
-  "scale_lr": true,
-  "logger": true,
-  "enable_checkpointing": true,
-  "default_root_dir": null,
-  "gradient_clip_val": null,
-  "gradient_clip_algorithm": null,
-  "num_nodes": 1,
-  "num_processes": null,
-  "devices": "1",
-  "gpus": null,
-  "auto_select_gpus": null,
-  "tpu_cores": null,
-  "ipus": null,
-  "enable_progress_bar": true,
-  "overfit_batches": 0.0,
-  "track_grad_norm": -1,
-  "check_val_every_n_epoch": 1,
-  "fast_dev_run": false,
-  "accumulate_grad_batches": null,
-  "max_epochs": null,
-  "min_epochs": null,
-  "max_steps": -1,
-  "min_steps": null,
-  "max_time": null,
-  "limit_train_batches": null,
-  "limit_val_batches": null,
-  "limit_test_batches": null,
-  "limit_predict_batches": null,
-  "val_check_interval": null,
-  "log_every_n_steps": 50,
-  "accelerator": null,
-  "strategy": null,
-  "sync_batchnorm": false,
-  "precision": 32,
-  "enable_model_summary": true,
-  "num_sanity_val_steps": 2,
-  "resume_from_checkpoint": null,
-  "profiler": null,
-  "benchmark": null,
-  "reload_dataloaders_every_n_epochs": 0,
-  "auto_lr_find": false,
-  "replace_sampler_ddp": true,
-  "detect_anomaly": false,
-  "auto_scale_batch_size": false,
-  "plugins": null,
-  "amp_backend": null,
-  "amp_level": null,
-  "move_metrics_to_cpu": false,
-  "multiple_trainloader_mode": "max_size_cycle",
-  "inference_mode": true
-}
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
-  warnings.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  parameters = torch.tensor(parameters, device="cuda" if torch.cuda.is_available() else "cpu")
-wandb: Currently logged in as: ostjul (ostjul13). Use `wandb login --relogin` to force relogin
-wandb: WARNING Path logs/2024-05-17T16-59-32_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory.
-wandb: WARNING Path logs/2024-05-17T16-59-32_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory
-wandb: Tracking run with wandb version 0.17.0
-wandb: Run data is saved locally in /tmp/wandb/run-20240517_170040-2024-05-17T16-59-32_od_vae_test_1gpu
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run 2024-05-17T16-59-32_od_vae_test_1gpu
-wandb: ⭐️ View project at https://wandb.ai/ostjul13/lightning_logs
-wandb: 🚀 View run at https://wandb.ai/ostjul13/lightning_logs/runs/2024-05-17T16-59-32_od_vae_test_1gpu
-INFO:root:Monitoring val/rec_loss as checkpoint metric.
-INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T16-59-32_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Merged modelckpt-cfg: 
-{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T16-59-32_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 512 in_channels
-Working with z of shape (1, 16, 4, 4) = 256 dimensions.
-making attention of type 'vanilla' with 512 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
-Loaded dataset stats:
-{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
-05/17 17:01:13 - mmengine - INFO - ------------------------------
-05/17 17:01:13 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:01:13 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:01:13 - mmengine - INFO - ------------------------------
-05/17 17:01:13 - mmengine - INFO - The length of training dataset: 486
-05/17 17:01:13 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:01:14 - mmengine - INFO - ------------------------------
-05/17 17:01:14 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:01:14 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:01:14 - mmengine - INFO - ------------------------------
-05/17 17:01:14 - mmengine - INFO - The length of training dataset: 486
-05/17 17:01:14 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:#### Data #####
-INFO:root:train, WrappedDataset, 1938
-INFO:root:validation, WrappedDataset, 486
-INFO:root:accumulate_grad_batches = 1
-INFO:root:Setting learning rate to 1.80e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 4 (batchsize) * 4.50e-06 (base_lr)
-05/17 17:01:15 - mmengine - INFO - ------------------------------
-05/17 17:01:15 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:01:15 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:01:15 - mmengine - INFO - ------------------------------
-05/17 17:01:15 - mmengine - INFO - The length of training dataset: 486
-05/17 17:01:15 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-05/17 17:01:16 - mmengine - INFO - ------------------------------
-05/17 17:01:16 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:01:16 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:01:16 - mmengine - INFO - ------------------------------
-05/17 17:01:16 - mmengine - INFO - The length of training dataset: 486
-05/17 17:01:16 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-INFO:root:Project config
-INFO:root:model:
-  base_learning_rate: 4.5e-06
-  target: src.models.autoencoder.PoseAutoencoder
-  params:
-    monitor: val/rec_loss
-    embed_dim: 16
-    euler_convention: XYZ
-    activation: relu
-    dropout_prob_init: 1.0
-    dropout_prob_final: 0.7
-    pose_conditioned_generation_steps: 7000
-    dropout_warmup_steps: 5000
-    add_noise_to_z_obj: true
-    train_on_yaw: true
-    lossconfig:
-      target: src.modules.losses.PoseLoss
-      params:
-        encoder_pretrain_steps: 750
-        disc_start: 10000
-        kl_weight_obj: 1.0
-        kl_weight_bbox: 1.0e-06
-        disc_weight: 0.5
-        pose_weight: 80000
-        fill_factor_weight: 500000
-        class_weight: 1000000
-        bbox_weight: 200000
-        pose_loss_fn: l1
-        mask_weight: 0
-        mask_loss_fn: l2
-        disc_in_channels: 3
-        num_classes: 1
-        dataset_stats_path: dataset_stats/NuScenesTrain-old.pkl
-        train_on_yaw: true
-    pose_decoder_config:
-      target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
-      params:
-        num_classes: 1
-        num_channels: 16
-        'n': 16
-        m: 16
-        hidden_dim: 500
-        num_layers: 2
-        activation: tanh
-        resid: false
-    pose_encoder_config:
-      target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
-      params:
-        num_classes: 1
-        num_channels: 16
-        'n': 16
-        m: 16
-        hidden_dim: 500
-        num_layers: 2
-        activation: swish
-    ddconfig:
-      double_z: true
-      z_channels: 16
-      resolution: 64
-      in_channels: 3
-      out_ch: 3
-      ch: 128
-      ch_mult:
-      - 1
-      - 1
-      - 2
-      - 2
-      - 4
-      num_res_blocks: 2
-      attn_resolutions:
-      - 16
-      dropout: 0.0
-data:
-  data_root: data/nuscenes
-  target: src.data.preprocessing.data_modules.DataModuleFromConfig
-  params:
-    batch_size: 4
-    num_workers: 0
-    wrap: true
-    persistent_workers: false
-    train:
-      target: src.data.datasets.nuscenes.NuScenesTrainMini
-      params:
-        data_root: data/nuscenes
-        pipeline: []
-        box_type_3d: Camera
-        load_type: frame_based
-        modality:
-          use_camera: true
-          use_lidar: false
-        filter_empty_gt: false
-        test_mode: false
-        with_velocity: false
-        use_valid_flag: false
-        label_names:
-        - car
-        patch_height: 256
-        patch_aspect_ratio: 1.0
-        perturb_center: true
-        perturb_scale: true
-    validation:
-      target: src.data.datasets.nuscenes.NuScenesValidationMini
-      params:
-        data_root: data/nuscenes
-        pipeline: []
-        box_type_3d: Camera
-        load_type: frame_based
-        modality:
-          use_camera: true
-          use_lidar: false
-        filter_empty_gt: false
-        test_mode: false
-        with_velocity: false
-        use_valid_flag: false
-        label_names:
-        - car
-        patch_height: 256
-        patch_aspect_ratio: 1.0
-        perturb_center: false
-
-INFO:root:Lightning config
-INFO:root:callbacks:
-  image_logger:
-    target: src.util.callbacks.ImageLogger
-    params:
-      batch_frequency: 1000
-      max_images: 8
-      increase_log_steps: true
-      disable_local_logging: false
-  progress_bar:
-    target: src.util.callbacks.TQDMProgressBar
-    params:
-      refresh_rate: 1
-      process_position: 0
-  device_stats_monitor:
-    target: src.util.callbacks.DeviceStatsMonitor
-trainer:
-  accumulate_grad_batches: 1
-  accelerator: gpu
-  devices: '1'
-  max_epochs: 1000
-
-
-  | Name            | Type                  | Params
-----------------------------------------------------------
-0 | encoder         | FeatEncoder           | 26.7 M
-1 | decoder         | FeatDecoder           | 39.0 M
-2 | loss            | PoseLoss              | 17.5 M
-3 | quant_conv_obj  | Conv2d                | 1.1 K 
-4 | quant_conv_pose | Conv2d                | 528   
-5 | post_quant_conv | Conv2d                | 272   
-6 | pose_decoder    | PoseDecoderSpatialVAE | 2.3 M 
-7 | pose_encoder    | PoseEncoderSpatialVAE | 3.1 M 
-----------------------------------------------------------
-73.8 M    Trainable params
-14.7 M    Non-trainable params
-88.6 M    Total params
-354.204   Total estimated model params size (MB)
-SLURM auto-requeueing enabled. Setting signal handlers.
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  rank_zero_warn(
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:84: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 4. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  rank_zero_warn(
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:424: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:425: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:427: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["inputs_rgb"] = torch.tensor(x_rgb)
-Sanity Checking: 0it [00:00, ?it/s]Sanity Checking:   0%|          | 0/2 [00:00<?, ?it/s]Sanity Checking DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s]Sanity Checking DataLoader 0:  50%|█████     | 1/2 [00:19<00:19, 19.17s/it]Sanity Checking DataLoader 0: 100%|██████████| 2/2 [00:19<00:00,  9.79s/it]                                                                           Training: 0it [00:00, ?it/s]Training:   0%|          | 0/607 [00:00<?, ?it/s]Epoch 0:   0%|          | 0/607 [00:00<?, ?it/s] Epoch 0:   0%|          | 1/607 [00:04<49:30,  4.90s/it]Epoch 0:   0%|          | 1/607 [00:04<49:30,  4.90s/it, loss=5.17e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.03e+6, discloss_step=0.000]Epoch 0:   0%|          | 2/607 [00:05<29:22,  2.91s/it, loss=5.17e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.03e+6, discloss_step=0.000]Epoch 0:   0%|          | 2/607 [00:05<29:22,  2.91s/it, loss=6.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.53e+6, discloss_step=0.000]Epoch 0:   0%|          | 3/607 [00:06<21:39,  2.15s/it, loss=6.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.53e+6, discloss_step=0.000]Epoch 0:   0%|          | 3/607 [00:06<21:42,  2.16s/it, loss=6.76e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.5e+6, discloss_step=0.000] Epoch 0:   1%|          | 4/607 [00:07<18:37,  1.85s/it, loss=6.76e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.5e+6, discloss_step=0.000]Epoch 0:   1%|          | 4/607 [00:07<18:37,  1.85s/it, loss=8.81e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.99e+6, discloss_step=0.000]Epoch 0:   1%|          | 5/607 [00:08<16:07,  1.61s/it, loss=8.81e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.99e+6, discloss_step=0.000]Epoch 0:   1%|          | 5/607 [00:08<16:09,  1.61s/it, loss=8.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.4e+6, discloss_step=0.000] Epoch 0:   1%|          | 6/607 [00:08<14:29,  1.45s/it, loss=8.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.4e+6, discloss_step=0.000]Epoch 0:   1%|          | 6/607 [00:08<14:31,  1.45s/it, loss=7.74e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.44e+5, discloss_step=0.000]Epoch 0:   1%|          | 7/607 [00:09<13:25,  1.34s/it, loss=7.74e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.44e+5, discloss_step=0.000]Epoch 0:   1%|          | 7/607 [00:09<13:26,  1.34s/it, loss=7.3e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=9.29e+5, discloss_step=0.000] Epoch 0:   1%|▏         | 8/607 [00:10<13:01,  1.30s/it, loss=7.3e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=9.29e+5, discloss_step=0.000]Epoch 0:   1%|▏         | 8/607 [00:10<13:01,  1.30s/it, loss=6.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.5e+5, discloss_step=0.000]Epoch 0:   1%|▏         | 9/607 [00:11<12:16,  1.23s/it, loss=6.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.5e+5, discloss_step=0.000]Epoch 0:   1%|▏         | 9/607 [00:11<12:17,  1.23s/it, loss=6.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.85e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 10/607 [00:11<11:46,  1.18s/it, loss=6.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.85e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 10/607 [00:11<11:47,  1.18s/it, loss=6.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.82e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 11/607 [00:12<11:18,  1.14s/it, loss=6.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.82e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 11/607 [00:12<11:19,  1.14s/it, loss=6.23e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.61e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 12/607 [00:13<10:50,  1.09s/it, loss=6.23e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.61e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 12/607 [00:13<10:51,  1.09s/it, loss=6.22e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.51e+6, discloss_step=0.000]Epoch 0:   2%|▏         | 13/607 [00:13<10:29,  1.06s/it, loss=6.22e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.51e+6, discloss_step=0.000]Epoch 0:   2%|▏         | 13/607 [00:13<10:30,  1.06s/it, loss=5.78e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.17e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 14/607 [00:14<10:15,  1.04s/it, loss=5.78e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.17e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 14/607 [00:14<10:16,  1.04s/it, loss=4.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.07e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 15/607 [00:15<10:00,  1.01s/it, loss=4.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.07e+5, discloss_step=0.000]Epoch 0:   2%|▏         | 15/607 [00:15<10:00,  1.01s/it, loss=4.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.3e+5, discloss_step=0.000] Epoch 0:   3%|▎         | 16/607 [00:16<09:54,  1.01s/it, loss=4.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.3e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 16/607 [00:16<09:54,  1.01s/it, loss=4.07e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.79e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 17/607 [00:16<09:41,  1.01it/s, loss=4.07e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.79e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 17/607 [00:16<09:42,  1.01it/s, loss=3.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.33e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 18/607 [00:17<09:30,  1.03it/s, loss=3.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.33e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 18/607 [00:17<09:30,  1.03it/s, loss=3.71e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.2e+5, discloss_step=0.000] Epoch 0:   3%|▎         | 19/607 [00:18<09:22,  1.05it/s, loss=3.71e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.2e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 19/607 [00:18<09:22,  1.05it/s, loss=3.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.94e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 20/607 [00:18<09:12,  1.06it/s, loss=3.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.94e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 20/607 [00:18<09:13,  1.06it/s, loss=3.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.42e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 21/607 [00:19<09:02,  1.08it/s, loss=3.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.42e+5, discloss_step=0.000]Epoch 0:   3%|▎         | 21/607 [00:19<09:02,  1.08it/s, loss=3.24e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.45e+5, discloss_step=0.000]Epoch 0:   4%|▎         | 22/607 [00:20<08:54,  1.09it/s, loss=3.24e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.45e+5, discloss_step=0.000]Epoch 0:   4%|▎         | 22/607 [00:20<08:54,  1.09it/s, loss=2.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.82e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 23/607 [00:20<08:46,  1.11it/s, loss=2.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.82e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 23/607 [00:20<08:47,  1.11it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.73e+5, discloss_step=0.000] Epoch 0:   4%|▍         | 24/607 [00:21<08:40,  1.12it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.73e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 24/607 [00:21<08:40,  1.12it/s, loss=2.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4e+5, discloss_step=0.000]  Epoch 0:   4%|▍         | 25/607 [00:22<08:34,  1.13it/s, loss=2.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 25/607 [00:22<08:34,  1.13it/s, loss=2.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.53e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 26/607 [00:22<08:29,  1.14it/s, loss=2.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.53e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 26/607 [00:22<08:29,  1.14it/s, loss=2.27e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.89e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 27/607 [00:23<08:22,  1.15it/s, loss=2.27e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.89e+5, discloss_step=0.000]Epoch 0:   4%|▍         | 27/607 [00:23<08:23,  1.15it/s, loss=2.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.05e+5, discloss_step=0.000]Epoch 0:   5%|▍         | 28/607 [00:24<08:17,  1.16it/s, loss=2.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.05e+5, discloss_step=0.000]Epoch 0:   5%|▍         | 28/607 [00:24<08:17,  1.16it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.09e+5, discloss_step=0.000] Epoch 0:   5%|▍         | 29/607 [00:24<08:12,  1.17it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.09e+5, discloss_step=0.000]Epoch 0:   5%|▍         | 29/607 [00:24<08:12,  1.17it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.07e+5, discloss_step=0.000]Epoch 0:   5%|▍         | 30/607 [00:25<08:08,  1.18it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.07e+5, discloss_step=0.000]Epoch 0:   5%|▍         | 30/607 [00:25<08:09,  1.18it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.37e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 31/607 [00:26<08:06,  1.18it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.37e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 31/607 [00:26<08:06,  1.18it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.47e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 32/607 [00:27<08:06,  1.18it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.47e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 32/607 [00:27<08:06,  1.18it/s, loss=2.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.25e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 33/607 [00:27<08:01,  1.19it/s, loss=2.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.25e+5, discloss_step=0.000]Epoch 0:   5%|▌         | 33/607 [00:27<08:02,  1.19it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.26e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 34/607 [00:28<07:57,  1.20it/s, loss=2.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.26e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 34/607 [00:28<07:57,  1.20it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.04e+5, discloss_step=0.000] Epoch 0:   6%|▌         | 35/607 [00:28<07:53,  1.21it/s, loss=2.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.04e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 35/607 [00:29<07:54,  1.21it/s, loss=2.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.89e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 36/607 [00:29<07:49,  1.22it/s, loss=2.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.89e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 36/607 [00:29<07:49,  1.22it/s, loss=2.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.12e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 37/607 [00:30<07:45,  1.22it/s, loss=2.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.12e+5, discloss_step=0.000]Epoch 0:   6%|▌         | 37/607 [00:30<07:46,  1.22it/s, loss=2.19e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.31e+5, discloss_step=0.000]Epoch 0:   6%|▋         | 38/607 [00:30<07:41,  1.23it/s, loss=2.19e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.31e+5, discloss_step=0.000]Epoch 0:   6%|▋         | 38/607 [00:30<07:41,  1.23it/s, loss=1.95e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.31e+5, discloss_step=0.000]Epoch 0:   6%|▋         | 39/607 [00:31<07:38,  1.24it/s, loss=1.95e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.31e+5, discloss_step=0.000]Epoch 0:   6%|▋         | 39/607 [00:31<07:38,  1.24it/s, loss=1.85e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.96e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 40/607 [00:32<07:34,  1.25it/s, loss=1.85e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.96e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 40/607 [00:32<07:35,  1.25it/s, loss=1.84e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.2e+5, discloss_step=0.000] Epoch 0:   7%|▋         | 41/607 [00:32<07:31,  1.25it/s, loss=1.84e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.2e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 41/607 [00:32<07:31,  1.25it/s, loss=1.72e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.98e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 42/607 [00:33<07:27,  1.26it/s, loss=1.72e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.98e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 42/607 [00:33<07:27,  1.26it/s, loss=1.71e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.02e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 43/607 [00:33<07:25,  1.27it/s, loss=1.71e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.02e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 43/607 [00:33<07:25,  1.27it/s, loss=1.68e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.7e+5, discloss_step=0.000] Epoch 0:   7%|▋         | 44/607 [00:34<07:24,  1.27it/s, loss=1.68e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.7e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 44/607 [00:34<07:24,  1.27it/s, loss=1.75e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.59e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 45/607 [00:35<07:21,  1.27it/s, loss=1.75e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.59e+5, discloss_step=0.000]Epoch 0:   7%|▋         | 45/607 [00:35<07:21,  1.27it/s, loss=1.69e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.57e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 46/607 [00:35<07:18,  1.28it/s, loss=1.69e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.57e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 46/607 [00:35<07:18,  1.28it/s, loss=1.69e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.13e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 47/607 [00:36<07:16,  1.28it/s, loss=1.69e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.13e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 47/607 [00:36<07:17,  1.28it/s, loss=1.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.93e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 48/607 [00:37<07:14,  1.29it/s, loss=1.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.93e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 48/607 [00:37<07:15,  1.28it/s, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.55e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 49/607 [00:38<07:12,  1.29it/s, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.55e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 49/607 [00:38<07:13,  1.29it/s, loss=1.68e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.94e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 50/607 [00:38<07:10,  1.29it/s, loss=1.68e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.94e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 50/607 [00:38<07:10,  1.29it/s, loss=1.66e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.83e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 51/607 [00:39<07:07,  1.30it/s, loss=1.66e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.83e+5, discloss_step=0.000]Epoch 0:   8%|▊         | 51/607 [00:39<07:07,  1.30it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.43e+5, discloss_step=0.000]Epoch 0:   9%|▊         | 52/607 [00:39<07:04,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.43e+5, discloss_step=0.000]Epoch 0:   9%|▊         | 52/607 [00:39<07:05,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.97e+5, discloss_step=0.000]Epoch 0:   9%|▊         | 53/607 [00:40<07:04,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.97e+5, discloss_step=0.000]Epoch 0:   9%|▊         | 53/607 [00:40<07:04,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.6e+5, discloss_step=0.000] Epoch 0:   9%|▉         | 54/607 [00:41<07:02,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.6e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 54/607 [00:41<07:02,  1.31it/s, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.64e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 55/607 [00:41<07:00,  1.31it/s, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.64e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 55/607 [00:41<07:00,  1.31it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.49e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 56/607 [00:42<06:57,  1.32it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.49e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 56/607 [00:42<06:57,  1.32it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.78e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 57/607 [00:43<06:55,  1.32it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.78e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 57/607 [00:43<06:55,  1.32it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.36e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 58/607 [00:43<06:54,  1.33it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.36e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 58/607 [00:43<06:54,  1.33it/s, loss=1.48e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.58e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 59/607 [00:44<06:52,  1.33it/s, loss=1.48e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.58e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 59/607 [00:44<06:52,  1.33it/s, loss=1.48e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.84e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 60/607 [00:45<06:51,  1.33it/s, loss=1.48e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.84e+5, discloss_step=0.000]Epoch 0:  10%|▉         | 60/607 [00:45<06:51,  1.33it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.01e+5, discloss_step=0.000]Epoch 0:  10%|█         | 61/607 [00:45<06:49,  1.33it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.01e+5, discloss_step=0.000]Epoch 0:  10%|█         | 61/607 [00:45<06:49,  1.33it/s, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000] Epoch 0:  10%|█         | 62/607 [00:46<06:48,  1.34it/s, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000]Epoch 0:  10%|█         | 62/607 [00:46<06:48,  1.34it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.3e+5, discloss_step=0.000]Epoch 0:  10%|█         | 63/607 [00:47<06:46,  1.34it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.3e+5, discloss_step=0.000]Epoch 0:  10%|█         | 63/607 [00:47<06:46,  1.34it/s, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.28e+5, discloss_step=0.000]Epoch 0:  11%|█         | 64/607 [00:48<06:48,  1.33it/s, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.28e+5, discloss_step=0.000]Epoch 0:  11%|█         | 64/607 [00:48<06:48,  1.33it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.81e+5, discloss_step=0.000]Epoch 0:  11%|█         | 65/607 [00:48<06:46,  1.33it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.81e+5, discloss_step=0.000]Epoch 0:  11%|█         | 65/607 [00:48<06:47,  1.33it/s, loss=1.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.07e+5, discloss_step=0.000]Epoch 0:  11%|█         | 66/607 [00:49<06:46,  1.33it/s, loss=1.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.07e+5, discloss_step=0.000]Epoch 0:  11%|█         | 66/607 [00:49<06:46,  1.33it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.67e+5, discloss_step=0.000] Epoch 0:  11%|█         | 67/607 [00:50<06:44,  1.34it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.67e+5, discloss_step=0.000]Epoch 0:  11%|█         | 67/607 [00:50<06:44,  1.33it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.29e+5, discloss_step=0.000]Epoch 0:  11%|█         | 68/607 [00:50<06:42,  1.34it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.29e+5, discloss_step=0.000]Epoch 0:  11%|█         | 68/607 [00:50<06:42,  1.34it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.18e+5, discloss_step=0.000]Epoch 0:  11%|█▏        | 69/607 [00:51<06:40,  1.34it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.18e+5, discloss_step=0.000]Epoch 0:  11%|█▏        | 69/607 [00:51<06:40,  1.34it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.06e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 70/607 [00:52<06:39,  1.35it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.06e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 70/607 [00:52<06:39,  1.34it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000] Epoch 0:  12%|█▏        | 71/607 [00:52<06:37,  1.35it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 71/607 [00:52<06:37,  1.35it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.96e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 72/607 [00:53<06:36,  1.35it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.96e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 72/607 [00:53<06:36,  1.35it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.47e+5, discloss_step=0.000] Epoch 0:  12%|█▏        | 73/607 [00:53<06:34,  1.35it/s, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.47e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 73/607 [00:53<06:34,  1.35it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.03e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 74/607 [00:54<06:34,  1.35it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.03e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 74/607 [00:54<06:34,  1.35it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.81e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 75/607 [00:55<06:33,  1.35it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.81e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 75/607 [00:55<06:33,  1.35it/s, loss=1.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.11e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 76/607 [00:56<06:32,  1.35it/s, loss=1.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.11e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 76/607 [00:56<06:32,  1.35it/s, loss=1.31e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.27e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 77/607 [00:56<06:31,  1.35it/s, loss=1.31e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.27e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 77/607 [00:56<06:31,  1.35it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 78/607 [00:57<06:29,  1.36it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 78/607 [00:57<06:29,  1.36it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 79/607 [00:58<06:28,  1.36it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 79/607 [00:58<06:28,  1.36it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.46e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 80/607 [00:58<06:27,  1.36it/s, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.46e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 80/607 [00:58<06:27,  1.36it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 81/607 [00:59<06:25,  1.36it/s, loss=1.38e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.19e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 81/607 [00:59<06:26,  1.36it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.48e+5, discloss_step=0.000]Epoch 0:  14%|█▎        | 82/607 [01:00<06:24,  1.37it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.48e+5, discloss_step=0.000]Epoch 0:  14%|█▎        | 82/607 [01:00<06:24,  1.37it/s, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.01e+5, discloss_step=0.000]Epoch 0:  14%|█▎        | 83/607 [01:00<06:23,  1.37it/s, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=8.01e+5, discloss_step=0.000]Epoch 0:  14%|█▎        | 83/607 [01:00<06:23,  1.37it/s, loss=1.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.5e+5, discloss_step=0.000] Epoch 0:  14%|█▍        | 84/607 [01:01<06:21,  1.37it/s, loss=1.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.5e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 84/607 [01:01<06:21,  1.37it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 85/607 [01:02<06:20,  1.37it/s, loss=1.63e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.1e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 85/607 [01:02<06:20,  1.37it/s, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.26e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 86/607 [01:02<06:19,  1.37it/s, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.26e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 86/607 [01:02<06:19,  1.37it/s, loss=1.76e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.84e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 87/607 [01:03<06:17,  1.38it/s, loss=1.76e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.84e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 87/607 [01:03<06:17,  1.38it/s, loss=1.75e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.9e+5, discloss_step=0.000] Epoch 0:  14%|█▍        | 88/607 [01:03<06:17,  1.38it/s, loss=1.75e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.9e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 88/607 [01:03<06:17,  1.38it/s, loss=1.7e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.25e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 89/607 [01:04<06:15,  1.38it/s, loss=1.7e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.25e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 89/607 [01:04<06:16,  1.38it/s, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.29e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 90/607 [01:05<06:14,  1.38it/s, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.29e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 90/607 [01:05<06:14,  1.38it/s, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.45e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 91/607 [01:05<06:13,  1.38it/s, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.45e+5, discloss_step=0.000]Epoch 0:  15%|█▍        | 91/607 [01:05<06:13,  1.38it/s, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.38e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 92/607 [01:06<06:12,  1.38it/s, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.38e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 92/607 [01:06<06:13,  1.38it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.08e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 93/607 [01:07<06:11,  1.38it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.08e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 93/607 [01:07<06:12,  1.38it/s, loss=1.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.93e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 94/607 [01:08<06:11,  1.38it/s, loss=1.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.93e+5, discloss_step=0.000]Epoch 0:  15%|█▌        | 94/607 [01:08<06:11,  1.38it/s, loss=1.44e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.38e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 95/607 [01:08<06:10,  1.38it/s, loss=1.44e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.38e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 95/607 [01:08<06:10,  1.38it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.71e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 96/607 [01:09<06:10,  1.38it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.71e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 96/607 [01:09<06:10,  1.38it/s, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.05e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 97/607 [01:10<06:09,  1.38it/s, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.05e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 97/607 [01:10<06:09,  1.38it/s, loss=1.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.07e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 98/607 [01:10<06:07,  1.38it/s, loss=1.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.07e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 98/607 [01:10<06:08,  1.38it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.67e+5, discloss_step=0.000]Epoch 0:  16%|█▋        | 99/607 [01:11<06:06,  1.39it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.67e+5, discloss_step=0.000]Epoch 0:  16%|█▋        | 99/607 [01:11<06:06,  1.39it/s, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  16%|█▋        | 100/607 [01:12<06:05,  1.39it/s, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  16%|█▋        | 100/607 [01:12<06:05,  1.39it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.15e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 101/607 [01:12<06:03,  1.39it/s, loss=1.35e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.15e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 101/607 [01:12<06:03,  1.39it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.09e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 102/607 [01:13<06:02,  1.39it/s, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.09e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 102/607 [01:13<06:02,  1.39it/s, loss=1.42e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 103/607 [01:13<06:01,  1.39it/s, loss=1.42e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 103/607 [01:13<06:01,  1.39it/s, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.41e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 104/607 [01:14<06:00,  1.39it/s, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.41e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 104/607 [01:14<06:00,  1.39it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.75e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 105/607 [01:15<05:59,  1.40it/s, loss=1.36e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.75e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 105/607 [01:15<05:59,  1.40it/s, loss=1.34e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 106/607 [01:15<05:57,  1.40it/s, loss=1.34e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 106/607 [01:15<05:58,  1.40it/s, loss=1.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.69e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 107/607 [01:16<05:57,  1.40it/s, loss=1.32e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.69e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 107/607 [01:16<05:57,  1.40it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.81e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 108/607 [01:17<05:56,  1.40it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.81e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 108/607 [01:17<05:56,  1.40it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.08e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 109/607 [01:17<05:55,  1.40it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.08e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 109/607 [01:17<05:55,  1.40it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 110/607 [01:18<05:54,  1.40it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.65e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 110/607 [01:18<05:54,  1.40it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.79e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 111/607 [01:18<05:52,  1.41it/s, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.79e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 111/607 [01:18<05:53,  1.41it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.58e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 112/607 [01:19<05:51,  1.41it/s, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.58e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 112/607 [01:19<05:51,  1.41it/s, loss=1.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.14e+5, discloss_step=0.000]Epoch 0:  19%|█▊        | 113/607 [01:20<05:50,  1.41it/s, loss=1.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.14e+5, discloss_step=0.000]Epoch 0:  19%|█▊        | 113/607 [01:20<05:50,  1.41it/s, loss=1.42e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.66e+5, discloss_step=0.000]Epoch 0:  19%|█▉        | 114/607 [01:20<05:49,  1.41it/s, loss=1.42e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.66e+5, discloss_step=0.000]Epoch 0:  19%|█▉        | 114/607 [01:20<05:49,  1.41it/s, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.8e+5, discloss_step=0.000] Epoch 0:  19%|█▉        | 115/607 [01:21<05:49,  1.41it/s, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.8e+5, disrun: Job step aborted: Waiting up to 92 seconds for job step to finish.
-slurmstepd: error: *** STEP 20823706.0 ON node209 CANCELLED AT 2024-05-17T17:03:26 ***
-slurmstepd: error: *** JOB 20823706 ON node209 CANCELLED AT 2024-05-17T17:03:26 ***
-bypassing sigterm

@@ -1,1244 +1,0 @@
-[rank: 3] Global seed set to 23
-[rank: 1] Global seed set to 23
-[rank: 2] Global seed set to 23
-[rank: 0] Global seed set to 23
-INFO:root:Options: {
-  "transformers_cache": ".cache/transformers_cache",
-  "torch_home": ".cache/torch_home",
-  "logging_level": "INFO",
-  "name": "od_vae_test_1gpu",
-  "resume": "",
-  "base": [
-    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
-  ],
-  "train": true,
-  "no_test": false,
-  "project": null,
-  "debug": false,
-  "seed": 23,
-  "postfix": "",
-  "logdir": "logs",
-  "scale_lr": true,
-  "logger": true,
-  "enable_checkpointing": true,
-  "default_root_dir": null,
-  "gradient_clip_val": null,
-  "gradient_clip_algorithm": null,
-  "num_nodes": 1,
-  "num_processes": null,
-  "devices": "4",
-  "gpus": null,
-  "auto_select_gpus": null,
-  "tpu_cores": null,
-  "ipus": null,
-  "enable_progress_bar": true,
-  "overfit_batches": 0.0,
-  "track_grad_norm": -1,
-  "check_val_every_n_epoch": 1,
-  "fast_dev_run": false,
-  "accumulate_grad_batches": null,
-  "max_epochs": null,
-  "min_epochs": null,
-  "max_steps": -1,
-  "min_steps": null,
-  "max_time": null,
-  "limit_train_batches": null,
-  "limit_val_batches": null,
-  "limit_test_batches": null,
-  "limit_predict_batches": null,
-  "val_check_interval": null,
-  "log_every_n_steps": 50,
-  "accelerator": null,
-  "strategy": null,
-  "sync_batchnorm": false,
-  "precision": 32,
-  "enable_model_summary": true,
-  "num_sanity_val_steps": 2,
-  "resume_from_checkpoint": null,
-  "profiler": null,
-  "benchmark": null,
-  "reload_dataloaders_every_n_epochs": 0,
-  "auto_lr_find": false,
-  "replace_sampler_ddp": true,
-  "detect_anomaly": false,
-  "auto_scale_batch_size": false,
-  "plugins": null,
-  "amp_backend": null,
-  "amp_level": null,
-  "move_metrics_to_cpu": false,
-  "multiple_trainloader_mode": "max_size_cycle",
-  "inference_mode": true
-}
-INFO:root:Options: {
-  "transformers_cache": ".cache/transformers_cache",
-  "torch_home": ".cache/torch_home",
-  "logging_level": "INFO",
-  "name": "od_vae_test_1gpu",
-  "resume": "",
-  "base": [
-    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
-  ],
-  "train": true,
-  "no_test": false,
-  "project": null,
-  "debug": false,
-  "seed": 23,
-  "postfix": "",
-  "logdir": "logs",
-  "scale_lr": true,
-  "logger": true,
-  "enable_checkpointing": true,
-  "default_root_dir": null,
-  "gradient_clip_val": null,
-  "gradient_clip_algorithm": null,
-  "num_nodes": 1,
-  "num_processes": null,
-  "devices": "4",
-  "gpus": null,
-  "auto_select_gpus": null,
-  "tpu_cores": null,
-  "ipus": null,
-  "enable_progress_bar": true,
-  "overfit_batches": 0.0,
-  "track_grad_norm": -1,
-  "check_val_every_n_epoch": 1,
-  "fast_dev_run": false,
-  "accumulate_grad_batches": null,
-  "max_epochs": null,
-  "min_epochs": null,
-  "max_steps": -1,
-  "min_steps": null,
-  "max_time": null,
-  "limit_train_batches": null,
-  "limit_val_batches": null,
-  "limit_test_batches": null,
-  "limit_predict_batches": null,
-  "val_check_interval": null,
-  "log_every_n_steps": 50,
-  "accelerator": null,
-  "strategy": null,
-  "sync_batchnorm": false,
-  "precision": 32,
-  "enable_model_summary": true,
-  "num_sanity_val_steps": 2,
-  "resume_from_checkpoint": null,
-  "profiler": null,
-  "benchmark": null,
-  "reload_dataloaders_every_n_epochs": 0,
-  "auto_lr_find": false,
-  "replace_sampler_ddp": true,
-  "detect_anomaly": false,
-  "auto_scale_batch_size": false,
-  "plugins": null,
-  "amp_backend": null,
-  "amp_level": null,
-  "move_metrics_to_cpu": false,
-  "multiple_trainloader_mode": "max_size_cycle",
-  "inference_mode": true
-}
-INFO:root:Options: {
-  "transformers_cache": ".cache/transformers_cache",
-  "torch_home": ".cache/torch_home",
-  "logging_level": "INFO",
-  "name": "od_vae_test_1gpu",
-  "resume": "",
-  "base": [
-    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
-  ],
-  "train": true,
-  "no_test": false,
-  "project": null,
-  "debug": false,
-  "seed": 23,
-  "postfix": "",
-  "logdir": "logs",
-  "scale_lr": true,
-  "logger": true,
-  "enable_checkpointing": true,
-  "default_root_dir": null,
-  "gradient_clip_val": null,
-  "gradient_clip_algorithm": null,
-  "num_nodes": 1,
-  "num_processes": null,
-  "devices": "4",
-  "gpus": null,
-  "auto_select_gpus": null,
-  "tpu_cores": null,
-  "ipus": null,
-  "enable_progress_bar": true,
-  "overfit_batches": 0.0,
-  "track_grad_norm": -1,
-  "check_val_every_n_epoch": 1,
-  "fast_dev_run": false,
-  "accumulate_grad_batches": null,
-  "max_epochs": null,
-  "min_epochs": null,
-  "max_steps": -1,
-  "min_steps": null,
-  "max_time": null,
-  "limit_train_batches": null,
-  "limit_val_batches": null,
-  "limit_test_batches": null,
-  "limit_predict_batches": null,
-  "val_check_interval": null,
-  "log_every_n_steps": 50,
-  "accelerator": null,
-  "strategy": null,
-  "sync_batchnorm": false,
-  "precision": 32,
-  "enable_model_summary": true,
-  "num_sanity_val_steps": 2,
-  "resume_from_checkpoint": null,
-  "profiler": null,
-  "benchmark": null,
-  "reload_dataloaders_every_n_epochs": 0,
-  "auto_lr_find": false,
-  "replace_sampler_ddp": true,
-  "detect_anomaly": false,
-  "auto_scale_batch_size": false,
-  "plugins": null,
-  "amp_backend": null,
-  "amp_level": null,
-  "move_metrics_to_cpu": false,
-  "multiple_trainloader_mode": "max_size_cycle",
-  "inference_mode": true
-}
-INFO:root:Options: {
-  "transformers_cache": ".cache/transformers_cache",
-  "torch_home": ".cache/torch_home",
-  "logging_level": "INFO",
-  "name": "od_vae_test_1gpu",
-  "resume": "",
-  "base": [
-    "configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml"
-  ],
-  "train": true,
-  "no_test": false,
-  "project": null,
-  "debug": false,
-  "seed": 23,
-  "postfix": "",
-  "logdir": "logs",
-  "scale_lr": true,
-  "logger": true,
-  "enable_checkpointing": true,
-  "default_root_dir": null,
-  "gradient_clip_val": null,
-  "gradient_clip_algorithm": null,
-  "num_nodes": 1,
-  "num_processes": null,
-  "devices": "4",
-  "gpus": null,
-  "auto_select_gpus": null,
-  "tpu_cores": null,
-  "ipus": null,
-  "enable_progress_bar": true,
-  "overfit_batches": 0.0,
-  "track_grad_norm": -1,
-  "check_val_every_n_epoch": 1,
-  "fast_dev_run": false,
-  "accumulate_grad_batches": null,
-  "max_epochs": null,
-  "min_epochs": null,
-  "max_steps": -1,
-  "min_steps": null,
-  "max_time": null,
-  "limit_train_batches": null,
-  "limit_val_batches": null,
-  "limit_test_batches": null,
-  "limit_predict_batches": null,
-  "val_check_interval": null,
-  "log_every_n_steps": 50,
-  "accelerator": null,
-  "strategy": null,
-  "sync_batchnorm": false,
-  "precision": 32,
-  "enable_model_summary": true,
-  "num_sanity_val_steps": 2,
-  "resume_from_checkpoint": null,
-  "profiler": null,
-  "benchmark": null,
-  "reload_dataloaders_every_n_epochs": 0,
-  "auto_lr_find": false,
-  "replace_sampler_ddp": true,
-  "detect_anomaly": false,
-  "auto_scale_batch_size": false,
-  "plugins": null,
-  "amp_backend": null,
-  "amp_level": null,
-  "move_metrics_to_cpu": false,
-  "multiple_trainloader_mode": "max_size_cycle",
-  "inference_mode": true
-}
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
-  warnings.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
-  warnings.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
-  warnings.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and will be removed in 0.15, please use 'weights' instead.
-  warnings.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and will be removed in 0.15. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  parameters = torch.tensor(parameters)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  parameters = torch.tensor(parameters)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  parameters = torch.tensor(parameters)
-INFO:root:Monitoring val/rec_loss as checkpoint metric.
-INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Merged modelckpt-cfg: 
-{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/modules/losses/contperceptual.py:104: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  parameters = torch.tensor(parameters)
-INFO:root:Monitoring val/rec_loss as checkpoint metric.
-INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Merged modelckpt-cfg: 
-{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Monitoring val/rec_loss as checkpoint metric.
-INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Merged modelckpt-cfg: 
-{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-wandb: Currently logged in as: ostjul (ostjul13). Use `wandb login --relogin` to force relogin
-wandb: WARNING Path logs/2024-05-17T17-37-52_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory.
-wandb: WARNING Path logs/2024-05-17T17-37-52_od_vae_test_1gpu/wandb/ wasn't writable, using system temp directory
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 512 in_channels
-Working with z of shape (1, 16, 4, 4) = 256 dimensions.
-making attention of type 'vanilla' with 512 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
-Loaded dataset stats:
-{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 512 in_channels
-Working with z of shape (1, 16, 4, 4) = 256 dimensions.
-making attention of type 'vanilla' with 512 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
-Loaded dataset stats:
-{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 512 in_channels
-Working with z of shape (1, 16, 4, 4) = 256 dimensions.
-making attention of type 'vanilla' with 512 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
-Loaded dataset stats:
-{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:57 - mmengine - INFO - ------------------------------
-05/17 17:37:57 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:57 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:#### Data #####
-INFO:root:train, WrappedDataset, 1938
-INFO:root:validation, WrappedDataset, 486
-INFO:root:accumulate_grad_batches = 1
-INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
-[rank: 2] Global seed set to 23
-Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:#### Data #####
-INFO:root:train, WrappedDataset, 1938
-INFO:root:validation, WrappedDataset, 486
-INFO:root:accumulate_grad_batches = 1
-INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
-[rank: 3] Global seed set to 23
-Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
-05/17 17:37:58 - mmengine - INFO - ------------------------------
-05/17 17:37:58 - mmengine - INFO - The length of training dataset: 486
-05/17 17:37:58 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:#### Data #####
-INFO:root:train, WrappedDataset, 1938
-INFO:root:validation, WrappedDataset, 486
-INFO:root:accumulate_grad_batches = 1
-INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
-[rank: 1] Global seed set to 23
-Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
-wandb: Tracking run with wandb version 0.17.0
-wandb: Run data is saved locally in /tmp/wandb/run-20240517_173756-2024-05-17T17-37-52_od_vae_test_1gpu
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run 2024-05-17T17-37-52_od_vae_test_1gpu
-wandb: ⭐️ View project at https://wandb.ai/ostjul13/lightning_logs
-wandb: 🚀 View run at https://wandb.ai/ostjul13/lightning_logs/runs/2024-05-17T17-37-52_od_vae_test_1gpu
-INFO:root:Monitoring val/rec_loss as checkpoint metric.
-INFO:root:Using ModelCheckpoint with {'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-INFO:root:Merged modelckpt-cfg: 
-{'target': 'pytorch_lightning.callbacks.ModelCheckpoint', 'params': {'dirpath': 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints', 'filename': '{epoch:06}', 'verbose': True, 'save_last': True, 'monitor': 'val/rec_loss', 'save_top_k': 3}}
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 512 in_channels
-Working with z of shape (1, 16, 4, 4) = 256 dimensions.
-making attention of type 'vanilla' with 512 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-making attention of type 'vanilla' with 256 in_channels
-loaded pretrained LPIPS loss from taming/modules/autoencoder/lpips/vgg.pth
-Loaded dataset stats:
-{'t1': tensor([ 7.6356e-09, -1.8421e+01]), 't2': tensor([ 2.9980e-09, -1.8421e+01]), 't3': tensor([ 0.2343, -2.6865]), 'v3': tensor([0.1066, 1.1088]), 'l': tensor([ 2.6797, -2.4134]), 'h': tensor([ 1.7426, -2.7465]), 'w': tensor([ 1.1360, -4.0951]), 'yaw': tensor([0.1067, 1.1239]), 'fill_factor': tensor([ 0.4094, -3.2034])}
-05/17 17:38:03 - mmengine - INFO - ------------------------------
-05/17 17:38:03 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:03 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:03 - mmengine - INFO - ------------------------------
-05/17 17:38:03 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:03 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:04 - mmengine - INFO - ------------------------------
-05/17 17:38:04 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:04 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:05 - mmengine - INFO - ------------------------------
-05/17 17:38:05 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:05 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:#### Data #####
-INFO:root:train, WrappedDataset, 1938
-INFO:root:validation, WrappedDataset, 486
-INFO:root:accumulate_grad_batches = 1
-INFO:root:Setting learning rate to 3.60e-05 = 1 (accumulate_grad_batches) * 1 (num_gpus) * 8 (batchsize) * 4.50e-06 (base_lr)
-05/17 17:38:06 - mmengine - INFO - ------------------------------
-05/17 17:38:06 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:06 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:06 - mmengine - INFO - ------------------------------
-05/17 17:38:06 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:06 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-[rank: 0] Global seed set to 23
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
-INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 2
-INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 3
-INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 1
-INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 0
-INFO:torch.distributed.distributed_c10d:Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
-----------------------------------------------------------------------------------------------------
-distributed_backend=nccl
-All distributed processes registered. Starting with 4 processes
-----------------------------------------------------------------------------------------------------
-
-You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-INFO:torch.distributed.distributed_c10d:Rank 3: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
-INFO:torch.distributed.distributed_c10d:Rank 2: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
-INFO:torch.distributed.distributed_c10d:Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 4 nodes.
-You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-You are using a CUDA device ('NVIDIA RTX A6000') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-node209:732141:732141 [0] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
-node209:732141:732141 [0] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
-node209:732141:732141 [0] NCCL INFO NET/IB : No device found.
-node209:732141:732141 [0] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
-node209:732141:732141 [0] NCCL INFO Using network Socket
-NCCL version 2.10.3+cuda11.6
-node209:732144:732144 [3] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
-node209:732144:732144 [3] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
-node209:732143:732143 [2] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
-node209:732143:732143 [2] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
-node209:732144:732144 [3] NCCL INFO NET/IB : No device found.
-node209:732143:732143 [2] NCCL INFO NET/IB : No device found.
-node209:732144:732144 [3] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
-node209:732144:732144 [3] NCCL INFO Using network Socket
-node209:732143:732143 [2] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
-node209:732143:732143 [2] NCCL INFO Using network Socket
-node209:732142:732142 [1] NCCL INFO Bootstrap : Using ens6f0np0:172.17.26.129<0>
-node209:732142:732142 [1] NCCL INFO NET/Plugin : No plugin found (libnccl-net.so), using internal implementation
-node209:732142:732142 [1] NCCL INFO NET/IB : No device found.
-node209:732142:732142 [1] NCCL INFO NET/Socket : Using [0]ens6f0np0:172.17.26.129<0>
-node209:732142:732142 [1] NCCL INFO Using network Socket
-node209:732141:732562 [0] NCCL INFO Channel 00/02 :    0   1   2   3
-node209:732141:732562 [0] NCCL INFO Channel 01/02 :    0   1   2   3
-node209:732141:732562 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1
-node209:732141:732562 [0] NCCL INFO Setting affinity for GPU 0 to ff,fff00000,000fffff
-node209:732142:732565 [1] NCCL INFO Trees [0] 2/-1/-1->1->0 [1] 2/-1/-1->1->0
-node209:732142:732565 [1] NCCL INFO Setting affinity for GPU 1 to ff,fff00000,000fffff
-node209:732143:732564 [2] NCCL INFO Trees [0] 3/-1/-1->2->1 [1] 3/-1/-1->2->1
-node209:732143:732564 [2] NCCL INFO Setting affinity for GPU 2 to ff,fff00000,000fffff
-node209:732144:732563 [3] NCCL INFO Trees [0] -1/-1/-1->3->2 [1] -1/-1/-1->3->2
-node209:732144:732563 [3] NCCL INFO Setting affinity for GPU 3 to ff,fff00000,000fffff
-node209:732142:732565 [1] NCCL INFO Channel 00 : 1[5e000] -> 2[5f000] via P2P/IPC
-node209:732143:732564 [2] NCCL INFO Channel 00 : 2[5f000] -> 3[62000] via P2P/IPC
-node209:732144:732563 [3] NCCL INFO Channel 00 : 3[62000] -> 0[5b000] via P2P/IPC
-node209:732141:732562 [0] NCCL INFO Channel 00 : 0[5b000] -> 1[5e000] via P2P/IPC
-node209:732142:732565 [1] NCCL INFO Channel 01 : 1[5e000] -> 2[5f000] via P2P/IPC
-node209:732143:732564 [2] NCCL INFO Channel 01 : 2[5f000] -> 3[62000] via P2P/IPC
-node209:732144:732563 [3] NCCL INFO Channel 01 : 3[62000] -> 0[5b000] via P2P/IPC
-node209:732141:732562 [0] NCCL INFO Channel 01 : 0[5b000] -> 1[5e000] via P2P/IPC
-node209:732143:732564 [2] NCCL INFO Connected all rings
-node209:732141:732562 [0] NCCL INFO Connected all rings
-node209:732142:732565 [1] NCCL INFO Connected all rings
-node209:732144:732563 [3] NCCL INFO Connected all rings
-node209:732144:732563 [3] NCCL INFO Channel 00 : 3[62000] -> 2[5f000] via P2P/IPC
-node209:732143:732564 [2] NCCL INFO Channel 00 : 2[5f000] -> 1[5e000] via P2P/IPC
-node209:732142:732565 [1] NCCL INFO Channel 00 : 1[5e000] -> 0[5b000] via P2P/IPC
-node209:732143:732564 [2] NCCL INFO Channel 01 : 2[5f000] -> 1[5e000] via P2P/IPC
-node209:732144:732563 [3] NCCL INFO Channel 01 : 3[62000] -> 2[5f000] via P2P/IPC
-node209:732142:732565 [1] NCCL INFO Channel 01 : 1[5e000] -> 0[5b000] via P2P/IPC
-node209:732144:732563 [3] NCCL INFO Connected all trees
-node209:732144:732563 [3] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
-node209:732144:732563 [3] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
-node209:732141:732562 [0] NCCL INFO Connected all trees
-node209:732141:732562 [0] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
-node209:732141:732562 [0] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
-node209:732143:732564 [2] NCCL INFO Connected all trees
-node209:732143:732564 [2] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
-node209:732143:732564 [2] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
-node209:732142:732565 [1] NCCL INFO Connected all trees
-node209:732142:732565 [1] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 8/8/512
-node209:732142:732565 [1] NCCL INFO 2 coll channels, 2 p2p channels, 2 p2p channels per peer
-node209:732143:732564 [2] NCCL INFO comm 0x7f14a8003010 rank 2 nranks 4 cudaDev 2 busId 5f000 - Init COMPLETE
-node209:732141:732562 [0] NCCL INFO comm 0x7ff08c003010 rank 0 nranks 4 cudaDev 0 busId 5b000 - Init COMPLETE
-node209:732144:732563 [3] NCCL INFO comm 0x7f4f54003010 rank 3 nranks 4 cudaDev 3 busId 62000 - Init COMPLETE
-node209:732141:732141 [0] NCCL INFO Launch mode Parallel
-node209:732142:732565 [1] NCCL INFO comm 0x7f21ec003010 rank 1 nranks 4 cudaDev 1 busId 5e000 - Init COMPLETE
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 1938
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 5051   |
-| truck                | 525    |
-| trailer              | 60     |
-| bus                  | 369    |
-| construction_vehicle | 196    |
-| bicycle              | 191    |
-| motorcycle           | 212    |
-| pedestrian           | 3657   |
-| traffic_cone         | 1339   |
-| barrier              | 2323   |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-INFO:root:Using label names: ['car'], label ids: [0]
-05/17 17:38:09 - mmengine - INFO - ------------------------------
-05/17 17:38:09 - mmengine - INFO - The length of training dataset: 486
-05/17 17:38:09 - mmengine - INFO - The number of instances per category in the dataset:
-+----------------------+--------+
-| category             | number |
-+----------------------+--------+
-| car                  | 2568   |
-| truck                | 124    |
-| trailer              | 0      |
-| bus                  | 41     |
-| construction_vehicle | 0      |
-| bicycle              | 52     |
-| motorcycle           | 259    |
-| pedestrian           | 1358   |
-| traffic_cone         | 39     |
-| barrier              | 0      |
-+----------------------+--------+
-INFO:root:Using label names: ['car'], label ids: [0]
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
-LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
-LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
-LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
-INFO:root:Project config
-INFO:root:model:
-  base_learning_rate: 4.5e-06
-  target: src.models.autoencoder.PoseAutoencoder
-  params:
-    monitor: val/rec_loss
-    embed_dim: 16
-    euler_convention: XYZ
-    activation: relu
-    dropout_prob_init: 1.0
-    dropout_prob_final: 0.7
-    pose_conditioned_generation_steps: 7000
-    dropout_warmup_steps: 5000
-    add_noise_to_z_obj: true
-    train_on_yaw: true
-    lossconfig:
-      target: src.modules.losses.PoseLoss
-      params:
-        encoder_pretrain_steps: 750
-        disc_start: 10000
-        kl_weight_obj: 1.0
-        kl_weight_bbox: 1.0e-06
-        disc_weight: 0.5
-        pose_weight: 80000
-        fill_factor_weight: 500000
-        class_weight: 1000000
-        bbox_weight: 200000
-        pose_loss_fn: l1
-        mask_weight: 0
-        mask_loss_fn: l2
-        disc_in_channels: 3
-        num_classes: 1
-        dataset_stats_path: dataset_stats/NuScenesTrain-old.pkl
-        train_on_yaw: true
-    pose_decoder_config:
-      target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
-      params:
-        num_classes: 1
-        num_channels: 16
-        'n': 16
-        m: 16
-        hidden_dim: 500
-        num_layers: 2
-        activation: tanh
-        resid: false
-    pose_encoder_config:
-      target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
-      params:
-        num_classes: 1
-        num_channels: 16
-        'n': 16
-        m: 16
-        hidden_dim: 500
-        num_layers: 2
-        activation: swish
-    ddconfig:
-      double_z: true
-      z_channels: 16
-      resolution: 64
-      in_channels: 3
-      out_ch: 3
-      ch: 128
-      ch_mult:
-      - 1
-      - 1
-      - 2
-      - 2
-      - 4
-      num_res_blocks: 2
-      attn_resolutions:
-      - 16
-      dropout: 0.0
-data:
-  data_root: data/nuscenes
-  target: src.data.preprocessing.data_modules.DataModuleFromConfig
-  params:
-    batch_size: 8
-    num_workers: 0
-    wrap: true
-    persistent_workers: false
-    train:
-      target: src.data.datasets.nuscenes.NuScenesTrainMini
-      params:
-        data_root: data/nuscenes
-        pipeline: []
-        box_type_3d: Camera
-        load_type: frame_based
-        modality:
-          use_camera: true
-          use_lidar: false
-        filter_empty_gt: false
-        test_mode: false
-        with_velocity: false
-        use_valid_flag: false
-        label_names:
-        - car
-        patch_height: 256
-        patch_aspect_ratio: 1.0
-        perturb_center: true
-        perturb_scale: true
-    validation:
-      target: src.data.datasets.nuscenes.NuScenesValidationMini
-      params:
-        data_root: data/nuscenes
-        pipeline: []
-        box_type_3d: Camera
-        load_type: frame_based
-        modality:
-          use_camera: true
-          use_lidar: false
-        filter_empty_gt: false
-        test_mode: false
-        with_velocity: false
-        use_valid_flag: false
-        label_names:
-        - car
-        patch_height: 256
-        patch_aspect_ratio: 1.0
-        perturb_center: false
-
-INFO:root:Lightning config
-INFO:root:callbacks:
-  image_logger:
-    target: src.util.callbacks.ImageLogger
-    params:
-      batch_frequency: 1000
-      max_images: 8
-      increase_log_steps: true
-      disable_local_logging: false
-  progress_bar:
-    target: src.util.callbacks.TQDMProgressBar
-    params:
-      refresh_rate: 1
-      process_position: 0
-  device_stats_monitor:
-    target: src.util.callbacks.DeviceStatsMonitor
-trainer:
-  accumulate_grad_batches: 1
-  accelerator: gpu
-  max_epochs: 1000
-  devices: '4'
-
-
-  | Name            | Type                  | Params
-----------------------------------------------------------
-0 | encoder         | FeatEncoder           | 26.7 M
-1 | decoder         | FeatDecoder           | 39.0 M
-2 | loss            | PoseLoss              | 17.5 M
-3 | quant_conv_obj  | Conv2d                | 1.1 K 
-4 | quant_conv_pose | Conv2d                | 528   
-5 | post_quant_conv | Conv2d                | 272   
-6 | pose_decoder    | PoseDecoderSpatialVAE | 2.3 M 
-7 | pose_encoder    | PoseEncoderSpatialVAE | 3.1 M 
-----------------------------------------------------------
-73.8 M    Trainable params
-14.7 M    Non-trainable params
-88.6 M    Total params
-354.204   Total estimated model params size (MB)
-SLURM auto-requeueing enabled. Setting signal handlers.
-SLURM auto-requeueing enabled. Setting signal handlers.
-SLURM auto-requeueing enabled. Setting signal handlers.
-SLURM auto-requeueing enabled. Setting signal handlers.
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  rank_zero_warn(
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/data/datasets/nuscenes.py:470: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:84: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 8. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/rec_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/total_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logvar', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/kl_loss_obj', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/nll_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_nll_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/d_weight', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/disc_factor', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/g_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/pose_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_pose_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/mask_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_mask_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/class_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_class_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/bbox_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_bbox_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t1_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t2_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/t3_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/v3_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/kl_loss_bbox', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_kl_loss_bbox', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_kl_loss_obj', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/fill_factor_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/weighted_fill_factor_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/disc_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logits_real', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('val/logits_fake', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 104 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  rank_zero_warn(
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:424: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:424: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:425: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:427: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["inputs_rgb"] = torch.tensor(x_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:424: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:425: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:427: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["inputs_rgb"] = torch.tensor(x_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:425: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:427: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["inputs_rgb"] = torch.tensor(x_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:424: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:425: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
-/n/fs/pci-sharedt/jo5483/workspace/generative-detection/src/models/autoencoder.py:427: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-  log["inputs_rgb"] = torch.tensor(x_rgb)
-Sanity Checking: 0it [00:00, ?it/s]Sanity Checking:   0%|          | 0/2 [00:00<?, ?it/s]Sanity Checking DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s]Sanity Checking DataLoader 0:  50%|█████     | 1/2 [00:01<00:01,  1.74s/it]Sanity Checking DataLoader 0: 100%|██████████| 2/2 [00:03<00:00,  1.84s/it]                                                                           Training: 0it [00:00, ?it/s]Training:   0%|          | 0/77 [00:00<?, ?it/s]Epoch 0:   0%|          | 0/77 [00:00<?, ?it/s] Epoch 0:   1%|▏         | 1/77 [00:04<05:54,  4.66s/it]Epoch 0:   1%|▏         | 1/77 [00:04<05:54,  4.66s/it, loss=1e+06, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2e+6, discloss_step=0.000]Epoch 0:   3%|▎         | 2/77 [00:08<05:03,  4.05s/it, loss=1e+06, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2e+6, discloss_step=0.000]Epoch 0:   3%|▎         | 2/77 [00:08<05:03,  4.05s/it, loss=9.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.89e+6, discloss_step=0.000]Epoch 0:   4%|▍         | 3/77 [00:10<04:15,  3.46s/it, loss=9.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.89e+6, discloss_step=0.000]Epoch 0:   4%|▍         | 3/77 [00:10<04:16,  3.46s/it, loss=8.77e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.37e+6, discloss_step=0.000]Epoch 0:   5%|▌         | 4/77 [00:14<04:22,  3.59s/it, loss=8.77e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.37e+6, discloss_step=0.000]Epoch 0:   5%|▌         | 4/77 [00:14<04:22,  3.59s/it, loss=8.13e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.25e+6, discloss_step=0.000]Epoch 0:   6%|▋         | 5/77 [00:17<04:05,  3.41s/it, loss=8.13e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.25e+6, discloss_step=0.000]Epoch 0:   6%|▋         | 5/77 [00:17<04:05,  3.41s/it, loss=7.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.01e+6, discloss_step=0.000]Epoch 0:   8%|▊         | 6/77 [00:19<03:53,  3.29s/it, loss=7.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.01e+6, discloss_step=0.000]Epoch 0:   8%|▊         | 6/77 [00:19<03:53,  3.29s/it, loss=6.89e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.58e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 7/77 [00:22<03:45,  3.22s/it, loss=6.89e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.58e+5, discloss_step=0.000]Epoch 0:   9%|▉         | 7/77 [00:22<03:45,  3.22s/it, loss=6.44e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.49e+5, discloss_step=0.000]Epoch 0:  10%|█         | 8/77 [00:26<03:47,  3.30s/it, loss=6.44e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.49e+5, discloss_step=0.000]Epoch 0:  10%|█         | 8/77 [00:26<03:47,  3.30s/it, loss=5.93e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.67e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 9/77 [00:29<03:39,  3.23s/it, loss=5.93e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.67e+5, discloss_step=0.000]Epoch 0:  12%|█▏        | 9/77 [00:29<03:39,  3.23s/it, loss=5.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.27e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 10/77 [00:31<03:33,  3.18s/it, loss=5.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=6.27e+5, discloss_step=0.000]Epoch 0:  13%|█▎        | 10/77 [00:31<03:33,  3.18s/it, loss=5.25e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.87e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 11/77 [00:34<03:27,  3.15s/it, loss=5.25e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.87e+5, discloss_step=0.000]Epoch 0:  14%|█▍        | 11/77 [00:34<03:27,  3.15s/it, loss=4.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.47e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 12/77 [00:37<03:24,  3.14s/it, loss=4.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.47e+5, discloss_step=0.000]Epoch 0:  16%|█▌        | 12/77 [00:37<03:24,  3.14s/it, loss=3.85e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.51e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 13/77 [00:40<03:20,  3.13s/it, loss=3.85e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.51e+5, discloss_step=0.000]Epoch 0:  17%|█▋        | 13/77 [00:40<03:20,  3.13s/it, loss=3.34e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.49e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 14/77 [00:43<03:16,  3.12s/it, loss=3.34e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.49e+5, discloss_step=0.000]Epoch 0:  18%|█▊        | 14/77 [00:43<03:16,  3.12s/it, loss=2.95e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.5e+5, discloss_step=0.000] Epoch 0:  19%|█▉        | 15/77 [00:46<03:10,  3.07s/it, loss=2.95e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.5e+5, discloss_step=0.000]Epoch 0:  19%|█▉        | 15/77 [00:46<03:10,  3.07s/it, loss=2.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.5e+5, discloss_step=0.000]Epoch 0:  21%|██        | 16/77 [00:49<03:09,  3.10s/it, loss=2.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.5e+5, discloss_step=0.000]Epoch 0:  21%|██        | 16/77 [00:49<03:09,  3.10s/it, loss=2.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.68e+5, discloss_step=0.000]Epoch 0:  22%|██▏       | 17/77 [00:51<03:02,  3.04s/it, loss=2.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.68e+5, discloss_step=0.000]Epoch 0:  22%|██▏       | 17/77 [00:51<03:02,  3.04s/it, loss=2.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.81e+5, discloss_step=0.000]Epoch 0:  23%|██▎       | 18/77 [00:54<02:57,  3.02s/it, loss=2.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.81e+5, discloss_step=0.000]Epoch 0:  23%|██▎       | 18/77 [00:54<02:57,  3.02s/it, loss=2.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.59e+5, discloss_step=0.000]Epoch 0:  25%|██▍       | 19/77 [00:57<02:54,  3.00s/it, loss=2.33e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.59e+5, discloss_step=0.000]Epoch 0:  25%|██▍       | 19/77 [00:57<02:54,  3.00s/it, loss=2.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.86e+5, discloss_step=0.000]Epoch 0:  26%|██▌       | 20/77 [00:59<02:50,  2.99s/it, loss=2.26e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.86e+5, discloss_step=0.000]Epoch 0:  26%|██▌       | 20/77 [00:59<02:50,  2.99s/it, loss=2.22e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.06e+5, discloss_step=0.000]Epoch 0:  27%|██▋       | 21/77 [01:02<02:45,  2.96s/it, loss=2.22e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.06e+5, discloss_step=0.000]Epoch 0:  27%|██▋       | 21/77 [01:02<02:45,  2.96s/it, loss=2.1e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.02e+5, discloss_step=0.000] Epoch 0:  29%|██▊       | 22/77 [01:04<02:41,  2.94s/it, loss=2.1e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.02e+5, discloss_step=0.000]Epoch 0:  29%|██▊       | 22/77 [01:04<02:41,  2.94s/it, loss=2.03e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.1e+5, discloss_step=0.000]Epoch 0:  30%|██▉       | 23/77 [01:07<02:38,  2.93s/it, loss=2.03e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.1e+5, discloss_step=0.000]Epoch 0:  30%|██▉       | 23/77 [01:07<02:38,  2.93s/it, loss=2.02e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.24e+5, discloss_step=0.000]Epoch 0:  31%|███       | 24/77 [01:10<02:34,  2.92s/it, loss=2.02e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.24e+5, discloss_step=0.000]Epoch 0:  31%|███       | 24/77 [01:10<02:34,  2.92s/it, loss=1.98e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.66e+5, discloss_step=0.000]Epoch 0:  32%|███▏      | 25/77 [01:13<02:32,  2.93s/it, loss=1.98e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.66e+5, discloss_step=0.000]Epoch 0:  32%|███▏      | 25/77 [01:13<02:32,  2.93s/it, loss=1.93e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.48e+5, discloss_step=0.000]Epoch 0:  34%|███▍      | 26/77 [01:16<02:29,  2.92s/it, loss=1.93e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.48e+5, discloss_step=0.000]Epoch 0:  34%|███▍      | 26/77 [01:16<02:29,  2.92s/it, loss=1.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.52e+5, discloss_step=0.000]Epoch 0:  35%|███▌      | 27/77 [01:18<02:26,  2.92s/it, loss=1.92e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.52e+5, discloss_step=0.000]Epoch 0:  35%|███▌      | 27/77 [01:18<02:26,  2.92s/it, loss=1.78e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.12e+5, discloss_step=0.000]Epoch 0:  36%|███▋      | 28/77 [01:21<02:23,  2.93s/it, loss=1.78e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.12e+5, discloss_step=0.000]Epoch 0:  36%|███▋      | 28/77 [01:21<02:23,  2.93s/it, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.51e+5, discloss_step=0.000]Epoch 0:  38%|███▊      | 29/77 [01:24<02:20,  2.92s/it, loss=1.73e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.51e+5, discloss_step=0.000]Epoch 0:  38%|███▊      | 29/77 [01:24<02:20,  2.92s/it, loss=1.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.6e+5, discloss_step=0.000] Epoch 0:  39%|███▉      | 30/77 [01:27<02:16,  2.91s/it, loss=1.67e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.6e+5, discloss_step=0.000]Epoch 0:  39%|███▉      | 30/77 [01:27<02:16,  2.91s/it, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.47e+5, discloss_step=0.000]Epoch 0:  40%|████      | 31/77 [01:30<02:14,  2.92s/it, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.47e+5, discloss_step=0.000]Epoch 0:  40%|████      | 31/77 [01:30<02:14,  2.92s/it, loss=1.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.52e+5, discloss_step=0.000]Epoch 0:  42%|████▏     | 32/77 [01:34<02:12,  2.94s/it, loss=1.61e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.52e+5, discloss_step=0.000]Epoch 0:  42%|████▏     | 32/77 [01:34<02:12,  2.94s/it, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.43e+5, discloss_step=0.000]Epoch 0:  43%|████▎     | 33/77 [01:36<02:08,  2.93s/it, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.43e+5, discloss_step=0.000]Epoch 0:  43%|████▎     | 33/77 [01:36<02:08,  2.93s/it, loss=1.74e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.53e+5, discloss_step=0.000]Epoch 0:  44%|████▍     | 34/77 [01:39<02:06,  2.93s/it, loss=1.74e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=7.53e+5, discloss_step=0.000]Epoch 0:  44%|████▍     | 34/77 [01:39<02:06,  2.93s/it, loss=1.7e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.89e+5, discloss_step=0.000] Epoch 0:  45%|████▌     | 35/77 [01:41<02:02,  2.91s/it, loss=1.7e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.89e+5, discloss_step=0.000]Epoch 0:  45%|████▌     | 35/77 [01:41<02:02,  2.91s/it, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.23e+5, discloss_step=0.000]Epoch 0:  47%|████▋     | 36/77 [01:44<01:59,  2.91s/it, loss=1.64e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.23e+5, discloss_step=0.000]Epoch 0:  47%|████▋     | 36/77 [01:44<01:59,  2.91s/it, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.32e+5, discloss_step=0.000]Epoch 0:  48%|████▊     | 37/77 [01:47<01:56,  2.91s/it, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.32e+5, discloss_step=0.000]Epoch 0:  48%|████▊     | 37/77 [01:47<01:56,  2.91s/it, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.09e+5, discloss_step=0.000]Epoch 0:  49%|████▉     | 38/77 [01:50<01:53,  2.90s/it, loss=1.58e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.09e+5, discloss_step=0.000]Epoch 0:  49%|████▉     | 38/77 [01:50<01:53,  2.90s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.4e+5, discloss_step=0.000] Epoch 0:  51%|█████     | 39/77 [01:52<01:49,  2.89s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.4e+5, discloss_step=0.000]Epoch 0:  51%|█████     | 39/77 [01:52<01:49,  2.89s/it, loss=1.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000]Epoch 0:  52%|█████▏    | 40/77 [01:55<01:46,  2.89s/it, loss=1.51e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000]Epoch 0:  52%|█████▏    | 40/77 [01:55<01:46,  2.89s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.4e+5, discloss_step=0.000]  Epoch 0:  53%|█████▎    | 41/77 [01:58<01:43,  2.89s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.4e+5, discloss_step=0.000]Epoch 0:  53%|█████▎    | 41/77 [01:58<01:43,  2.89s/it, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.38e+5, discloss_step=0.000]Epoch 0:  55%|█████▍    | 42/77 [02:00<01:40,  2.87s/it, loss=1.65e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.38e+5, discloss_step=0.000]Epoch 0:  55%|█████▍    | 42/77 [02:00<01:40,  2.87s/it, loss=1.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.85e+5, discloss_step=0.000]Epoch 0:  56%|█████▌    | 43/77 [02:02<01:36,  2.85s/it, loss=1.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.85e+5, discloss_step=0.000]Epoch 0:  56%|█████▌    | 43/77 [02:02<01:36,  2.85s/it, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.52e+5, discloss_step=0.000]Epoch 0:  57%|█████▋    | 44/77 [02:05<01:34,  2.85s/it, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.52e+5, discloss_step=0.000]Epoch 0:  57%|█████▋    | 44/77 [02:05<01:34,  2.85s/it, loss=1.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.54e+5, discloss_step=0.000]Epoch 0:  58%|█████▊    | 45/77 [02:07<01:30,  2.84s/it, loss=1.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.54e+5, discloss_step=0.000]Epoch 0:  58%|█████▊    | 45/77 [02:07<01:30,  2.84s/it, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.14e+5, discloss_step=0.000]Epoch 0:  60%|█████▉    | 46/77 [02:10<01:28,  2.84s/it, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.14e+5, discloss_step=0.000]Epoch 0:  60%|█████▉    | 46/77 [02:10<01:28,  2.84s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.82e+5, discloss_step=0.000]Epoch 0:  61%|██████    | 47/77 [02:13<01:25,  2.85s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.82e+5, discloss_step=0.000]Epoch 0:  61%|██████    | 47/77 [02:13<01:25,  2.85s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.12e+5, discloss_step=0.000]Epoch 0:  62%|██████▏   | 48/77 [02:16<01:22,  2.84s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.12e+5, discloss_step=0.000]Epoch 0:  62%|██████▏   | 48/77 [02:16<01:22,  2.84s/it, loss=1.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.44e+5, discloss_step=0.000]Epoch 0:  64%|██████▎   | 49/77 [02:18<01:19,  2.83s/it, loss=1.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.44e+5, discloss_step=0.000]Epoch 0:  64%|██████▎   | 49/77 [02:18<01:19,  2.83s/it, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.41e+5, discloss_step=0.000]Epoch 0:  65%|██████▍   | 50/77 [02:21<01:16,  2.82s/it, loss=1.53e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.41e+5, discloss_step=0.000]Epoch 0:  65%|██████▍   | 50/77 [02:21<01:16,  2.82s/it, loss=1.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.17e+5, discloss_step=0.000]Epoch 0:  66%|██████▌   | 51/77 [02:23<01:13,  2.82s/it, loss=1.52e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.17e+5, discloss_step=0.000]Epoch 0:  66%|██████▌   | 51/77 [02:23<01:13,  2.82s/it, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.42e+5, discloss_step=0.000]Epoch 0:  68%|██████▊   | 52/77 [02:26<01:10,  2.82s/it, loss=1.37e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.42e+5, discloss_step=0.000]Epoch 0:  68%|██████▊   | 52/77 [02:26<01:10,  2.82s/it, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.48e+5, discloss_step=0.000] Epoch 0:  69%|██████▉   | 53/77 [02:29<01:07,  2.81s/it, loss=1.4e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.48e+5, discloss_step=0.000]Epoch 0:  69%|██████▉   | 53/77 [02:29<01:07,  2.81s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.53e+5, discloss_step=0.000]Epoch 0:  70%|███████   | 54/77 [02:31<01:04,  2.81s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=4.53e+5, discloss_step=0.000]Epoch 0:  70%|███████   | 54/77 [02:31<01:04,  2.81s/it, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.17e+5, discloss_step=0.000]Epoch 0:  71%|███████▏  | 55/77 [02:34<01:01,  2.81s/it, loss=1.39e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.17e+5, discloss_step=0.000]Epoch 0:  71%|███████▏  | 55/77 [02:34<01:01,  2.81s/it, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.99e+5, discloss_step=0.000]Epoch 0:  73%|███████▎  | 56/77 [02:37<00:59,  2.81s/it, loss=1.43e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.99e+5, discloss_step=0.000]Epoch 0:  73%|███████▎  | 56/77 [02:37<00:59,  2.81s/it, loss=1.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.58e+5, discloss_step=0.000]Epoch 0:  74%|███████▍  | 57/77 [02:41<00:56,  2.83s/it, loss=1.62e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=5.58e+5, discloss_step=0.000]Epoch 0:  74%|███████▍  | 57/77 [02:41<00:56,  2.83s/it, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.09e+5, discloss_step=0.000]Epoch 0:  75%|███████▌  | 58/77 [02:44<00:53,  2.83s/it, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.09e+5, discloss_step=0.000]Epoch 0:  75%|███████▌  | 58/77 [02:44<00:53,  2.83s/it, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.04e+5, discloss_step=0.000]Epoch 0:  77%|███████▋  | 59/77 [02:46<00:50,  2.83s/it, loss=1.49e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.04e+5, discloss_step=0.000]Epoch 0:  77%|███████▋  | 59/77 [02:46<00:50,  2.83s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.6e+5, discloss_step=0.000]  Epoch 0:  78%|███████▊  | 60/77 [02:49<00:48,  2.83s/it, loss=1.5e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.6e+5, discloss_step=0.000]Epoch 0:  78%|███████▊  | 60/77 [02:4/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:84: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 5. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
-  warning_cache.warn(
-9<00:48,  2.83s/it, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.23e+5, discloss_step=0.000]Epoch 0:  79%|███████▉  | 61/77 [02:51<00:45,  2.82s/it, loss=1.56e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.23e+5, discloss_step=0.000]Epoch 0:  79%|███████▉  | 61/77 [02:51<00:45,  2.82s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation: 0it [00:00, ?it/s][A
-Validation:   0%|          | 0/16 [00:00<?, ?it/s][A
-Validation DataLoader 0:   0%|          | 0/16 [00:00<?, ?it/s][A
-Validation DataLoader 0:   6%|▋         | 1/16 [00:00<00:02,  5.49it/s][AEpoch 0:  81%|████████  | 62/77 [02:54<00:42,  2.81s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  12%|█▎        | 2/16 [00:01<00:09,  1.51it/s][AEpoch 0:  82%|████████▏ | 63/77 [02:55<00:38,  2.78s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  19%|█▉        | 3/16 [00:04<00:18,  1.45s/it][AEpoch 0:  83%|████████▎ | 64/77 [02:58<00:36,  2.79s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  25%|██▌       | 4/16 [00:07<00:21,  1.80s/it][AEpoch 0:  84%|████████▍ | 65/77 [03:01<00:33,  2.79s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  31%|███▏      | 5/16 [00:09<00:21,  1.98s/it][AEpoch 0:  86%|████████▌ | 66/77 [03:03<00:30,  2.78s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  38%|███▊      | 6/16 [00:12<00:20,  2.09s/it][AEpoch 0:  87%|████████▋ | 67/77 [03:06<00:27,  2.78s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  44%|████▍     | 7/16 [00:14<00:18,  2.10s/it][AEpoch 0:  88%|████████▊ | 68/77 [03:08<00:24,  2.77s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  50%|█████     | 8/16 [00:17<00:17,  2.14s/it][AEpoch 0:  90%|████████▉ | 69/77 [03:11<00:22,  2.77s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  56%|█████▋    | 9/16 [00:18<00:14,  2.08s/it][AEpoch 0:  91%|█████████ | 70/77 [03:12<00:19,  2.75s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  62%|██████▎   | 10/16 [00:21<00:13,  2.19s/it][AEpoch 0:  92%|█████████▏| 71/77 [03:15<00:16,  2.76s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  69%|██████▉   | 11/16 [00:25<00:11,  2.30s/it][AEpoch 0:  94%|█████████▎| 72/77 [03:19<00:13,  2.77s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  75%|███████▌  | 12/16 [00:28<00:09,  2.37s/it][AEpoch 0:  95%|█████████▍| 73/77 [03:22<00:11,  2.77s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  81%|████████▏ | 13/16 [00:30<00:06,  2.33s/it][AEpoch 0:  96%|█████████▌| 74/77 [03:24<00:08,  2.76s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0:  88%|████████▊ | 14/16 [00:32<00:04,  2.29s/it][AEpoch 0:  97%|█████████▋| 75/77 [03:25<00:05,  2.75s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:84: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 2. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
-  warning_cache.warn(
-Validation DataLoader 0:  94%|█████████▍| 15/16 [00:34<00:02,  2.29s/it][AEpoch 0:  99%|█████████▊| 76/77 [03:28<00:02,  2.74s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-Validation DataLoader 0: 100%|██████████| 16/16 [00:35<00:00,  2.21s/it][AEpoch 0: 100%|██████████| 77/77 [03:29<00:00,  2.72s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]Epoch 0: 100%|██████████| 77/77 [03:29<00:00,  2.72s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000]
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('dropout_prob', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('aeloss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-/n/fs/pci-sharedt/jo5483/miniconda3/envs/test_mmdet3d/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:536: PossibleUserWarning: It is recommended to use `self.log('discloss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-  warning_cache.warn(
-Epoch 0, global step 122: 'val/rec_loss' reached 1.06997 (best 1.06997), saving model to 'logs/2024-05-17T17-37-52_od_vae_test_1gpu/checkpoints/epoch=000000.ckpt' as top 3
-                                                                        [AEpoch 0: 100%|██████████| 77/77 [03:29<00:00,  2.72s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 0:   0%|          | 0/77 [00:00<?, ?it/s, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]         Epoch 1:   0%|          | 0/77 [00:00<?, ?it/s, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   1%|▏         | 1/77 [00:01<01:24,  1.11s/it, loss=1.57e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.62e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   1%|▏         | 1/77 [00:01<01:24,  1.11s/it, loss=1.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   3%|▎         | 2/77 [00:03<02:17,  1.83s/it, loss=1.55e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.24e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   3%|▎         | 2/77 [00:03<02:17,  1.83s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.75e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   4%|▍         | 3/77 [00:07<02:55,  2.37s/it, loss=1.47e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=2.75e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   4%|▍         | 3/77 [00:07<02:55,  2.37s/it, loss=1.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.93e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   5%|▌         | 4/77 [00:09<02:46,  2.28s/it, loss=1.45e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.93e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   5%|▌         | 4/77 [00:09<02:46,  2.29s/it, loss=1.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.06e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   6%|▋         | 5/77 [00:11<02:51,  2.38s/it, loss=1.41e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=3.06e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   6%|▋         | 5/77 [00:11<02:51,  2.38s/it, loss=1.22e+05, v_num=1gpu, dropout_prob_step=1.000, aeloss_step=1.92e+5, discloss_step=0.000, dropout_prob_epoch=1.000, aeloss_epoch=4.54e+5, discloss_epoch=0.000]Epoch 1:   8%|▊         | 6/77 [00:14<02:56,  2.48s/it, loss=1.22e+05, v_num=1gpu, dropout_prob_stesrun: Job step aborted: Waiting up to 92 seconds for job step to finish.
-slurmstepd: error: *** JOB 20824038 ON node209 CANCELLED AT 2024-05-17T17:42:08 ***
-slurmstepd: error: *** STEP 20824038.0 ON node209 CANCELLED AT 2024-05-17T17:42:08 ***

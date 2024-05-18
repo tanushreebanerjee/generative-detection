@@ -354,6 +354,7 @@ class PoseAutoencoder(AutoencoderKL):
                                         last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"], sync_dist=True)
+        del log_dict_ae["val/rec_loss"]
         self.log_dict(log_dict_ae)
         self.log_dict(log_dict_disc)
         return self.log_dict
@@ -421,10 +422,10 @@ class PoseAutoencoder(AutoencoderKL):
                 xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
         
             # scale is 0, 1. scale to -1, 1
-            log["reconstructions_rgb"] = torch.tensor(xrec_rgb)
-            log["perturbed_pose_reconstruction_rgb"] = torch.tensor(xrec_perturbed_pose_rgb)
+            log["reconstructions_rgb"] = xrec_rgb.clone().detach()
+            log["perturbed_pose_reconstruction_rgb"] = xrec_perturbed_pose_rgb.clone().detach()
         
-        log["inputs_rgb"] = torch.tensor(x_rgb)
+        log["inputs_rgb"] = x_rgb.clone().detach()
         return log
     
     def _rescale(self, x):
