@@ -4,6 +4,7 @@ from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWit
 from src.util.distributions import DiagonalGaussianDistribution
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
+import torch.nn.functional as F
 import json
 import pickle as pkl
 import math
@@ -157,7 +158,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             weighted_mask_loss = torch.tensor(0.0)
         return mask_loss, weighted_mask_loss
     
-    def compute_class_loss(self, class_gt, class_probs):
+    def compute_class_loss(self, class_gt, class_probs, eps=1e-8):
         # class_gt: torch.Size([4])
         # class_probs: torch.Size([4, 1])
         class_loss = self.class_loss_fn(class_probs, class_gt)

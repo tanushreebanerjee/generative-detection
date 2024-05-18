@@ -68,7 +68,7 @@ data:
   data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 16
+    batch_size: 12
     num_workers: 16
     wrap: True
     persistent_workers: True
@@ -116,7 +116,7 @@ lightning:
       target: src.util.callbacks.ImageLogger
       params:
         batch_frequency: 1000
-        max_images: 8
+        max_images: 1
         increase_log_steps: True
         disable_local_logging: False
 
@@ -136,3 +136,4 @@ lightning:
     strategy: ddp
     detect_anomaly: True
     precision: 32
+    gradient_clip_val: 1.0
