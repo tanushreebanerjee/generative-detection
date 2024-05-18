@@ -4,6 +4,7 @@ from ldm.modules.losses.contperceptual import LPIPSWithDiscriminator as LPIPSWit
 from src.util.distributions import DiagonalGaussianDistribution
 from taming.modules.losses.vqperceptual import adopt_weight
 import torch
+import torch.nn.functional as F
 import json
 import pickle as pkl
 import math
@@ -93,7 +94,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     std_dev = 0.1
                 else:
                     raise Exception
-                logvar = 2 * torch.log(torch.tensor(std_dev, device="cuda" if torch.cuda.is_available() else "cpu"))
+                logvar = 2 * torch.log(torch.tensor(std_dev))
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
                     
@@ -103,7 +104,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 bbox_logvars[idx] = logvar
                 
         parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
-        parameters = torch.tensor(parameters, device="cuda" if torch.cuda.is_available() else "cpu")
+        # parameters = torch.tensor(parameters)
         return DiagonalGaussianDistribution(parameters)
        
     def compute_pose_loss(self, pred, gt, mask_bg):
@@ -170,7 +171,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             weighted_mask_loss = torch.tensor(0.0)
         return mask_loss, weighted_mask_loss
     
-    def compute_class_loss(self, class_gt, class_probs):
+    def compute_class_loss(self, class_gt, class_probs, eps=1e-8):
         # class_gt: torch.Size([4])
         # class_probs: torch.Size([4, 1])
         class_loss = self.class_loss_fn(class_probs, class_gt)
@@ -205,12 +206,13 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 posterior_obj, bbox_posterior, optimizer_idx, global_step, mask_2d_bbox,
                 last_layer=None, cond=None, split="train",
                 weights=None):
+        mask_2d_bbox = mask_2d_bbox.to(rgb_gt.device)
         use_pixel_loss = True
         if global_step < (self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
             use_pixel_loss = False
         
         class_gt = torch.tensor(class_gt, device=rgb_gt.device)
-        mask_bg = torch.zeros_like(class_gt)
+        mask_bg = torch.zeros_like(class_gt, device=rgb_gt.device)
         mask_bg[class_gt != BACKGROUND_CLASS_IDX] = 1
         
         if mask_gt == None: # True

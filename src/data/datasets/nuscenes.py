@@ -91,7 +91,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # if center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
-            return None, None, None, None
+            return None, None, None, None, None
         
         x1, y1, x2, y2 = bbox # actual object bbox
         is_corner_case = False
@@ -157,7 +157,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         except Exception as e:
             logging.info(f"Error in cropping image: {e}")
-            return None, None, None, None
+            return None, None, None, None, None
         
         resized_width, resized_height = self.patch_size
         # ratio of original image to resized image
@@ -166,7 +166,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
         except ZeroDivisionError:
             logging.info("patch size is 0", patch.size)
-            return None, None, None, None
+            return None, None, None, None, None
         patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
         # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
         mask_bool = np.zeros((patch.size[1], patch.size[0]), dtype=bool)
@@ -392,7 +392,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             principal_point=principal_point,
             znear=Z_NEAR,
             zfar=Z_FAR,
-            device="cuda" if torch.cuda.is_available() else "cpu",
+            device="cpu",#"cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
         
         bbox_3d = cam_instance.bbox_3d
@@ -404,8 +404,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         point_screen = center_2d
         
         screen2ndc_transform = camera.get_ndc_camera_transform()
-        point_screen = point_screen.to(device="cpu")
-        screen2ndc_transform = screen2ndc_transform.to(device="cpu")
+        point_screen = point_screen#.to(device="cpu")
+        screen2ndc_transform = screen2ndc_transform#.to(device="cpu")
         
         point_ndc = screen2ndc_transform.transform_points(point_screen)
         
@@ -416,10 +416,10 @@ class NuScenesBase(MMDetNuScenesDataset):
                                                              patch_center=center_2d[..., :2])
         
         
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        ndc2patch_transform.to(device=device)
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        ndc2patch_transform#.to(device=device)
         
-        point_ndc = point_ndc.to(device=device)
+        point_ndc = point_ndc#.to(device=device)
         point_patch_ndc = ndc2patch_transform.transform_points(point_ndc)
         
         cam_instance.patch = patch
@@ -442,16 +442,19 @@ class NuScenesBase(MMDetNuScenesDataset):
     
     def __getitem__(self, idx):
         ret = edict()
+        
         sample_idx = idx // self.num_cameras
         cam_idx = idx % self.num_cameras
-        sample_info = edict(super().__getitem__(sample_idx))
+        sample_info = super().__getitem__(sample_idx)
+        # sample_info = edict(super().__getitem__(sample_idx))
         cam_name = CAM_ID2CAM_NAME[cam_idx]
         ret.sample_idx = sample_idx
         ret.cam_idx = cam_idx
         ret.cam_name = cam_name
-        sample_img_info = edict(sample_info.images[cam_name])
+        sample_img_info = edict(sample_info['images'][cam_name])
         ret.update(sample_img_info)
-        cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
+        # cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
+        cam_instances = sample_info['cam_instances'][cam_name] # list of dicts for each instance in the current camera image
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
@@ -476,8 +479,11 @@ class NuScenesBase(MMDetNuScenesDataset):
                 else:
                     return self.__getitem__(idx + 1)
             
-            full_im_path = os.path.join(self.img_root, cam_name, img_file)
-            
+            # full_im_path = os.path.join(self.img_root, cam_name, img_file)
+            # full_img = Image.open(full_im_path)
+            # transform = transforms.Compose([transforms.ToTensor()])
+            # full_img_tensor = transform(full_img)
+            # ret.full_img = full_img_tensor
             ret.patch = ret_cam_instance.patch
             ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
             pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
@@ -488,19 +494,16 @@ class NuScenesBase(MMDetNuScenesDataset):
             
             ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
             patch_size_original = ret_cam_instance.patch_size
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            patch_size_original = patch_size_original.to(device=device)
-            patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
-            patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
-            ret.patch_size = patch_size_original # torch.Size([1, 2])
-            ret.patch_center_2d = patch_center_2d # torch.Size([2])
+            patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
+            ret.patch_size = patch_size_original
+            ret.patch_center_2d = patch_center_2d
             ret.bbox_3d_gt = ret_cam_instance.bbox_3d
             ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
-            ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed # torch.Size([1, 4])
+            ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
             assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
-            ret.pose_6d = ret.pose_6d.squeeze(0) # torch.Size([4])
+            ret.pose_6d = ret.pose_6d.squeeze(0)
             ret.yaw = ret_cam_instance.yaw
             ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
             ret.fill_factor = ret_cam_instance.fill_factor
@@ -540,7 +543,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
-            
         return ret
     
     def get_random_crop_without_overlap(self, img_pil, bbox_2d_list, patch_sizes):

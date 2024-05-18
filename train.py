@@ -8,15 +8,12 @@ import torch.multiprocessing as mp
 import signal
 from packaging import version
 from omegaconf import OmegaConf
-
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer import Trainer
 
 from src.util.misc import log_opts, set_submodule_paths, set_cache_directories
 set_submodule_paths(submodule_dir="submodules")
 from ldm.util import instantiate_from_config
-
-import ptvsd
 
 def get_parser(**parser_kwargs):
     """
@@ -44,7 +41,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--transformers_cache",type=str,default=".cache/transformers_cache", help="transformers cache directory",)
     parser.add_argument("--torch_home", type=str, default=".cache/torch_home", help="torch home directory")
     parser.add_argument("--logging_level", type=str, default="INFO", help="logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-    parser.add_argument("-n", "--name", type=str, const=True, default="", nargs="?", help="postfix for logdir")
+    parser.add_argument("-n", "--name", type=str, const=True, default="test", nargs="?", help="postfix for logdir")
     parser.add_argument("-r", "--resume", type=str, const=True, default="", nargs="?", help="resume from logdir or checkpoint in logdir")
     parser.add_argument("-b", "--base", nargs="*", metavar="base_config.yaml", default=list(), help="paths to base configs. Loaded from left-to-right. Parameters can be overwritten or added with command-line options of the form `--key value`.")
     parser.add_argument("-t", "--train", type=str2bool, const=True, default=False, nargs="?", help="train")
@@ -208,7 +205,7 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             }
         },
     }
-    default_logger_cfg = default_logger_cfgs["testtube"]
+    default_logger_cfg = default_logger_cfgs["wandb"]
     if "logger" in lightning_config:
         logger_cfg = lightning_config.logger
     else:
@@ -236,6 +233,7 @@ def get_model_checkpoint_cfgs(ckptdir, model, lightning_config):
                 "filename": "{epoch:06}",
                 "verbose": True,
                 "save_last": True,
+                'save_weights_only': True
             }
         }
     if hasattr(model, "monitor"):
@@ -320,7 +318,7 @@ def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_conf
                         "filename": "{epoch:06}-{step:09}",
                         "verbose": True,
                         'save_top_k': -1,
-                        'every_n_train_steps': 10000,
+                        'every_n_train_steps': 10001,
                         'save_weights_only': True
                     }
                     }
@@ -373,7 +371,7 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
     # configure learning rate
     bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
     if not cpu:
-        ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+        ngpu = lightning_config.trainer.devices # len(lightning_config.trainer.gpus.strip(",").split(','))
     else:
         ngpu = 1
     if 'accumulate_grad_batches' in lightning_config.trainer:
@@ -393,6 +391,15 @@ def configure_learning_rate(config, model, lightning_config, cpu, opt):
         logging.info(f"Setting learning rate to {model.learning_rate:.2e}")
         
     return model
+
+# from pytorch_lightning.plugins import DDPPlugin
+# from pytorch_lightning import LightningDistributedModule
+# class CustomDDPPlugin(DDPPlugin):
+#     def configure_ddp(self):
+#         self.pre_configure_ddp()
+#         self._model = self._setup_model(LightningDistributedModule(self.model))
+#         self._register_ddp_hooks()
+#         self._model._set_static_graph() # THIS IS THE MAGIC LINE
 
 def main():
     """
@@ -512,5 +519,6 @@ def main():
             logging.info(f"{trainer.profiler.summary()}")
 
 if __name__ == "__main__":
+    torch.set_float32_matmul_precision('medium')
     mp.set_start_method('spawn')
     main()

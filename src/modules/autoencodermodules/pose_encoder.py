@@ -103,15 +103,14 @@ class PoseEncoderSpatialVAE(nn.Module):
         x0,x1 = np.meshgrid(xgrid, ygrid)
         x_coord = np.stack([x0.ravel(), x1.ravel()], 1) # (256, 2)
         x_coord = torch.from_numpy(x_coord).float() 
-        if torch.cuda.is_available():
-            x_coord = x_coord.cuda()
+        x_coord = x_coord
         
         self.x = Variable(x_coord)
         
     
     def forward(self, z):
         b = z.size(0) # 4
-        x = self.x.expand(b, self.num_coords, self.in_dim) # (batch, num_coords, 2) 
+        x = self.x.expand(b, self.num_coords, self.in_dim).to(z) # (batch, num_coords, 2) 
         x = x.contiguous()
         if len(x.size()) < 3:
             x = x.unsqueeze(0) # (1, 16*16, 2)
