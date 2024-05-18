@@ -543,6 +543,12 @@ class NuScenesBase(MMDetNuScenesDataset):
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
+        
+        for key in ["cam2img", "cam2ego", "lidar2cam", "bbox_3d_gt"]:
+            value = ret[key]
+            if isinstance(value, list):
+                ret[key] = torch.tensor(value, dtype=torch.float32)
+         
         return ret
     
     def get_random_crop_without_overlap(self, img_pil, bbox_2d_list, patch_sizes):
@@ -562,6 +568,9 @@ class NuScenesBase(MMDetNuScenesDataset):
             crop_box = torch.tensor([[crop_x, crop_y, crop_x + crop_width, crop_y + crop_height]], dtype=torch.float)
 
             # Calculate IoU between the crop box and all bounding boxes
+            if len(bbox_tensor) == 0: # no instances in the image, so any crop is valid
+                is_found = True
+                break
             iou = ops.box_iou(crop_box, bbox_tensor)
             
             # Check if there is no overlap (IoU == 0 for all boxes)
