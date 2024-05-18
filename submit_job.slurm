@@ -2,7 +2,7 @@
 #SBATCH --job-name=od_vae_test_1gpu
 #SBATCH --output=slurm_output/od_vae_test_1gpu_%j.out
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=10G
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=gpu:4

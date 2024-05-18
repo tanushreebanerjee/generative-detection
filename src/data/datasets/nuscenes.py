@@ -365,7 +365,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             principal_point=principal_point,
             znear=Z_NEAR,
             zfar=Z_FAR,
-            device="cuda" if torch.cuda.is_available() else "cpu",
+            device="cpu",#"cuda" if torch.cuda.is_available() else "cpu",
             image_size=image_size)
         
         # projection_transform = camera.get_projection_transform()
@@ -379,8 +379,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         point_screen = center_2d
         
         screen2ndc_transform = camera.get_ndc_camera_transform()
-        point_screen = point_screen.to(device="cpu")
-        screen2ndc_transform = screen2ndc_transform.to(device="cpu")
+        point_screen = point_screen#.to(device="cpu")
+        screen2ndc_transform = screen2ndc_transform#.to(device="cpu")
         
         point_ndc = screen2ndc_transform.transform_points(point_screen)
         
@@ -391,10 +391,10 @@ class NuScenesBase(MMDetNuScenesDataset):
                                                              patch_center=center_2d[..., :2])
         
         
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        ndc2patch_transform.to(device=device)
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        ndc2patch_transform#.to(device=device)
         
-        point_ndc = point_ndc.to(device=device)
+        point_ndc = point_ndc#.to(device=device)
         point_patch_ndc = ndc2patch_transform.transform_points(point_ndc)
         
         cam_instance.patch = patch
@@ -466,7 +466,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
         patch_size_original = ret_cam_instance.patch_size
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        patch_size_original = patch_size_original.to(device=device)
+        patch_size_original = patch_size_original #.to(device=device)
         patch_size_original = torch.tensor(patch_size_original, dtype=torch.float32, requires_grad=False)
         patch_center_2d = torch.tensor(ret_cam_instance.center_2d, dtype=torch.float32, requires_grad=False)
         ret.patch_size = patch_size_original
