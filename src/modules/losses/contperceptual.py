@@ -30,7 +30,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                  fill_factor_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, encoder_pretrain_steps=0, pose_conditioned_generation_steps=7000,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
-                 num_classes=1, dataset_stats_path="dataset_stats/combined.pkl", 
+                 num_classes=1, dataset_stats_path="dataset_stats/combined/all.pkl", 
                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_conditioned_generation_steps = pose_conditioned_generation_steps
@@ -77,35 +77,23 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         print("Loaded dataset stats:")
         print(dataset_stats)
-        self.bbox_distribution = self._create_distribution_from_dataset_stats(dataset_stats)
+        self.bbox_distribution_dict = self._create_distribution_from_dataset_stats(dataset_stats)
             
     def _create_distribution_from_dataset_stats(self, dataset_stats):
-        bbox_means = torch.zeros(BBOX_DIM)
-        bbox_logvars = torch.zeros(BBOX_DIM)
-        rot_param = "yaw" if self.train_on_yaw else "v3"
-        for idx, key in enumerate(["t1", "t2", "t3", rot_param, "l", "h", "w", "fill_factor"]):
-            if key not in dataset_stats:  # "yaw", "fill_factor"
-                
-                if key == "yaw":
-                    mean = 0.0
-                    std_dev = math.pi
-                elif key == "fill_factor":
-                    mean == 0.5
-                    std_dev = 0.1
-                else:
-                    raise Exception
-                logvar = 2 * torch.log(torch.tensor(std_dev))
-                bbox_means[idx] = mean
-                bbox_logvars[idx] = logvar
-                    
-            else: # t1, t2, t3, v3, l, h, w
-                mean, logvar = dataset_stats[key]
+        dist_dict = {}
+        for label, stats in dataset_stats.items():
+            bbox_means = torch.zeros(BBOX_DIM)
+            bbox_logvars = torch.zeros(BBOX_DIM)
+            rot_param = "yaw" if self.train_on_yaw else "v3"
+            for idx, key in enumerate(["t1", "t2", "t3", rot_param, "l", "h", "w", "fill_factor"]):
+                mean, logvar = stats[key]
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
                 
-        parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
-        # parameters = torch.tensor(parameters)
-        return DiagonalGaussianDistribution(parameters)
+            parameters = torch.cat((bbox_means.unsqueeze(1), bbox_logvars.unsqueeze(1)), dim=1)
+            dist = DiagonalGaussianDistribution(parameters)
+            dist_dict[label] = dist
+        return dist_dict
        
     def compute_pose_loss(self, pred, gt, mask_bg):
         # need to get loss split for each part of the pose - t1, t2, t3, v3
@@ -125,7 +113,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         pose_loss = t1_loss + t2_loss + t3_loss + v3_loss
         
         pose_loss_masked = pose_loss * mask_bg
-        pose_loss = torch.sum(pose_loss_masked) / torch.sum(mask_bg)
+        pose_loss = torch.sum(pose_loss_masked) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         weighted_pose_loss = self.pose_weight * pose_loss
         
         return pose_loss, weighted_pose_loss, t1_loss, t2_loss, t3_loss, v3_loss
@@ -144,21 +132,22 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         return rec_loss # torch.Size([4, 3, 256, 256])
 
     def _get_nll_loss(self, rec_loss, mask_bg, weights=None):
-        nll_loss = rec_loss / torch.exp(self.logvar) + self.logvar # torch.Size([4, 3, 256, 256])
+        eps = 1e-8
+        nll_loss = rec_loss / (torch.exp(self.logvar) + eps) + self.logvar # torch.Size([4, 3, 256, 256])
         weighted_nll_loss = nll_loss
         if weights is not None:
             weighted_nll_loss = weights*nll_loss
         
         masked_nll_loss = nll_loss * mask_bg.unsqueeze(1).unsqueeze(1).unsqueeze(1) # torch.Size([4, 3, 256, 256])
-        nll_loss = torch.sum(masked_nll_loss) / torch.sum(mask_bg) # nll_loss = torch.sum(nll_loss) / nll_loss.shape[0]
+        nll_loss = torch.sum(masked_nll_loss) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0) 
         masked_weighted_nll_loss = weighted_nll_loss * mask_bg.unsqueeze(1).unsqueeze(1).unsqueeze(1) # torch.Size([4, 3, 256, 256])
-        weighted_nll_loss = torch.sum(masked_weighted_nll_loss) / torch.sum(mask_bg)  # weighted_nll_loss = torch.sum(weighted_nll_loss) / weighted_nll_loss.shape[0]     
+        weighted_nll_loss = torch.sum(masked_weighted_nll_loss) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)   
         return nll_loss, weighted_nll_loss
     
     def _get_kl_loss(self, posteriors, mask_bg):
         kl_loss = posteriors.kl()
         kl_loss_masked = kl_loss * mask_bg
-        kl_loss = torch.sum(kl_loss_masked) / torch.sum(mask_bg)
+        kl_loss = torch.sum(kl_loss_masked) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         return kl_loss
     
     def get_mask_loss(self, mask1, mask2, mask_bg):
@@ -182,27 +171,43 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         bbox_loss = self.bbox_loss_fn(bbox_gt, bbox_pred) # torch.Size([4, 3])
         # mask_bg: torch.Size([4])
         bbox_loss_masked = bbox_loss * mask_bg.unsqueeze(1) # torch.Size([4, 3])
-        bbox_loss = torch.sum(bbox_loss_masked) / torch.sum(mask_bg)
+        bbox_loss = torch.sum(bbox_loss_masked) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         weighted_bbox_loss = self.bbox_weight * bbox_loss
         return bbox_loss, weighted_bbox_loss
     
-    def compute_pose_kl_loss(self, bbox_posterior, mask_bg):
-        pose_kl_loss = bbox_posterior.kl(self.bbox_distribution) # torch.Size([4])
-        pose_kl_loss = pose_kl_loss * mask_bg
-        pose_kl_loss = torch.sum(pose_kl_loss) / torch.sum(mask_bg)
+    def compute_pose_kl_loss(self, bbox_posterior, mask_bg, class_gt):
+        batch_size = len(class_gt)
+        bbox_pred_dim = bbox_posterior.mean.size(1)
+        # batch * pred dim
+        pose_kl_loss = torch.zeros(batch_size, bbox_pred_dim, device=bbox_posterior.mean.device)
+        for idx, label in enumerate(class_gt):
+            if label == "background":
+                continue
+            distribution_curr_sample = self.bbox_distribution_dict[label]
+            posterior_curr_sample_mean = bbox_posterior.mean[idx]
+            posterior_curr_sample_logvar = bbox_posterior.logvar[idx]
+            posterior_curr_sample = DiagonalGaussianDistribution(torch.cat((posterior_curr_sample_mean.unsqueeze(1), posterior_curr_sample_logvar.unsqueeze(1)), dim=1))
+            try:
+                pose_kl_loss[idx] = posterior_curr_sample.kl(distribution_curr_sample) # torch.Size([4])
+            except Exception as e:
+                print("Error in computing KL loss for class: ", label)
+                pose_kl_loss[idx] = posterior_curr_sample.kl(distribution_curr_sample) # torch.Size([4])
+                print(e)
+                pose_kl_loss[idx] = torch.tensor(0.0)
+        pose_kl_loss = torch.sum(pose_kl_loss) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         return pose_kl_loss
       
     def compute_fill_factor_loss(self, fill_factor_gt, fill_factor_pred, mask_bg):
         fill_factor_loss = self.fill_factor_loss_fn(fill_factor_gt, fill_factor_pred)
         fill_factor_loss = fill_factor_loss * mask_bg
-        fill_factor_loss = torch.sum(fill_factor_loss) / torch.sum(mask_bg)
+        fill_factor_loss = torch.sum(fill_factor_loss) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         weighted_fill_factor_loss = self.fill_factor_weight * fill_factor_loss
         return fill_factor_loss, weighted_fill_factor_loss
     
     def forward(self, 
                 rgb_gt, mask_gt, pose_gt,
                 dec_obj, dec_pose,
-                class_gt, bbox_gt, fill_factor_gt,
+                class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                 posterior_obj, bbox_posterior, optimizer_idx, global_step, mask_2d_bbox,
                 last_layer=None, cond=None, split="train",
                 weights=None):
@@ -263,7 +268,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         
         kl_loss_obj = self._get_kl_loss(posterior_obj, mask_bg)
         
-        kl_loss_obj_bbox = self.compute_pose_kl_loss(bbox_posterior, mask_bg)
+        kl_loss_obj_bbox = self.compute_pose_kl_loss(bbox_posterior, mask_bg, class_gt_label)
     
         # now the GAN part
         if optimizer_idx == 0:

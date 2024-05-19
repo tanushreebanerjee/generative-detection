@@ -28,12 +28,12 @@ model:
         mask_weight: 0
         mask_loss_fn: "l2"
         disc_in_channels: 3
-        num_classes: 2
-        dataset_stats_path: "dataset_stats/NuScenesTrain-old.pkl"
+        num_classes: 11
+        dataset_stats_path: "dataset_stats/combined/all.pkl"
     pose_decoder_config:
       target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
       params: 
-        num_classes: 2
+        num_classes: 11
         num_channels: 16
         n: 16
         m: 16
@@ -45,7 +45,7 @@ model:
     pose_encoder_config:
       target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
       params:
-        num_classes: 2
+        num_classes: 11
         num_channels: 16
         n: 16
         m: 16
@@ -86,7 +86,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ["car", "background"]
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
@@ -105,7 +105,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ["car", "background"]
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: False

@@ -24,9 +24,6 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
                 # other.mean = other.mean.to(other_device)
                 # other.var = other.var.to(other_device)
                 # other.logvar = other.logvar.to(other_device)
-            
-                batch_size = self.mean.size(0)
-                bbox_pred_dim = self.mean.size(1)
                 
                 # adding batch dim
                 other_mean = other.mean.squeeze().unsqueeze(0).to(self.mean) # other.mean torch.Size([1, 9])
@@ -39,7 +36,7 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
                 
                 # other_logvar torch.Size([1, 9])
                 return 0.5 * torch.sum(
-                    torch.pow(self.mean - other_mean, 2) / other_var
-                    + self.var / other_var - 1.0 - self.logvar + other_logvar,
+                    torch.pow(self.mean - other_mean, 2) / (other_var + 1e-5)
+                    + self.var / (other_var + 1e-5) - 1.0 - self.logvar + other_logvar,
                     dim=sum_dim)
                 

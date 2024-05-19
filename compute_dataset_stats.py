@@ -124,8 +124,8 @@ def main():
         for k, v in stats.items():
             print(f"{k}: {v}")
     
-    os.makedirs(os.path.join(save_dir, "combined-mini"), exist_ok=True)
-    with open(os.path.join(save_dir, "combined-mini", f"{label}.pkl"), 'wb') as handle:
+    os.makedirs(os.path.join(save_dir, "combined"), exist_ok=True)
+    with open(os.path.join(save_dir, "combined", f"all.pkl"), 'wb') as handle:
         pkl.dump(combined_stats, handle, protocol=pkl.HIGHEST_PROTOCOL)
     
 if __name__ == "__main__":
