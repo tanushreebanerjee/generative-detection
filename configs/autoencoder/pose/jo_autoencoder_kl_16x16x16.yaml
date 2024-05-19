@@ -105,7 +105,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ["car"]
+        label_names: ["car", "background"]
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: False

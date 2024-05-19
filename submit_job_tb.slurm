@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=clip_nan_trace_od_vae_full_4gpu
-#SBATCH --output=slurm_output/clip_nan_trace_od_vae_full_4gpu_%j.out
+#SBATCH --job-name=od_vae_full_4gpu
+#SBATCH --output=.out/slurm/%x/%J-%N-%t.out
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=10G
