@@ -211,7 +211,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         if global_step < (self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
             use_pixel_loss = False
         
-        class_gt = torch.tensor(class_gt, device=rgb_gt.device)
+        class_gt = class_gt.to(rgb_gt.device)
         mask_bg = torch.zeros_like(class_gt, device=rgb_gt.device)
         mask_bg[class_gt != BACKGROUND_CLASS_IDX] = 1
         

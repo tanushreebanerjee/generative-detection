@@ -54,7 +54,7 @@ POSE_DIM = 4
 LHW_DIM = 3
 BBOX_3D_DIM = 7
 
-PATCH_SIZES = [25, 50, 100, 200, 400]
+PATCH_SIZES = [50, 100, 200, 400]
 
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
@@ -72,7 +72,11 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
         self.perturb_center = perturb_center
         self.perturb_scale = perturb_scale
-        self.negative_sample_prob = negative_sample_prob
+        
+        if "background" in self.label_names:
+            self.negative_sample_prob = negative_sample_prob
+        else:
+            self.negative_sample_prob = 0.0
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -458,7 +462,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
-        if np.random.rand() > (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
+        if np.random.rand() <= (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
             if len(cam_instances) == 0:
                 # iter next sample if no instances present
                 # prevent querying idx outside of bounds
@@ -479,13 +483,10 @@ class NuScenesBase(MMDetNuScenesDataset):
                 else:
                     return self.__getitem__(idx + 1)
             
-            # full_im_path = os.path.join(self.img_root, cam_name, img_file)
-            # full_img = Image.open(full_im_path)
-            # transform = transforms.Compose([transforms.ToTensor()])
-            # full_img_tensor = transform(full_img)
-            # ret.full_img = full_img_tensor
             ret.patch = ret_cam_instance.patch
             ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
+            ret.original_class_id = ret_cam_instance.class_id
+            ret.class_name = LABEL_ID2NAME[ret.original_class_id]
             pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
             # set requires grad = False
             pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
@@ -523,12 +524,20 @@ class NuScenesBase(MMDetNuScenesDataset):
                 raise FileNotFoundError(f"Image not found at {img_path}")
             
             background_patch = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_SIZES)
+            if background_patch is None:
+                if idx + 1 >= self.__len__():
+                    return self.__getitem__(0)
+                else:
+                    return self.__getitem__(idx + 1)
+                
             background_patch_original_size = background_patch.size
             background_patch = background_patch.resize(self.patch_size, resample=Resampling.BILINEAR)
             transform = transforms.Compose([transforms.ToTensor()])
             background_patch_tensor = transform(background_patch)
             ret.patch = background_patch_tensor
             ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
+            ret.original_class_id = LABEL_NAME2ID['background']
+            ret.class_name = LABEL_ID2NAME[LABEL_NAME2ID['background']]
             ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
             ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.patch_size = torch.tensor(self.patch_size, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
@@ -555,7 +564,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         width, height = img_pil.size
         bbox_tensor = torch.tensor(bbox_2d_list, dtype=torch.float)
         is_found = False
-        while not is_found:
+        timeout_iters = 10
+        iters = 0
+        while not is_found and iters < timeout_iters:
             # Randomly choose a patch size
             patch_size = random.choice(patch_sizes)
             crop_width = crop_height = patch_size
@@ -573,9 +584,13 @@ class NuScenesBase(MMDetNuScenesDataset):
                 break
             iou = ops.box_iou(crop_box, bbox_tensor)
             
-            # Check if there is no overlap (IoU == 0 for all boxes)
-            if torch.all(iou == 0):
+            # Check if there is a 50% overlap with any bounding box
+            if torch.all(iou < 0.5):
                 is_found = True
+            
+            iters += 1
+            if iters >= timeout_iters:
+                return None
                 
         return img_pil.crop((crop_x, crop_y, crop_x + crop_width, crop_y + crop_height))
 

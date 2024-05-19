@@ -8,15 +8,15 @@ model:
     activation: "relu"
     dropout_prob_init: 1.0
     dropout_prob_final: 0.7
-    pose_conditioned_generation_steps: 7000
-    dropout_warmup_steps: 5000
+    pose_conditioned_generation_steps: 45000
+    dropout_warmup_steps: 45000
     add_noise_to_z_obj: True
     train_on_yaw: True
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
-        encoder_pretrain_steps: 750
-        disc_start: 10000
+        encoder_pretrain_steps: 30000
+        disc_start: 30000
         kl_weight_obj: 1.0
         kl_weight_bbox: 0.000001
         disc_weight: 0.5
