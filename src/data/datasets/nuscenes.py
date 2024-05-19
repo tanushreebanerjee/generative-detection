@@ -18,9 +18,7 @@ import logging
 import math
 import torchvision.ops as ops
 import random
-
-L_MIN = 0.5 
-L_MAX = 3.0
+import pickle as pkl
 
 LABEL_NAME2ID = {
     'car': 0, 
@@ -59,7 +57,7 @@ PATCH_SIZES = [50, 100, 200, 400]
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
                  is_sweep=False, perturb_center=False, perturb_scale=False, 
-                 negative_sample_prob=0.5, **kwargs):
+                 negative_sample_prob=0.5, h_minmax_dir = "dataset_stats/combined", **kwargs):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
@@ -72,6 +70,12 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
         self.perturb_center = perturb_center
         self.perturb_scale = perturb_scale
+        hmin_path = os.path.join(h_minmax_dir, "hmin.pkl")
+        hmax_path = os.path.join(h_minmax_dir, "hmax.pkl")
+        with open(hmin_path, "rb") as f:
+            self.hmin_dict = pkl.load(f)
+        with open(hmax_path, "rb") as f:
+            self.hmax_dict = pkl.load(f)
         
         if "background" in self.label_names:
             self.negative_sample_prob = negative_sample_prob
@@ -276,8 +280,13 @@ class NuScenesBase(MMDetNuScenesDataset):
             zmin = -(min_val * focal_length.squeeze()[0]) / (patch_height - padding_pixels_resampled)
             zmax = -(max_val * focal_length.squeeze()[0]) / (patch_height - padding_pixels_resampled)
             return zmin, zmax
+        bbox_label_idx = cam_instance.bbox_label
+        bbox_label_name = LABEL_ID2NAME[bbox_label_idx]
+        assert bbox_label_name != "background", "cannot get zminmax for background class"
+        min_val = self.hmin_dict[bbox_label_name]
+        max_val = self.hmax_dict[bbox_label_name]
         
-        zmin, zmax = get_zminmax(min_val=L_MIN, max_val=L_MAX, 
+        zmin, zmax = get_zminmax(min_val=min_val, max_val=max_val, 
                                  focal_length=camera.focal_length, 
                                  patch_height=self.patch_size[0])
         
