@@ -192,9 +192,7 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             "target": "pytorch_lightning.loggers.WandbLogger",
             "params": {
                 "name": nowname,
-                "save_dir": logdir,
                 "offline": opt.debug,
-                "id": nowname,
             }
         },
         "testtube": {
@@ -205,7 +203,18 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             }
         },
     }
-    default_logger_cfg = default_logger_cfgs["testtube"]
+    
+    logging.info(f"WANDB_DIR: {os.environ.get('WANDB_DIR')}")
+    logging.info(f"WANDB_CACHE_DIR: {os.environ.get('WANDB_CACHE_DIR')}")
+    logging.info(f"WANDB_CONFIG_DIR: {os.environ.get('WANDB_CONFIG_DIR')}")
+    
+    os.makedirs(os.environ["WANDB_DIR"], exist_ok=True)
+    os.makedirs(os.environ["WANDB_CACHE_DIR"], exist_ok=True)
+    os.makedirs(os.environ["WANDB_CONFIG_DIR"], exist_ok=True)
+    os.makedirs(os.path.join(os.environ["WANDB_DIR"], "run-{nowname}"), exist_ok=True)
+    
+     
+    default_logger_cfg = default_logger_cfgs["wandb"]
     if "logger" in lightning_config:
         logger_cfg = lightning_config.logger
     else:

@@ -4,7 +4,7 @@ data
 !src/data
 scripts/slurm
 dataset_stats
-
+wandb
 taming
 logs
 .out
