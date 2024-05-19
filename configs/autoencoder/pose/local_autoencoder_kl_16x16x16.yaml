@@ -110,6 +110,25 @@ data:
         patch_aspect_ratio: 1.0
         perturb_center: False
 
+    test:
+      target: src.data.datasets.nuscenes.NuScenesValidationMini
+      params:
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ["car"]
+        patch_height: 256
+        patch_aspect_ratio: 1.0
+        perturb_center: False
+
 lightning:
   callbacks:
     image_logger:

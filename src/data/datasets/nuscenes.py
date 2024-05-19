@@ -17,6 +17,7 @@ import numpy as np
 import logging
 import math
 import torchvision.ops as ops
+from torchvision.transforms.functional import pil_to_tensor
 import random
 
 L_MIN = 0.5 
@@ -458,6 +459,15 @@ class NuScenesBase(MMDetNuScenesDataset):
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
+        if True: #self.split == "test":
+            img_file = sample_img_info.img_path.split("/")[-1]
+            full_img_path = os.path.join(self.img_root, cam_name, img_file)
+            all_patches, all_patch_centers, all_patch_sizes = self._get_all_image_crops(full_img_path)
+            ret.patch_size = torch.cat(all_patch_sizes, dim=0)
+            ret.patch_center_2d = torch.cat(all_patch_centers, dim=0)
+            ret.patch = all_patches
+            return None
+        
         if np.random.rand() > (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
             if len(cam_instances) == 0:
                 # iter next sample if no instances present
@@ -569,6 +579,54 @@ class NuScenesBase(MMDetNuScenesDataset):
                 is_found = True
                 
         return img_pil.crop((crop_x, crop_y, crop_x + crop_width, crop_y + crop_height))
+    
+    def _get_all_image_crops(self, image_path):
+        all_patches = []
+        all_patch_centers = []
+        all_patch_sizes = []
+        for patch_size in PATCH_SIZES:
+            patches_res_i, patch_center_2d_res_i, patch_size_res_i = self._crop_image_into_squares(image_path, patch_size)
+            all_patches.append(patches_res_i)
+            all_patch_centers.append(patch_center_2d_res_i)
+            all_patch_sizes.append(patch_size_res_i)
+            
+        return all_patches, all_patch_centers, all_patch_sizes
+    
+    def _crop_image_into_squares(self, image_path, patch_size):
+        # Open the image file
+        with Image.open(image_path) as img:
+            img_width, img_height = img.size
+            
+            # Ensure the image dimensions are multiples of patch_size
+            # if img_width % patch_size != 0 or img_height % patch_size != 0:
+            #     raise ValueError("Image dimensions must be multiples of the patch size.")
+            height_offset = 0
+            if img_height % patch_size != 0:
+                height_offset = (img_height % patch_size) // int(np.ceil(img_height / patch_size))
+                
+            width_offset = 0
+            if img_width % patch_size != 0:
+                width_offset = (img_width % patch_size) // int(np.ceil(img_width / patch_size))
+            
+            patches = []
+            patch_center = []
+            pacth_wh = []
+            
+            # Crop the image into patches
+            for i in range(0, img_height, patch_size):
+                i = i + height_offset
+                for j in range(0, img_width, patch_size):
+                    j = j + width_offset
+                    box = (j, i, j + patch_size, i + patch_size)
+                    patch = img.crop(box).resize(self.patch_size, resample=Resampling.BILINEAR)
+                    patches.append(pil_to_tensor(patch))
+                    patch_center.append([j + patch_size // 2, i + patch_size // 2])
+                    pacth_wh.append([patch_size, patch_size])
+        
+        patches_cropped = torch.stack(patches).float()/255.
+        patch_center_2d = torch.tensor(patch_center, dtype=torch.float32)
+        patch_sizes = torch.tensor(pacth_wh, dtype=torch.float32)
+        return patches_cropped, patch_center_2d, patch_sizes
 
 @DATASETS.register_module()
 class NuScenesTrain(NuScenesBase):
