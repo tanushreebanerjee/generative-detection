@@ -1,0 +1,140 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: src.models.autoencoder.PoseAutoencoder
+  params:
+    monitor: "val/rec_loss"
+    embed_dim: 16
+    euler_convention: "XYZ"
+    activation: "relu"
+    dropout_prob_init: 1.0
+    dropout_prob_final: 0.7
+    pose_conditioned_generation_steps: 20000
+    dropout_warmup_steps: 50000
+    add_noise_to_z_obj: True
+    train_on_yaw: True
+    lossconfig:
+      target: src.modules.losses.PoseLoss
+      params:
+        encoder_pretrain_steps: 20000
+        disc_start: 20000
+        kl_weight_obj: 1.0
+        kl_weight_bbox: 0.000001
+        disc_weight: 0.5
+        pose_weight: 80000
+        fill_factor_weight: 500000
+        class_weight: 1000000
+        bbox_weight: 200000
+        pose_loss_fn: "l1"
+        mask_weight: 0
+        mask_loss_fn: "l2"
+        disc_in_channels: 3
+        num_classes: 11
+        dataset_stats_path: "dataset_stats/combined/all.pkl"
+    pose_decoder_config:
+      target: src.modules.autoencodermodules.pose_decoder.PoseDecoderSpatialVAE
+      params: 
+        num_classes: 11
+        num_channels: 16
+        n: 16
+        m: 16
+        hidden_dim: 500
+        num_layers: 2
+        activation: tanh
+        resid: False
+    
+    pose_encoder_config:
+      target: src.modules.autoencodermodules.pose_encoder.PoseEncoderSpatialVAE
+      params:
+        num_classes: 11
+        num_channels: 16
+        n: 16
+        m: 16
+        hidden_dim: 500
+        num_layers: 2
+        activation: swish
+    ddconfig:
+      double_z: True
+      z_channels: 16
+      resolution: 64
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult: [ 1,1,2,2,4]  # num_down = len(ch_mult)-1
+      num_res_blocks: 2
+      attn_resolutions: [16]
+      dropout: 0.0
+
+data:
+  data_root: data/nuscenes
+  target: src.data.preprocessing.data_modules.DataModuleFromConfig
+  params:
+    batch_size: 12
+    num_workers: 16
+    wrap: True
+    persistent_workers: True
+    train:
+      target: src.data.datasets.nuscenes.NuScenesTrain
+      params:
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        patch_height: 256
+        patch_aspect_ratio: 1.0
+        perturb_center: True
+        perturb_scale: True
+    validation:
+      target: src.data.datasets.nuscenes.NuScenesValidation
+      params:
+        data_root: data/nuscenes
+        pipeline: []
+        box_type_3d: Camera
+        load_type: frame_based
+        modality: 
+          use_camera: True 
+          use_lidar: False
+        filter_empty_gt: False
+        test_mode: False
+        with_velocity: False
+        use_valid_flag: False
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        patch_height: 256
+        patch_aspect_ratio: 1.0
+        perturb_center: True
+        perturb_scale: True
+
+lightning:
+  callbacks:
+    image_logger:
+      target: src.util.callbacks.ImageLogger
+      params:
+        batch_frequency: 1000
+        max_images: 1
+        increase_log_steps: True
+        disable_local_logging: False
+
+    progress_bar:
+      target: src.util.callbacks.TQDMProgressBar
+      params:
+        refresh_rate: 1
+        process_position: 0
+
+    device_stats_monitor:
+      target: src.util.callbacks.DeviceStatsMonitor
+
+  trainer:
+    accumulate_grad_batches: 1
+    accelerator: gpu
+    max_epochs: 22
+    strategy: ddp
+    detect_anomaly: True
+    precision: 32
+    gradient_clip_val: 1.0

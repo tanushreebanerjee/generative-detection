@@ -220,7 +220,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 weights=None):
         mask_2d_bbox = mask_2d_bbox.to(rgb_gt.device)
         use_pixel_loss = True
-        if global_step < (self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
+        if global_step <= (self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
             use_pixel_loss = False
         
         class_gt = class_gt.to(rgb_gt.device)

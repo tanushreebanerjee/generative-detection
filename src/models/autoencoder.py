@@ -60,11 +60,13 @@ class PoseAutoencoder(AutoencoderKL):
                  dropout_prob_final=0.7,
                  dropout_warmup_steps=5000,
                  pose_conditioned_generation_steps=10000,
+                 intermediate_img_feature_leak_steps=0,
                  add_noise_to_z_obj=True,
                  train_on_yaw=True,
                  ):
         pl.LightningModule.__init__(self)
         self.encoder_pretrain_steps = lossconfig["params"]["encoder_pretrain_steps"]
+        self.intermediate_img_feature_leak_steps = intermediate_img_feature_leak_steps
         self.train_on_yaw = train_on_yaw
         self.dropout_prob_final = dropout_prob_final # 0.7
         self.dropout_prob_init = dropout_prob_init # 1.0
@@ -191,13 +193,18 @@ class PoseAutoencoder(AutoencoderKL):
         if self.global_step < self.encoder_pretrain_steps: # encoder pretraining phase
             # set dropout probability to 1.0
             dropout_prob = self.dropout_prob_init
+        elif self.global_step < self.intermediate_img_feature_leak_steps + self.encoder_pretrain_steps:
+            dropout_prob = 0.95
         
-        elif self.global_step < self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
+        elif self.global_step < self.intermediate_img_feature_leak_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
             dropout_prob = self.dropout_prob_init
         
-        elif self.global_step < self.dropout_warmup_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
+        elif self.global_step < self.intermediate_img_feature_leak_steps + self.dropout_warmup_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps: # pose conditioned generation phase
             # linearly decrease dropout probability from initial to final value
-            dropout_prob = self.dropout_prob_init - (self.dropout_prob_init - self.dropout_prob_final) * (self.global_step - self.encoder_pretrain_steps) / self.dropout_warmup_steps # 1.0 - (1.0 - 0.7) * (10000 - 10000) / 10000 = 1.0
+            if self.dropout_prob_init == self.dropout_prob_final or self.dropout_warmup_steps == 0:
+                dropout_prob = self.dropout_prob_final
+            else:
+                dropout_prob = self.dropout_prob_init - (self.dropout_prob_init - self.dropout_prob_final) * (self.global_step - self.encoder_pretrain_steps) / self.dropout_warmup_steps # 1.0 - (1.0 - 0.7) * (10000 - 10000) / 10000 = 1.0
         
         else: # VAE phase
             # set dropout probability to dropout_prob_final

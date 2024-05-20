@@ -4,8 +4,6 @@ src/*.ipynb
 data
 !src/data
 scripts/slurm
-dataset_stats
-!dataset_stats/combined.*.pkl
 wandb
 taming
 logs
