@@ -86,7 +86,20 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             bbox_logvars = torch.zeros(BBOX_DIM)
             rot_param = "yaw" if self.train_on_yaw else "v3"
             for idx, key in enumerate(["t1", "t2", "t3", rot_param, "l", "h", "w", "fill_factor"]):
-                mean, logvar = stats[key]
+                if key == "yaw":
+                    mean = 0.0
+                    std_dev = math.pi
+                    logvar = 2 * torch.log(torch.tensor(std_dev))
+                elif key == "t1" or key == "t2":
+                    mean = 0.0
+                    std_dev = 1.0
+                    logvar = 2 * torch.log(torch.tensor(std_dev))
+                elif key == "fill_factor":
+                    mean = 0.5
+                    std_dev = math.sqrt(2)
+                    logvar = 2 * torch.log(torch.tensor(std_dev))
+                else: # t3, l, h, w - independent of perturbation
+                    mean, logvar = stats[key]
                 bbox_means[idx] = mean
                 bbox_logvars[idx] = logvar
                 
@@ -187,13 +200,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             posterior_curr_sample_mean = bbox_posterior.mean[idx]
             posterior_curr_sample_logvar = bbox_posterior.logvar[idx]
             posterior_curr_sample = DiagonalGaussianDistribution(torch.cat((posterior_curr_sample_mean.unsqueeze(1), posterior_curr_sample_logvar.unsqueeze(1)), dim=1))
-            try:
-                pose_kl_loss[idx] = posterior_curr_sample.kl(distribution_curr_sample) # torch.Size([4])
-            except Exception as e:
-                print("Error in computing KL loss for class: ", label)
-                pose_kl_loss[idx] = posterior_curr_sample.kl(distribution_curr_sample) # torch.Size([4])
-                print(e)
-                pose_kl_loss[idx] = torch.tensor(0.0)
+            pose_kl_loss[idx] = posterior_curr_sample.kl(distribution_curr_sample) # torch.Size([4])
         pose_kl_loss = torch.sum(pose_kl_loss) / torch.sum(mask_bg) if torch.sum(mask_bg) > 0 else torch.tensor(0.0)
         return pose_kl_loss
       
