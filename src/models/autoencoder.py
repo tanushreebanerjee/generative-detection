@@ -379,8 +379,8 @@ class PoseAutoencoder(AutoencoderKL):
         self.ref_lr=0.00001
         
         # Prepare Input
-        input_patches = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([B, 3, 256, 256])
-        assert input_patches.dim() == 4 or (input_patches.dim() == 5 and input_patches.size(1) == 1), f"Only supporting atch size 1. Input_patches shape: {input_patches.shape}"
+        input_patches = self.get_input(batch, self.image_rgb_key).to(self.device) # torch.Size([B, 3, 256, 256])
+        assert input_patches.dim() == 4 or (input_patches.dim() == 5 and input_patches.shape[1] == 1), f"Only supporting atch size 1. Input_patches shape: {input_patches.shape}"
         if input_patches.dim() == 5:
             input_patches = input_patches.squeeze(0) # torch.Size([B, 3, 256, 256])
         input_patches = self._rescale(input_patches) # torch.Size([B, 3, 256, 256])

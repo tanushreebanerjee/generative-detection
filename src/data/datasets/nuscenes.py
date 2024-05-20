@@ -468,8 +468,14 @@ class NuScenesBase(MMDetNuScenesDataset):
         if self.split == 'test':
             img_file = sample_img_info.img_path.split("/")[-1]
             full_img_path = os.path.join(self.img_root, cam_name, img_file)
-            image_crops = self._get_all_image_crops(full_img_path)
-        
+            image_crops, patch_centers, patch_sizes = self._get_all_image_crops(full_img_path)
+            ret.patch = image_crops
+            ret.patch_size = patch_centers
+            ret.patch_center_2d = patch_sizes
+            # resampling_factor = (resized_width / patch.size[0], resized_height / patch.size[1])
+            # ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            return ret
+            
         # cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
         cam_instances = sample_info['cam_instances'][cam_name] # list of dicts for each instance in the current camera image
         # filter out instances that are not in the label_names
@@ -616,9 +622,8 @@ class NuScenesBase(MMDetNuScenesDataset):
             patches_res_i, patch_center_2d_res_i, patch_size_res_i = self._crop_image_into_squares(image_path, patch_size)
             all_patches.append(patches_res_i)
             all_patch_centers.append(patch_center_2d_res_i)
-            all_patch_sizes.append(patch_size_res_i)
-            
-        return all_patches, all_patch_centers, all_patch_sizes
+            all_patch_sizes.append(patch_size_res_i)        
+        return torch.cat(all_patches, dim=0), torch.cat(all_patch_centers, dim=0), torch.cat(all_patch_sizes, dim=0)
     
     def _crop_image_into_squares(self, image_path, patch_size):
         # Open the image file
