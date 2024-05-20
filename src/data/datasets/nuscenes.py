@@ -635,11 +635,13 @@ class NuScenesBase(MMDetNuScenesDataset):
             #     raise ValueError("Image dimensions must be multiples of the patch size.")
             height_offset = 0
             if img_height % patch_size != 0:
-                height_offset = (img_height % patch_size) // int(np.ceil(img_height / patch_size))
+                num_patches_h = int(np.ceil(img_height / patch_size))
+                height_offset = (patch_size - (patch_size - img_height // num_patches_h)) // 2 
                 
             width_offset = 0
             if img_width % patch_size != 0:
-                width_offset = (img_width % patch_size) // int(np.ceil(img_width / patch_size))
+                num_patches_w = int(np.ceil(img_width / patch_size))
+                width_offset = (patch_size - (patch_size - img_width // num_patches_w)) // 2 
             
             patches = []
             patch_center = []
@@ -647,9 +649,9 @@ class NuScenesBase(MMDetNuScenesDataset):
             
             # Crop the image into patches
             for i in range(0, img_height, patch_size):
-                i = i + height_offset
+                i = i - height_offset * (i // patch_size)
                 for j in range(0, img_width, patch_size):
-                    j = j + width_offset
+                    j = j - width_offset * (j //patch_size)
                     box = (j, i, j + patch_size, i + patch_size)
                     patch = img.crop(box).resize(self.patch_size, resample=Resampling.BILINEAR)
                     patches.append(pil_to_tensor(patch))

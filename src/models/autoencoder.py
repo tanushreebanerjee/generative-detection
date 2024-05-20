@@ -373,14 +373,14 @@ class PoseAutoencoder(AutoencoderKL):
     def test_step(self, batch, batch_idx):
         # TODO: Move to init
         self.chunk_size = 128
-        self.class_thresh = 0.5
-        self.fill_factor_thresh = 0.5
+        self.class_thresh = 0.1 # TODO: Set to 0.5 or other value that works on val set
+        self.fill_factor_thresh = 0.0 # TODO: Set to 0.5 or other value that works on val set
         self.num_refinement_steps = 10
         self.ref_lr=0.00001
         
         # Prepare Input
-        input_patches = self.get_input(batch, self.image_rgb_key).to(self.device) # torch.Size([B, 3, 256, 256])
-        assert input_patches.dim() == 4 or (input_patches.dim() == 5 and input_patches.shape[1] == 1), f"Only supporting atch size 1. Input_patches shape: {input_patches.shape}"
+        input_patches = batch[self.image_rgb_key].to(self.device) # torch.Size([B, 3, 256, 256])
+        assert input_patches.dim() == 4 or (input_patches.dim() == 5 and input_patches.shape[0] == 1), f"Only supporting batch size 1. Input_patches shape: {input_patches.shape}"
         if input_patches.dim() == 5:
             input_patches = input_patches.squeeze(0) # torch.Size([B, 3, 256, 256])
         input_patches = self._rescale(input_patches) # torch.Size([B, 3, 256, 256])
@@ -419,27 +419,31 @@ class PoseAutoencoder(AutoencoderKL):
         # TODO: Check class probabilities after sofmax
         class_pred = dec_pose[:, -self.num_classes:]
         class_prob = torch.softmax(class_pred, dim=-1)
-        class_thresh_mask = ((torch.max(class_prob[:, :-1], -1) > self.class_threshold) 
-                                & (class_prob[:, -1:] < self.class_threshold)
-                                & (torch.max(class_prob[:, :-1], -1) > class_prob[:, -1:]))
+        bckg_prob = class_prob[:, -1:].squeeze(-1)
+        class_thresh_mask = ((torch.max(class_prob[:, :-1], -1)[0] > self.class_thresh) 
+                                & (bckg_prob < self.class_thresh).squeeze(-1)
+                                & (torch.max(class_prob[:, :-1], -1)[0] > bckg_prob))
         local_patch_idx = local_patch_idx[class_thresh_mask]
         
         # Threshold by fill factor
-        fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx]
+        fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx].squeeze(-1)
         fill_factor_mask = fill_factor > self.fill_factor_thresh
         local_patch_idx = local_patch_idx[fill_factor_mask]
         
-        # NMS on the BEV plane
-        bbox_enc = dec_pose[:, POSE_6D_DIM + LHW_DIM][local_patch_idx]
-        # TODO: Transform the box to 3D
-        bbox3D = transform_to_3D(bbox_enc)
-        # TODO: Only WL and XY on BEV + reshape to (N, 4) box
-        bbox_BEV = transform_to_BEV(bbox3D)
-        class_scores = class_prob[local_patch_idx]
-        class_prediction = torch.argmax(class_scores, dim=-1)
+        # TODO: Finish when transformations are available
+        # # NMS on the BEV plane
+        # bbox_enc = dec_pose[:, POSE_6D_DIM + LHW_DIM][local_patch_idx]
+        # # TODO: Transform the box to 3D
+        # bbox3D = transform_to_3D(bbox_enc)
+        # # TODO: Only WL and XY on BEV + reshape to (N, 4) box
+        # bbox_BEV = transform_to_BEV(bbox3D)
+        # class_scores = class_prob[local_patch_idx]
+        # class_prediction = torch.argmax(class_scores, dim=-1)
         
-        nms_box_mask = batched_nms(boxes=bbox_BEV, scores=class_scores, idxs=class_prediction, iou_threshold=0.5)
-        local_patch_idx = local_patch_idx[nms_box_mask]       
+        # nms_box_mask = batched_nms(boxes=bbox_BEV, scores=class_scores, idxs=class_prediction, iou_threshold=0.5)
+        # local_patch_idx = local_patch_idx[nms_box_mask]       
+        
+        
         return global_patch_index[local_patch_idx], z_obj[local_patch_idx], dec_pose[local_patch_idx]
     
     @torch.enable_grad()     
