@@ -469,6 +469,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
+        if self.split == 'test':
+            image_crops = self._get_all_image_crops
+        
         if np.random.rand() <= (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
             if len(cam_instances) == 0:
                 # iter next sample if no instances present

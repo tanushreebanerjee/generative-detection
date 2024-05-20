@@ -503,8 +503,13 @@ def main():
             img_log = model.log_images(batch)
 
         return loss, val_log, img_log
-        
-    loss, val_log, img_log = run_one_iteration(model, data)
+    if opt.train:
+        loss, val_log, img_log = run_one_iteration(model, data)
+    else:
+        dataloader = data.test_dataloader()
+        for batch in tqdm.tqdm(dataloader):
+            model.eval()
+            predicted_boxes = model.test_step(batch, 0)
 
 if __name__ == "__main__":
     torch.set_float32_matmul_precision('medium')
