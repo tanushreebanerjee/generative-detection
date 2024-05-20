@@ -371,7 +371,8 @@ class PoseAutoencoder(AutoencoderKL):
         return self.log_dict
     
     def test_step(self, batch, batch_idx):
-        chunk_size = 32
+        # TODO: Move to init
+        self.chunk_size = 128
         self.class_thresh = 0.5
         self.fill_factor_thresh = 0.5
         self.num_refinement_steps = 10
@@ -384,26 +385,28 @@ class PoseAutoencoder(AutoencoderKL):
             input_patches = input_patches.squeeze(0) # torch.Size([B, 3, 256, 256])
         input_patches = self._rescale(input_patches) # torch.Size([B, 3, 256, 256])
         
-        # dec_pose[..., :POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM]
+        # Chunked dec_pose[..., :POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM]
         all_objects = []
         all_poses = []
         all_patch_indeces = []
+        chunk_size = self.chunk_size
         with torch.no_grad():
             for i in range(0, len(batch[self.image_rgb_key]), chunk_size):
                 selected_patches = input_patches[i*chunk_size:i*chunk_size+chunk_size]
                 global_patch_index = i * chunk_size + torch.arange(chunk_size)
-                selected_patch_indeces, z_obj, dec_pose = self._get_valid_patches(batch, global_patch_index)
+                selected_patch_indeces, z_obj, dec_pose = self._get_valid_patches(selected_patches, global_patch_index)
                 all_patch_indeces.append(selected_patch_indeces)
                 all_objects.append(z_obj)
                 all_poses.append(dec_pose)
-
                     
         # Inference refinement
         all_patch_indeces = torch.cat(all_patch_indeces)
         all_objects = torch.cat(all_objects)
         all_poses = torch.cat(all_poses)
-        self._refinement_step(input_patches[all_patch_indeces], all_objects, all_poses)
+        dec_pose = self._refinement_step(input_patches[all_patch_indeces], all_objects, all_poses)
         
+        # TODO: save everything to an output file!
+        return None
     
     def _get_valid_patches(self, input_patches, global_patch_index):
         local_patch_idx = torch.arange(len(global_patch_index))
