@@ -96,7 +96,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         center_2d = cam_instance.center_2d # Projected center location on the image, a list has shape (2,)
         
         # if center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
-        img_pil_size = (NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)
+        img_pil_size = (NUSC_IMG_WIDTH, NUSC_IMG_HEIGHT)
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil_size[0] or center_2d[1] >= img_pil_size[1]:
             return None, None, None, None, None
         
@@ -153,8 +153,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             else:
                 padding_pixels = 0
                 
-            # make sure box_size is odd so that center is at a pixel
-            box_size = box_size+1 if box_size%2 == 0 else box_size 
             y1 = floored_center[1] - box_size // 2 
             y2 = floored_center[1] + box_size // 2 
             x1 = floored_center[0] - box_size // 2 
@@ -193,8 +191,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         # patch_resized_tensor = transform(patch_resized)
         # mask_resized = transform(mask_resized)
         # dummy tensor of size resized_width x resized_height
-        patch_resized_tensor = torch.zeros(resized_height, resized_width, dtype=torch.float32)
-        mask_resized = torch.zeros(resized_height, resized_width, dtype=torch.float32)
+        num_channels = 3
+        patch_resized_tensor = torch.zeros(num_channels, resized_height, resized_width, dtype=torch.float32)
+        mask_resized = torch.zeros(1, resized_height, resized_width, dtype=torch.float32)
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
         return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled, mask_resized
     
