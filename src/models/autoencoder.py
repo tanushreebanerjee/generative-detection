@@ -376,7 +376,7 @@ class PoseAutoencoder(AutoencoderKL):
         self.class_thresh = 0.1 # TODO: Set to 0.5 or other value that works on val set
         self.fill_factor_thresh = 0.0 # TODO: Set to 0.5 or other value that works on val set
         self.num_refinement_steps = 10
-        self.ref_lr=0.00001
+        self.ref_lr=1.0e0
         
         # Prepare Input
         input_patches = batch[self.image_rgb_key].to(self.device) # torch.Size([B, 3, 256, 256])
@@ -459,7 +459,7 @@ class PoseAutoencoder(AutoencoderKL):
         refined_pose = z_pose[:, :-self.num_classes]
         obj_class = z_pose[:, -self.num_classes:]
         refined_pose_param = nn.Parameter(refined_pose, requires_grad=True)
-        optim_refined = self._init_refinement_optimizer(refined_pose_param, lr=1.0e4)
+        optim_refined = self._init_refinement_optimizer(refined_pose_param, lr=self.ref_lr)
         # Run K iter refinement steps
         for k in range(self.num_refinement_steps):
             dec_pose = torch.cat([refined_pose_param, obj_class], dim=-1)
