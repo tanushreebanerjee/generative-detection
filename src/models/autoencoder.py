@@ -389,21 +389,28 @@ class PoseAutoencoder(AutoencoderKL):
         all_objects = []
         all_poses = []
         all_patch_indeces = []
+        all_scores = []
+        all_classes = []
         chunk_size = self.chunk_size
         with torch.no_grad():
             for i in range(0, len(input_patches), chunk_size):
                 selected_patches = input_patches[i:i+chunk_size]
-                global_patch_index = i + torch.arange(chunk_size)
-                selected_patch_indeces, z_obj, dec_pose = self._get_valid_patches(selected_patches, global_patch_index)
+                global_patch_index = i + torch.arange(chunk_size)[:len(selected_patches)]
+                selected_patch_indeces, z_obj, dec_pose, score, class_idx = self._get_valid_patches(selected_patches, global_patch_index)
                 all_patch_indeces.append(selected_patch_indeces)
                 all_objects.append(z_obj)
                 all_poses.append(dec_pose)
+                all_scores.append(score)
+                all_classes.append(class_idx)
                     
         # Inference refinement
         all_patch_indeces = torch.cat(all_patch_indeces)
+        if not len(all_patch_indeces):
+            return torch.empty(0)
         all_z_objects = torch.cat(all_objects)
         all_z_poses = torch.cat(all_poses)
-        dec_pose_refined = self._refinement_step(input_patches[all_patch_indeces], all_z_objects, all_z_poses)
+        patches_w_patches = input_patches[all_patch_indeces]
+        dec_pose_refined = self._refinement_step(patches_w_patches, all_z_objects, all_z_poses)
         
         # TODO: save everything to an output file!
         return dec_pose_refined
@@ -419,19 +426,21 @@ class PoseAutoencoder(AutoencoderKL):
         # TODO: Check class probabilities after sofmax
         class_pred = dec_pose[:, -self.num_classes:]
         class_prob = torch.softmax(class_pred, dim=-1)
-        bckg_prob = class_prob[:, -1:].squeeze(-1)
-        class_thresh_mask = ((torch.max(class_prob[:, :-1], -1)[0] > self.class_thresh) 
-                                & (bckg_prob < self.class_thresh).squeeze(-1)
-                                & (torch.max(class_prob[:, :-1], -1)[0] > bckg_prob))
+        obj_prob = class_prob[:, -self.num_classes:]
+        score, class_idx = torch.max(class_prob, -1)
+        class_thresh_mask = ((torch.max(obj_prob, -1)[0] > self.class_thresh) # Exclude unlikely patches
+                                # & (bckg_prob < self.class_thresh).squeeze(-1) 
+                                & ~(torch.argmax(class_prob, -1) == self.num_classes-1) # Exclude background class
+                                )
         if not class_thresh_mask.sum():
-            return self.return_empty(global_patch_index, z_obj, dec_pose)
+            return self.return_empty(global_patch_index, z_obj, dec_pose, score, class_idx)
         local_patch_idx = local_patch_idx[class_thresh_mask]
         
         # Threshold by fill factor
         fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx].squeeze(-1)
         fill_factor_mask = fill_factor > self.fill_factor_thresh
         if not fill_factor_mask.sum():
-            return self.return_empty(global_patch_index, z_obj, dec_pose)
+            return self.return_empty(global_patch_index, z_obj, dec_pose, score, class_idx)
         local_patch_idx = local_patch_idx[fill_factor_mask]
         
         # TODO: Finish when transformations are available
@@ -448,10 +457,10 @@ class PoseAutoencoder(AutoencoderKL):
         # local_patch_idx = local_patch_idx[nms_box_mask]       
         
         
-        return global_patch_index[local_patch_idx], z_obj[local_patch_idx], dec_pose[local_patch_idx]
+        return global_patch_index[local_patch_idx], z_obj[local_patch_idx], dec_pose[local_patch_idx], score[local_patch_idx], class_idx[local_patch_idx]
     
-    def return_empty(self, global_patch_index, z_obj, dec_pose):
-        return torch.empty_like(global_patch_index[:0]), torch.empty_like(z_obj[:0]), torch.empty_like(dec_pose[:0])
+    def return_empty(self, global_patch_index, z_obj, dec_pose, score, class_idx):
+        return torch.empty_like(global_patch_index[:0]), torch.empty_like(z_obj[:0]), torch.empty_like(dec_pose[:0]), torch.empty_like(score[:0]), torch.empty_like(class_idx[:0])
   
     @torch.enable_grad()
     def _refinement_step(self, input_patches, z_obj, z_pose):
