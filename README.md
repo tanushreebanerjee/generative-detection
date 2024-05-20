@@ -1,4 +1,4 @@
-# Generative Detection via Inverse Neural Rendering
+# OD-VAE: Inverting Generation for 3D Object Detection
 This repository is the official implementation of [OD-VAE: Inverting Generation for 3D Object Detection]().
 
 > TODO: [Arxiv]() | [BibTex]()
