@@ -13,6 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 from torch.distributions.normal import Normal
+from torchvision.ops import batched_nms, nms
 import math
 import random
 from math import radians
@@ -368,6 +369,102 @@ class PoseAutoencoder(AutoencoderKL):
         self.log_dict(log_dict_ae)
         self.log_dict(log_dict_disc)
         return self.log_dict
+    
+    def test_step(self, batch, batch_idx):
+        chunk_size = 32
+        self.class_thresh = 0.5
+        self.fill_factor_thresh = 0.5
+        self.num_refinement_steps = 10
+        self.ref_lr=0.00001
+        
+        # Prepare Input
+        input_patches = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([B, 3, 256, 256])
+        assert input_patches.dim() == 4 or (input_patches.dim() == 5 and input_patches.size(1) == 1), f"Only supporting atch size 1. Input_patches shape: {input_patches.shape}"
+        if input_patches.dim() == 5:
+            input_patches = input_patches.squeeze(0) # torch.Size([B, 3, 256, 256])
+        input_patches = self._rescale(input_patches) # torch.Size([B, 3, 256, 256])
+        
+        # dec_pose[..., :POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM]
+        all_objects = []
+        all_poses = []
+        all_patch_indeces = []
+        with torch.no_grad():
+            for i in range(0, len(batch[self.image_rgb_key]), chunk_size):
+                selected_patches = input_patches[i*chunk_size:i*chunk_size+chunk_size]
+                global_patch_index = i * chunk_size + torch.arange(chunk_size)
+                selected_patch_indeces, z_obj, dec_pose = self._get_valid_patches(batch, global_patch_index)
+                all_patch_indeces.append(selected_patch_indeces)
+                all_objects.append(z_obj)
+                all_poses.append(dec_pose)
+
+                    
+        # Inference refinement
+        all_patch_indeces = torch.cat(all_patch_indeces)
+        all_objects = torch.cat(all_objects)
+        all_poses = torch.cat(all_poses)
+        self._refinement_step(input_patches[all_patch_indeces], all_objects, all_poses)
+        
+    
+    def _get_valid_patches(self, input_patches, global_patch_index):
+        local_patch_idx = torch.arange(len(global_patch_index))
+        # Run encoder
+        posterior_obj, pose_feat = self.encode(input_patches)
+        z_obj = posterior_obj.mode()
+        dec_pose, bbox_posterior  = self._decode_pose(pose_feat, sample_posterior=False)
+        
+        # Threshold by class probabilities
+        # TODO: Check class probabilities after sofmax
+        class_pred = dec_pose[:, -self.num_classes:]
+        class_prob = torch.softmax(class_pred, dim=-1)
+        class_thresh_mask = ((torch.max(class_prob[:, :-1], -1) > self.class_threshold) 
+                                & (class_prob[:, -1:] < self.class_threshold)
+                                & (torch.max(class_prob[:, :-1], -1) > class_prob[:, -1:]))
+        local_patch_idx = local_patch_idx[class_thresh_mask]
+        
+        # Threshold by fill factor
+        fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx]
+        fill_factor_mask = fill_factor > self.fill_factor_thresh
+        local_patch_idx = local_patch_idx[fill_factor_mask]
+        
+        # NMS on the BEV plane
+        bbox_enc = dec_pose[:, POSE_6D_DIM + LHW_DIM][local_patch_idx]
+        # TODO: Transform the box to 3D
+        bbox3D = transform_to_3D(bbox_enc)
+        # TODO: Only WL and XY on BEV + reshape to (N, 4) box
+        bbox_BEV = transform_to_BEV(bbox3D)
+        class_scores = class_prob[local_patch_idx]
+        class_prediction = torch.argmax(class_scores, dim=-1)
+        
+        nms_box_mask = batched_nms(boxes=bbox_BEV, scores=class_scores, idxs=class_prediction, iou_threshold=0.5)
+        local_patch_idx = local_patch_idx[nms_box_mask]       
+        return global_patch_index[local_patch_idx], z_obj[local_patch_idx], dec_pose[local_patch_idx]
+    
+    @torch.enable_grad()     
+    def _refinement_step(self, input_patches, z_obj, dec_pose):
+        # Initialize optimizer and parameters
+        refined_pose = dec_pose[:, :-self.num_classes]
+        obj_class = dec_pose[:, -self.num_classes:]
+        refined_pose = nn.parameter.Parameter(refined_pose, requires_grad=True)
+        optim_refined = self._init_refinement_optimizer(dec_pose)
+        # Run K iter refinement steps
+        for k in range(self.num_refinement_steps):
+            dec_pose = torch.cat([refined_pose, obj_class], dim=-1)
+            optim_refined.zero_grad()
+            enc_pose = self._encode_pose(dec_pose)
+            z_obj_pose = z_obj + enc_pose
+            gen_image = self.decode(z_obj_pose)
+            rec_loss = self.loss._get_rec_loss(input_patches, gen_image, use_pixel_loss=True)
+            rec_loss.backward()
+            optim_refined.step()
+        
+        dec_pose = torch.cat([refined_pose, obj_class], dim=-1)   
+        return dec_pose.data
+    
+    def _init_refinement_optimizer(self, dec_pose):
+        return torch.optim.Adam(list(dec_pose.parameters()), lr=self.ref_lr)
+                
+                
+                
     
     def configure_optimizers(self):
         lr = self.learning_rate
