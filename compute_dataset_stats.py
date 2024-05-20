@@ -102,10 +102,10 @@ def main():
         "test_mode": False,
         "with_velocity": False,
         "use_valid_flag": False,
-        "patch_height": 256
-        "patch_aspect_ratio": 1.0
-        "perturb_center": False
-        "perturb_scale": False
+        "patch_height": 256,
+        "patch_aspect_ratio": 1.0,
+        "perturb_center": False,
+        "perturb_scale": False,
     }
     nusc_train = NuScenesTrain(**nusc_base_kwargs)
     nusc_val = NuScenesValidation(**nusc_base_kwargs)
