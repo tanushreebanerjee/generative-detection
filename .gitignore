@@ -5,7 +5,7 @@ data
 !src/data
 scripts/slurm
 dataset_stats
-!dataset_stats/combined.*.pkl
+*.pkl
 wandb
 taming
 logs
