@@ -97,8 +97,6 @@ class PoseAutoencoder(AutoencoderKL):
             self.register_buffer("colorize", torch.randn(3, colorize_nlabels, 1, 1))
         if monitor is not None:
             self.monitor = monitor
-        if ckpt_path is not None:
-            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
         self.num_classes = lossconfig["params"]["num_classes"]
         enc_feat_dims = self._get_enc_feat_dims(ddconfig)
@@ -108,6 +106,9 @@ class PoseAutoencoder(AutoencoderKL):
         self.z_channels = ddconfig["z_channels"]
         self.euler_convention=euler_convention
         self.feat_dims = feat_dims
+        
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
         
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """
@@ -213,7 +214,7 @@ class PoseAutoencoder(AutoencoderKL):
         
         return dropout_prob
     
-    def forward(self, input_im, sample_posterior=True):
+    def forward(self, input_im, sample_posterior=True, second_pose=None):
             """
             Forward pass of the autoencoder model.
             
@@ -250,6 +251,9 @@ class PoseAutoencoder(AutoencoderKL):
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
+            
+            if second_pose is not None:
+                dec_pose = second_pose
             
             if self.global_step < self.encoder_pretrain_steps: # no reconstruction loss in this phase
                 dec_obj = torch.zeros_like(input_im).to(self.device) # torch.Size([4, 3, 256, 256])
@@ -311,8 +315,11 @@ class PoseAutoencoder(AutoencoderKL):
         bbox_gt = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3])
         fill_factor_gt = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float()
         mask_2d_bbox = batch["mask_2d_bbox"]
-        
+            
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
+        snd_pose = batch.get("key_to_snd_obj", None)
+        snd_patch = batch.get("key_to_snd_patch", None)
+        
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         if optimizer_idx == 0:
@@ -321,7 +328,7 @@ class PoseAutoencoder(AutoencoderKL):
                                             dec_obj, dec_pose,
                                             class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                                             posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
-                                            last_layer=self.get_last_layer(), split="train")
+                                            last_layer=self.get_last_layer(), split="train", snd_patch=snd_patch)
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return aeloss
@@ -373,8 +380,8 @@ class PoseAutoencoder(AutoencoderKL):
     def test_step(self, batch, batch_idx):
         # TODO: Move to init
         self.chunk_size = 128
-        self.class_thresh = 0.1 # TODO: Set to 0.5 or other value that works on val set
-        self.fill_factor_thresh = 0.0 # TODO: Set to 0.5 or other value that works on val set
+        self.class_thresh = 0.3 # TODO: Set to 0.5 or other value that works on val set
+        self.fill_factor_thresh = 0.5 # TODO: Set to 0.5 or other value that works on val set
         self.num_refinement_steps = 10
         self.ref_lr=1.0e0
         
@@ -402,6 +409,8 @@ class PoseAutoencoder(AutoencoderKL):
                 all_poses.append(dec_pose)
                 all_scores.append(score)
                 all_classes.append(class_idx)
+                
+        scores = torch.cat(all_scores)
                     
         # Inference refinement
         all_patch_indeces = torch.cat(all_patch_indeces)
@@ -409,8 +418,8 @@ class PoseAutoencoder(AutoencoderKL):
             return torch.empty(0)
         all_z_objects = torch.cat(all_objects)
         all_z_poses = torch.cat(all_poses)
-        patches_w_patches = input_patches[all_patch_indeces]
-        dec_pose_refined = self._refinement_step(patches_w_patches, all_z_objects, all_z_poses)
+        patches_w_objs = input_patches[all_patch_indeces]
+        dec_pose_refined = self._refinement_step(patches_w_objs, all_z_objects, all_z_poses)
         
         # TODO: save everything to an output file!
         return dec_pose_refined
@@ -426,11 +435,11 @@ class PoseAutoencoder(AutoencoderKL):
         # TODO: Check class probabilities after sofmax
         class_pred = dec_pose[:, -self.num_classes:]
         class_prob = torch.softmax(class_pred, dim=-1)
-        obj_prob = class_prob[:, -self.num_classes:]
+        # obj_prob = class_prob[:, -self.num_classes:]
         score, class_idx = torch.max(class_prob, -1)
-        class_thresh_mask = ((torch.max(obj_prob, -1)[0] > self.class_thresh) # Exclude unlikely patches
+        class_thresh_mask = ((score > self.class_thresh) # Exclude unlikely patches
                                 # & (bckg_prob < self.class_thresh).squeeze(-1) 
-                                & ~(torch.argmax(class_prob, -1) == self.num_classes-1) # Exclude background class
+                                & ~(class_idx == self.num_classes-1) # Exclude background class
                                 )
         if not class_thresh_mask.sum():
             return self.return_empty(global_patch_index, z_obj, dec_pose, score, class_idx)
@@ -438,7 +447,7 @@ class PoseAutoencoder(AutoencoderKL):
         
         # Threshold by fill factor
         fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx].squeeze(-1)
-        fill_factor_mask = fill_factor > self.fill_factor_thresh
+        fill_factor_mask = fill_factor > self.fill_factor_thresh # TODO: Check negative or positive fill factor
         if not fill_factor_mask.sum():
             return self.return_empty(global_patch_index, z_obj, dec_pose, score, class_idx)
         local_patch_idx = local_patch_idx[fill_factor_mask]
