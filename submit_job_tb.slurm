@@ -20,4 +20,4 @@ conda activate inrdetect4
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
-srun python train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name od_vae_full_4gpu --devices 4
+srun python train.py -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --name od_vae_full_4gpu --devices 4

@@ -21,4 +21,4 @@ conda activate test_mmdet3d
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
-srun python3 train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name clip_nan_trace_od_vae_full_4gpu --devices 4
+srun python3 train.py -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --name clip_nan_trace_od_vae_full_4gpu --devices 4
