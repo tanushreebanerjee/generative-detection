@@ -464,13 +464,17 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.cam_name = cam_name
         sample_img_info = edict(sample_info['images'][cam_name])
         ret.update(sample_img_info)
+        
+        if self.split == 'test':
+            img_file = sample_img_info.img_path.split("/")[-1]
+            full_img_path = os.path.join(self.img_root, cam_name, img_file)
+            image_crops = self._get_all_image_crops(full_img_path)
+        
         # cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
         cam_instances = sample_info['cam_instances'][cam_name] # list of dicts for each instance in the current camera image
         # filter out instances that are not in the label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
-        if self.split == 'test':
-            image_crops = self._get_all_image_crops
         
         if np.random.rand() <= (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
             if len(cam_instances) == 0:
