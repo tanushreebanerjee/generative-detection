@@ -218,7 +218,10 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                 posterior_obj, bbox_posterior, optimizer_idx, global_step, mask_2d_bbox,
                 last_layer=None, cond=None, split="train",
-                weights=None):
+                weights=None, snd_patch=None):
+        if snd_patch is not None:
+            rgb_gt = snd_patch.to(rgb_gt)
+            
         mask_2d_bbox = mask_2d_bbox.to(rgb_gt.device)
         use_pixel_loss = True
         if global_step <= (self.leak_img_info_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
