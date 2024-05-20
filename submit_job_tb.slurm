@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:4
 #SBATCH -A pci
 #SBATCH -w node300
-#SBATCH --time=2:00:00
+#SBATCH --time=96:00:00
 #SBATCH --mail-type=end
 #SBATCH --mail-type=fail
 #SBATCH --mail-user=tb21@princeton.edu
@@ -20,4 +20,4 @@ conda activate inrdetect4
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
-srun python train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name clip_nan_trace_od_vae_full_4gpu --devices 4
+srun python train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name od_vae_full_4gpu --devices 4
