@@ -10,7 +10,7 @@ logs
 .out
 slurm_output
 .vscode
-images/*
+images
 
 */launch.json
 
