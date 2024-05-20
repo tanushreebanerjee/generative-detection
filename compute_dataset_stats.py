@@ -1,4 +1,4 @@
-from src.data.datasets.nuscenes import NuScenesTrainMini, NuScenesValidationMini
+from src.data.datasets.nuscenes import NuScenesTrain, NuScenesValidation
 import tqdm
 import numpy as np
 import os
@@ -102,9 +102,13 @@ def main():
         "test_mode": False,
         "with_velocity": False,
         "use_valid_flag": False,
+        "patch_height": 256
+        "patch_aspect_ratio": 1.0
+        "perturb_center": False
+        "perturb_scale": False
     }
-    nusc_train = NuScenesTrainMini(**nusc_base_kwargs)
-    nusc_val = NuScenesValidationMini(**nusc_base_kwargs)
+    nusc_train = NuScenesTrain(**nusc_base_kwargs)
+    nusc_val = NuScenesValidation(**nusc_base_kwargs)
     save_dir = "dataset_stats"
     train_stats, train_meters_dict = get_dataset_stats(nusc_train, save_dir=save_dir)
     val_stats, val_meters_dict = get_dataset_stats(nusc_val, save_dir=save_dir)
@@ -117,6 +121,12 @@ def main():
         for key in train_meters_dict[label].keys():
             combined_meter = train_meters_dict[label][key].combine(val_meters_dict[label][key])
             combined_stats[label][key] = combined_meter.get_stats()
+            print("train sum: ", train_meters_dict[label][key].sum)
+            print("val sum: ", val_meters_dict[label][key].sum)
+            print("train n: ", train_meters_dict[label][key].n)
+            print("val n: ", val_meters_dict[label][key].n)
+            print("train squared sum: ", train_meters_dict[label][key].squared_sum)
+            print("val squared sum: ", val_meters_dict[label][key].squared_sum)
     
     print("Combined stats:")
     for label, stats in combined_stats.items():
