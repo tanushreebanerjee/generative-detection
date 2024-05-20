@@ -257,8 +257,6 @@ class PoseAutoencoder(AutoencoderKL):
             return dec_obj, dec_pose, posterior_obj, bbox_posterior
         
     def get_pose_input(self, batch, k):
-        if k is None:
-            return None
         x = batch[k] 
 
         if self.train_on_yaw:
