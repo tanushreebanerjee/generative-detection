@@ -154,8 +154,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             else:
                 padding_pixels = 0
                 
-            # make sure box_size is odd so that center is at a pixel
-            box_size = box_size+1 if box_size%2 == 0 else box_size 
             y1 = floored_center[1] - box_size // 2 
             y2 = floored_center[1] + box_size // 2 
             x1 = floored_center[0] - box_size // 2 
@@ -256,8 +254,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         bbox_2d = cam_instance.bbox
         width = cam_instance.bbox[2] - cam_instance.bbox[0]
         height = cam_instance.bbox[3] - cam_instance.bbox[1]
-        box_size = max(int(width), int(height))
-        box_size = box_size+1 if box_size%2 == 0 else box_size
+        
         if len(patch_center) == 2:
             # add batch dimension
             patch_center = torch.tensor(patch_center, dtype=torch.float32).unsqueeze(0)

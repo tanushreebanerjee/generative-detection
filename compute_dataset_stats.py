@@ -107,11 +107,13 @@ def main():
         "perturb_center": False,
         "perturb_scale": False,
     }
-    nusc_train = NuScenesTrain(**nusc_base_kwargs)
-    nusc_val = NuScenesValidation(**nusc_base_kwargs)
     save_dir = "dataset_stats"
-    train_stats, train_meters_dict = get_dataset_stats(nusc_train, save_dir=save_dir)
+    
+    nusc_val = NuScenesValidation(**nusc_base_kwargs)
     val_stats, val_meters_dict = get_dataset_stats(nusc_val, save_dir=save_dir)
+    
+    nusc_train = NuScenesTrain(**nusc_base_kwargs)
+    train_stats, train_meters_dict = get_dataset_stats(nusc_train, save_dir=save_dir)
     
     # get combined stats from train_meters_list and val_meters_list
     combined_stats = {}
