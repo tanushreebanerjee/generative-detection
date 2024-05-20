@@ -6,7 +6,6 @@ from torch.utils.data import Dataset
 from src.util.misc import EasyDict as edict
 import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
-from src.util.cameras import get_ndc_to_patch_ndc_transform, get_patch_ndc_to_ndc_transform
 from src.util.cameras import z_world_to_learned
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
 from torchvision.transforms.functional import InterpolationMode
@@ -412,27 +411,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         center_2d = torch.ones(3, dtype=torch.float32)
         center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
         center_2d = center_2d.unsqueeze(0)        
-        point_screen = center_2d
-        
-        screen2ndc_transform = camera.get_ndc_camera_transform()
-        point_screen = point_screen#.to(device="cpu")
-        screen2ndc_transform = screen2ndc_transform#.to(device="cpu")
-        
-        point_ndc = screen2ndc_transform.transform_points(point_screen)
-        
-        ndc2patch_transform = get_ndc_to_patch_ndc_transform(camera, 
-                                                             with_xyflip=False, 
-                                                             image_size=image_size,
-                                                             patch_size=patch_size_original, 
-                                                             patch_center=center_2d[..., :2])
-        
-        
-        # device = "cuda" if torch.cuda.is_available() else "cpu"
-        ndc2patch_transform#.to(device=device)
-        
-        point_ndc = point_ndc#.to(device=device)
-        point_patch_ndc = ndc2patch_transform.transform_points(point_ndc)
-        
         cam_instance.patch = patch
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         

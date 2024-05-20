@@ -94,17 +94,32 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         
         return transform
         
-    def transform_points_world_from_patch_ndc(self, points, # points in patch ndc
+    def transform_points_world_from_patch_ndc(self, points_patch_ndc, # points in patch ndc
                                             patch_size,
                                             patch_center,
                                             eps: Optional[float] = None, **kwargs) -> torch.Tensor:
         
-        world_to_patch_ndc_transform = self.get_patch_projection_transform(patch_size, patch_center, **kwargs)
+        # inverse of transform_points_patch_ndc
         
-        patch_ndc_to_world_transform = robust_inverse(world_to_patch_ndc_transform)
+        points_patch_ndc = points_patch_ndc.to(self.device)
         
-        points_world = patch_ndc_to_world_transform.transform_points(points, eps=eps)
-         
+        # ndc --> patch ndc transform
+        ndc_to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) 
+        
+        patch_ndc_to_ndc_transform = robust_inverse(ndc_to_patch_ndc_transform)
+        
+        # patch ndc --> ndc points
+        points_ndc = patch_ndc_to_ndc_transform.transform_points(points_patch_ndc, eps=1e-7)
+        
+        world_to_ndc_transform = self.get_full_projection_transform(**kwargs)
+        if not self.in_ndc():
+            to_ndc_transform = self.get_ndc_camera_transform(**kwargs)
+            world_to_ndc_transform = world_to_ndc_transform.compose(to_ndc_transform)
+
+        ndc_to_world_transform = robust_inverse(world_to_ndc_transform)
+        
+        points_world = ndc_to_world_transform.transform_points(points_ndc, eps=1e-7)
+        
         return points_world
         
     def transform_points_patch_ndc(self, points, 
@@ -126,7 +141,6 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         # if first 2 values are > 0.5 print
         if points_patch_ndc.dim() == 3:
             points_patch_ndc = points_patch_ndc.view(-1)
-        x_patch, y_patch, _ = points_patch_ndc
         
         return points_patch_ndc
     

@@ -1,6 +1,7 @@
 src/*.ipynb
 !src/test.ipynb
 
+images
 data
 !src/data
 scripts/slurm
