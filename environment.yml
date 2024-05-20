@@ -1,4 +1,4 @@
-name: inrdetect4
+name: odvae
 channels:
   - pytorch3d
   - bottler
@@ -305,4 +305,4 @@ dependencies:
       - wrapt==1.16.0
       - yapf==0.40.2
       - yarl==1.9.4
-prefix: /n/fs/pci-sharedt/tb21/miniconda3/envs/inrdetect4
+prefix: <PATH_TO_CONDA>/envs/odvae
