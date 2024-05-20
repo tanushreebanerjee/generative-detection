@@ -1,11 +1,11 @@
 # Generative Detection via Inverse Neural Rendering
-This repository is the official implementation of [Generative Detection via Inverse Neural Rendering]().
+This repository is the official implementation of [OD-VAE: Inverting Generation for 3D Object Detection]().
 
 > TODO: [Arxiv]() | [BibTex]()
 
 > TODO: Method figure
 
-[Generative Detection via Inverse Neural Rendering]()
+[OD-VAE: Inverting Generation for 3D Object Detection]()
 > TODO: [Anonymous Author(s)]()
 > TODO: [Demo link]()
 
@@ -21,7 +21,7 @@ git clone REPOSITORY_URL
 ```setup
 cd generative-detection
 ```
-3. Create a new conda environment named `gen-detection` with the provided environment file:
+3. Create a new conda environment named `odvae` with the provided environment file:
 ```setup
 conda env create -f environment.yml
 ```
@@ -40,40 +40,40 @@ git submodule update --init --recursive
 pip install -e .
 ```
 
-## Prepare ShapeNet Dataset [4]
+<!-- ## Prepare ShapeNet Dataset [4]
 Please follow instructions in the [GET3D repository](https://github.com/nv-tlabs/GET3D/blob/master/render_shapenet_data/README.md) to download and render the ShapeNet dataset. Save this processed dataset at `ROOT/data/processed/shapenet/processed_get3d`.
 
-The code we used to generate our ShapeNet dataset train, validation and test splits is in `src/data/datasets/shapenet.py` in the `create_splits` function. We set the `numpy` random seed as `23` to generate these splits.
+The code we used to generate our ShapeNet dataset train, validation and test splits is in `src/data/datasets/shapenet.py` in the `create_splits` function. We set the `numpy` random seed as `23` to generate these splits. -->
 
 ## Prepare nuScenes Dataset [2]
 > TODO
 
-## Prepare the Waymo Open Dataset [3]
-> TODO
+<!-- ## Prepare the Waymo Open Dataset [3]
+> TODO -->
 
 ## Training
 
 To train the model in the paper, run this command:
 ```train
-python train.py --base configs/autoencoder/pose/autoencoder_kl_8x8x64.yaml -t --gpus 0,
+srun python train.py -b configs/autoencoder/pose/autoencoder_kl_16x16x16.yaml -t --name od_vae_full_4gpu --devices 4
 ```
 
 ## Evaluation
 
 To evaluate our model on nuScenes [2], run:
 ```eval
-python eval.py --model-file gendetect3d.pth --benchmark nuscenes
+python eval.py --model-file odvae.pth --benchmark nuscenes
 ```
-
+<!-- 
 To evaluate our model on Waymo Open Dataset [3], run:
 ```eval
-python eval.py --model-file gendetect3d.pth --benchmark waymo
-```
+python eval.py --model-file odvae.pth --benchmark waymo
+``` -->
 
 ## Pre-trained Models
 
 You can download our pretrained model here:
-- [GenDetect3D]() trained on the nuScenes dataset [2] and the Waymo Open Dataset [3] using parameters TODO.
+- [OD-VAE]() trained on the nuScenes dataset [2] and the Waymo Open Dataset [3] using parameters TODO.
 
 If you use any of these models in your work, we are always happy to receive a [citation]().
 ## Results
@@ -84,13 +84,13 @@ Our model achieves the following performance on :
 
 | Model name         | Metric 1        | Metric 2       |
 | ------------------ |---------------- | -------------- |
-| GenDetect3D        |     xx%         |      xx%       |
+| OD-VAE        |     xx%         |      xx%       |
 
 ### [3D Object Detection on Waymo Open Dataset [3]](https://paperswithcode.com/sota/3d-object-detection-on-waymo-vehicle)
 
 | Model name         | Metric 1        | Metric 2       |
 | ------------------ |---------------- | -------------- |
-| GenDetect3D        |     xx%         |      xx%       |
+| OD-VAE        |     xx%         |      xx%       |
 
 
 ## Contributing
@@ -114,6 +114,6 @@ pip install mkl==2024.0.0
 
 [2] nuScenes: [ArXiv](https://arxiv.org/abs/1903.11027)
 
-[3] Waymo Open Dataset: [ArXiv](https://arxiv.org/abs/1912.04838)
+<!-- [3] Waymo Open Dataset: [ArXiv](https://arxiv.org/abs/1912.04838)
 
-[4] ShapeNet: [ArXiv](https://arxiv.org/abs/1512.03012)
+[4] ShapeNet: [ArXiv](https://arxiv.org/abs/1512.03012) -->

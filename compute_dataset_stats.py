@@ -123,12 +123,6 @@ def main():
         for key in train_meters_dict[label].keys():
             combined_meter = train_meters_dict[label][key].combine(val_meters_dict[label][key])
             combined_stats[label][key] = combined_meter.get_stats()
-            print("train sum: ", train_meters_dict[label][key].sum)
-            print("val sum: ", val_meters_dict[label][key].sum)
-            print("train n: ", train_meters_dict[label][key].n)
-            print("val n: ", val_meters_dict[label][key].n)
-            print("train squared sum: ", train_meters_dict[label][key].squared_sum)
-            print("val squared sum: ", val_meters_dict[label][key].squared_sum)
     
     print("Combined stats:")
     for label, stats in combined_stats.items():
