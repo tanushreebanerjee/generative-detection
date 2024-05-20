@@ -29,6 +29,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                  pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
                  fill_factor_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, encoder_pretrain_steps=0, pose_conditioned_generation_steps=7000,
+                 leak_img_info_steps=0,
                  use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
                  num_classes=1, dataset_stats_path="dataset_stats/combined/all.pkl", 
                 *args, **kwargs):
@@ -45,6 +46,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
         self.kl_weight_obj = kl_weight_obj
         self.kl_weight_bbox = kl_weight_bbox
         self.train_on_yaw = train_on_yaw
+        self.leak_img_info_steps = leak_img_info_steps
         assert pose_loss_fn is not None, "Please provide a pose loss function."
         assert mask_loss_fn is not None, "Please provide a mask loss function."
         assert pose_loss_fn in ["l1", "l2", "mse"], \
@@ -220,7 +222,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 weights=None):
         mask_2d_bbox = mask_2d_bbox.to(rgb_gt.device)
         use_pixel_loss = True
-        if global_step <= (self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
+        if global_step <= (self.leak_img_info_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
             use_pixel_loss = False
         
         class_gt = class_gt.to(rgb_gt.device)

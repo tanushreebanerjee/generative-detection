@@ -8,8 +8,8 @@ model:
     activation: "relu"
     dropout_prob_init: 1.0
     dropout_prob_final: 0.7
-    intermediate_img_feature_leak_steps: 5000
-    pose_conditioned_generation_steps: 10000
+    intermediate_img_feature_leak_steps: 15000
+    pose_conditioned_generation_steps: 50000
     dropout_warmup_steps: 50000
     add_noise_to_z_obj: True
     train_on_yaw: True
@@ -17,10 +17,10 @@ model:
       target: src.modules.losses.PoseLoss
       params:
         encoder_pretrain_steps: 10000
-        leak_img_info_steps: 5000
+        leak_img_info_steps: 15000
         disc_start: 10000
-        kl_weight_obj: 1.0e-5
-        kl_weight_bbox: 1.0e-2
+        kl_weight_obj: 0.00001
+        kl_weight_bbox: 0.01
         disc_weight: 0.5
         pose_weight: 80000
         fill_factor_weight: 500000
@@ -135,7 +135,7 @@ lightning:
   trainer:
     accumulate_grad_batches: 1
     accelerator: gpu
-    max_epochs: 20
+    max_epochs: 30
     strategy: ddp
     detect_anomaly: True
     precision: 32
