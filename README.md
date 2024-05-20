@@ -27,7 +27,7 @@ conda env create -f environment.yml
 ```
 4. Activate the new conda environment:
 ```setup
-conda activate gen-detection
+conda activate odvae
 ```
 
 5. To initialize, fetch and checkout all the nested submodules:
@@ -73,9 +73,9 @@ python eval.py --model-file odvae.pth --benchmark waymo
 ## Pre-trained Models
 
 You can download our pretrained model here:
-- [OD-VAE]() trained on the nuScenes dataset [2] and the Waymo Open Dataset [3] using parameters TODO.
+- [OD-VAE]() trained on the nuScenes dataset [2] using parameters TODO. <!-- and the Waymo Open Dataset [3]  -->
 
-If you use any of these models in your work, we are always happy to receive a [citation]().
+If you use any of these models in your work, we are always happy to receive a [citation](CITATION.cff)
 ## Results
 
 Our model achieves the following performance on :
@@ -86,22 +86,21 @@ Our model achieves the following performance on :
 | ------------------ |---------------- | -------------- |
 | OD-VAE        |     xx%         |      xx%       |
 
-### [3D Object Detection on Waymo Open Dataset [3]](https://paperswithcode.com/sota/3d-object-detection-on-waymo-vehicle)
+<!-- ### [3D Object Detection on Waymo Open Dataset [3]](https://paperswithcode.com/sota/3d-object-detection-on-waymo-vehicle)
 
 | Model name         | Metric 1        | Metric 2       |
 | ------------------ |---------------- | -------------- |
-| OD-VAE        |     xx%         |      xx%       |
+| OD-VAE        |     xx%         |      xx%       | -->
 
 
 ## Contributing
 The code in this repository is released under the [MIT License](LICENSE). We welcome any contributions to our repository via pull requests. 
 
 ## Comments
-- Our codebase for the architecture of training of the VAW builds heavily on [Latent Diffusion Models](https://github.com/CompVis/latent-diffusion/tree/a506df5756472e2ebaf9078affdde2c4f1502cd4). Thanks for open-sourcing!
+- Our codebase for the architecture of training of the VAE builds heavily on [Latent Diffusion Models](https://github.com/CompVis/latent-diffusion/tree/a506df5756472e2ebaf9078affdde2c4f1502cd4). Thanks for open-sourcing!
 
 ## BibTeX
 > TODO
-
 
 ## FAQ
 - Downgrade MKL library to 2024.0.0 in case running `import torch` raises `undefined symbol: iJIT_NotifyEvent` from `torch/lib/libtorch_cpu.so`:
