@@ -391,9 +391,9 @@ class PoseAutoencoder(AutoencoderKL):
         all_patch_indeces = []
         chunk_size = self.chunk_size
         with torch.no_grad():
-            for i in range(0, len(batch[self.image_rgb_key]), chunk_size):
-                selected_patches = input_patches[i*chunk_size:i*chunk_size+chunk_size]
-                global_patch_index = i * chunk_size + torch.arange(chunk_size)
+            for i in range(0, len(input_patches), chunk_size):
+                selected_patches = input_patches[i:i+chunk_size]
+                global_patch_index = i + torch.arange(chunk_size)
                 selected_patch_indeces, z_obj, dec_pose = self._get_valid_patches(selected_patches, global_patch_index)
                 all_patch_indeces.append(selected_patch_indeces)
                 all_objects.append(z_obj)
@@ -401,12 +401,12 @@ class PoseAutoencoder(AutoencoderKL):
                     
         # Inference refinement
         all_patch_indeces = torch.cat(all_patch_indeces)
-        all_objects = torch.cat(all_objects)
-        all_poses = torch.cat(all_poses)
-        dec_pose = self._refinement_step(input_patches[all_patch_indeces], all_objects, all_poses)
+        all_z_objects = torch.cat(all_objects)
+        all_z_poses = torch.cat(all_poses)
+        dec_pose_refined = self._refinement_step(input_patches[all_patch_indeces], all_z_objects, all_z_poses)
         
         # TODO: save everything to an output file!
-        return None
+        return dec_pose_refined
     
     def _get_valid_patches(self, input_patches, global_patch_index):
         local_patch_idx = torch.arange(len(global_patch_index))
@@ -423,11 +423,15 @@ class PoseAutoencoder(AutoencoderKL):
         class_thresh_mask = ((torch.max(class_prob[:, :-1], -1)[0] > self.class_thresh) 
                                 & (bckg_prob < self.class_thresh).squeeze(-1)
                                 & (torch.max(class_prob[:, :-1], -1)[0] > bckg_prob))
+        if not class_thresh_mask.sum():
+            return self.return_empty(global_patch_index, z_obj, dec_pose)
         local_patch_idx = local_patch_idx[class_thresh_mask]
         
         # Threshold by fill factor
         fill_factor = dec_pose[:, POSE_6D_DIM + LHW_DIM : POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM][local_patch_idx].squeeze(-1)
         fill_factor_mask = fill_factor > self.fill_factor_thresh
+        if not fill_factor_mask.sum():
+            return self.return_empty(global_patch_index, z_obj, dec_pose)
         local_patch_idx = local_patch_idx[fill_factor_mask]
         
         # TODO: Finish when transformations are available
@@ -446,32 +450,34 @@ class PoseAutoencoder(AutoencoderKL):
         
         return global_patch_index[local_patch_idx], z_obj[local_patch_idx], dec_pose[local_patch_idx]
     
-    @torch.enable_grad()     
-    def _refinement_step(self, input_patches, z_obj, dec_pose):
+    def return_empty(self, global_patch_index, z_obj, dec_pose):
+        return torch.empty_like(global_patch_index[:0]), torch.empty_like(z_obj[:0]), torch.empty_like(dec_pose[:0])
+  
+    @torch.enable_grad()
+    def _refinement_step(self, input_patches, z_obj, z_pose):
         # Initialize optimizer and parameters
-        refined_pose = dec_pose[:, :-self.num_classes]
-        obj_class = dec_pose[:, -self.num_classes:]
-        refined_pose = nn.parameter.Parameter(refined_pose, requires_grad=True)
-        optim_refined = self._init_refinement_optimizer(dec_pose)
+        refined_pose = z_pose[:, :-self.num_classes]
+        obj_class = z_pose[:, -self.num_classes:]
+        refined_pose_param = nn.Parameter(refined_pose, requires_grad=True)
+        optim_refined = self._init_refinement_optimizer(refined_pose_param, lr=1.0e4)
         # Run K iter refinement steps
         for k in range(self.num_refinement_steps):
-            dec_pose = torch.cat([refined_pose, obj_class], dim=-1)
+            dec_pose = torch.cat([refined_pose_param, obj_class], dim=-1)
             optim_refined.zero_grad()
             enc_pose = self._encode_pose(dec_pose)
             z_obj_pose = z_obj + enc_pose
             gen_image = self.decode(z_obj_pose)
-            rec_loss = self.loss._get_rec_loss(input_patches, gen_image, use_pixel_loss=True)
+            rec_loss = self.loss._get_rec_loss(input_patches, gen_image, use_pixel_loss=True).mean()
             rec_loss.backward()
             optim_refined.step()
+            print("Gradient: ", refined_pose_param.grad.mean(), refined_pose_param.grad.std())
+            print("Poses: ", refined_pose_param.mean(), refined_pose_param.std())
         
         dec_pose = torch.cat([refined_pose, obj_class], dim=-1)   
         return dec_pose.data
     
-    def _init_refinement_optimizer(self, dec_pose):
-        return torch.optim.Adam(list(dec_pose.parameters()), lr=self.ref_lr)
-                
-                
-                
+    def _init_refinement_optimizer(self, pose, lr=1e-3):
+        return torch.optim.Adam([pose], lr=lr)
     
     def configure_optimizers(self):
         lr = self.learning_rate
