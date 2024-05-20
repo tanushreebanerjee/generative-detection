@@ -1,4 +1,4 @@
-name: inrdetect4
+name: odvae
 channels:
   - defaults
 dependencies:
@@ -179,4 +179,4 @@ dependencies:
   - pytorch/linux-64::torchvision==0.13.0=py310_cu116
   - conda-forge/noarch::pytorch-lightning==2.1.4=pyhd8ed1ab_0
   - pytorch3d/linux-64::pytorch3d==0.7.5=py310_cu116_pyt1120
-prefix: /n/fs/pci-sharedt/tb21/miniconda3/envs/inrdetect4
+prefix: <PATH_TO_CONDA>/envs/odvae

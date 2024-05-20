@@ -3,6 +3,7 @@ src/*.ipynb
 
 data
 !src/data
+model_debug.py
 scripts/slurm
 dataset_stats
 !dataset_stats/combined.*.pkl
