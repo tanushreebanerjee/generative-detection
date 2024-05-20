@@ -25,8 +25,8 @@ class PoseDecoder(nn.Module):
         
         super(PoseDecoder, self).__init__()
         
-        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV
-        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV
+        hidden_dim_1 = enc_feat_dims // HIDDEN_DIM_1_DIV # hidden_dim_1: 1024
+        hidden_dim_2 = enc_feat_dims // HIDDEN_DIM_2_DIV # hidden_dim_2: 512
         
         if activation == "relu":
             activation = nn.ReLU()
