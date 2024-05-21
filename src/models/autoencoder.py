@@ -410,13 +410,15 @@ class PoseAutoencoder(AutoencoderKL):
         _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                       dec_obj, dec_pose,
                                       class_gt, class_gt_label, bbox_gt,fill_factor_gt,
-                                      posterior_obj, bbox_posterior, 0, self.global_step, mask_2d_bbox,
+                                      posterior_obj, bbox_posterior, 0, 
+                                      gllobal_step=self.global_step, mask_2d_bbox=mask_2d_bbox,
                                       last_layer=self.get_last_layer(), split="val")
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
                                         class_gt, class_gt_label, bbox_gt,fill_factor_gt,
-                                        posterior_obj, bbox_posterior, 1, self.global_step, mask_2d_bbox,
+                                        posterior_obj, bbox_posterior, 1, 
+                                        gllobal_step=self.global_step, mask_2d_bbox=mask_2d_bbox,
                                         last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"], sync_dist=True)

@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=gpu:4
 #SBATCH -A pci
-#SBATCH -w node209
+#SBATCH -w node301
 #SBATCH --time=36:00:00
 #SBATCH --mail-type=end
 #SBATCH --mail-type=fail

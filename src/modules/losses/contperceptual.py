@@ -311,7 +311,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
             else:
-                if global_step > self.encoder_pretrain_steps: # train rec loss only after encoder_pretrain_steps
+                if global_step >= self.encoder_pretrain_steps: # train rec loss only after encoder_pretrain_steps
                     loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
                         + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
