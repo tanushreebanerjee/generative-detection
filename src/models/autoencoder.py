@@ -294,11 +294,11 @@ class PoseAutoencoder(AutoencoderKL):
         return x
     
     def _get_perturbed_pose(self, batch, k):
-        x = batch[k].squeeze(1) # torch.Size([4, 6])
+        x = batch[k].squeeze(1) # torch.Size([1, 4])
         if self.train_on_yaw:
             x = torch.zeros_like(x) # torch.Size([4, 6])
             x[:, -1] = batch["yaw_perturbed"] # torch.Size([4])
-        return x
+        return x # torch.Size([1, 4])
     
     def get_fill_factor_input(self, batch, k):
         x = batch[k]
@@ -512,7 +512,7 @@ class PoseAutoencoder(AutoencoderKL):
         return [opt_ae, opt_disc], []
     
     def _perturb_poses(self, batch, dec_pose):
-        pose_6d_perturbed_v3 = self._get_perturbed_pose(batch, self.pose_perturbed_key).squeeze()[:, -1]
+        pose_6d_perturbed_v3 = self._get_perturbed_pose(batch, self.pose_perturbed_key)[:, -1]
         pose_6d_perturbed_ret = dec_pose.clone() # torch.Size([4, 8])
         pose_6d_perturbed_ret[:, 3] = pose_6d_perturbed_v3 # torch.Size([4, 8])
         assert pose_6d_perturbed_ret.shape == dec_pose.shape, f"pose_6d_perturbed_ret shape: {pose_6d_perturbed_ret.shape}"
