@@ -6,10 +6,10 @@ model:
     embed_dim: 16
     euler_convention: "XYZ"
     activation: "relu"
-    dropout_prob_init: 1.0
-    dropout_prob_final: 0.7
-    pose_conditioned_generation_steps: 45000
-    dropout_warmup_steps: 45000
+    dropout_prob_init: 0.0
+    dropout_prob_final: 0.0
+    pose_conditioned_generation_steps: 0
+    dropout_warmup_steps: 0
     add_noise_to_z_obj: True
     train_on_yaw: True
     lossconfig:
@@ -18,8 +18,8 @@ model:
         use_mask_loss: False
         encoder_pretrain_steps: 30000
         disc_start: 30000
-        kl_weight_obj: 1.0
-        kl_weight_bbox: 0.000001
+        kl_weight_obj: 1.0e-5
+        kl_weight_bbox: 1.0e-2
         disc_weight: 0.5
         pose_weight: 80000
         fill_factor_weight: 500000
@@ -134,7 +134,7 @@ lightning:
   trainer:
     accumulate_grad_batches: 1
     accelerator: gpu
-    max_epochs: 1000
+    max_epochs: 50
     strategy: ddp
     detect_anomaly: True
     precision: 32
