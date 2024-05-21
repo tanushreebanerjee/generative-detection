@@ -252,9 +252,9 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         object_centroid_3D = (x, y, z)
         patch_center = cam_instance.center_2d
-        bbox_2d = cam_instance.bbox
-        width = cam_instance.bbox[2] - cam_instance.bbox[0]
-        height = cam_instance.bbox[3] - cam_instance.bbox[1]
+        # bbox_2d = cam_instance.bbox
+        # width = cam_instance.bbox[2] - cam_instance.bbox[0]
+        # height = cam_instance.bbox[3] - cam_instance.bbox[1]
         
         if len(patch_center) == 2:
             # add batch dimension
@@ -453,13 +453,22 @@ class NuScenesBase(MMDetNuScenesDataset):
         ret.update(sample_img_info)
         
         if self.split == 'test':
+            intrinsics = torch.tensor(sample_img_info.cam2img)
+            ret.camera_params = {
+                "focal_length": -intrinsics[..., 0, 0],
+                "principal_point": intrinsics[..., :2, 2],
+                "znear": Z_NEAR,
+                "zfar": Z_FAR,
+                "device": "cpu",#"cuda" if torch.cuda.is_available() else "cpu",
+                "image_size": [(NUSC_IMG_HEIGHT, NUSC_IMG_WIDTH)]}
+
             img_file = sample_img_info.img_path.split("/")[-1]
             full_img_path = os.path.join(self.img_root, cam_name, img_file)
             image_crops, patch_centers, patch_sizes = self._get_all_image_crops(full_img_path)
             ret.patch = image_crops
-            ret.patch_size = patch_centers
-            ret.patch_center_2d = patch_sizes
-            # resampling_factor = (resized_width / patch.size[0], resized_height / patch.size[1])
+            ret.patch_size = patch_sizes
+            ret.patch_center_2d = patch_centers 
+            resampling_factor = (self.patch_size[0] / patch_sizes[:, 0], self.patch_size[1] / patch_sizes[:, 1])
             # ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
             return ret
             
@@ -520,7 +529,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
             camera_params = ret_cam_instance.camera_params
-            
+            ret.camera_params = camera_params
             for key, value in camera_params.items():
                 ret[key] = value
             ### DEBUG ###
@@ -535,7 +544,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             patch_size_resampled = self.patch_size
             det_world_coords = get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
                                  patch_size_resampled, ret.patch_center_2d, 
-                                 ret.resampling_factor)
+                                 ret.resampling_factor, class_pred_id=ret.class_id)
             ### DEBUG ###
     
         else:  # get random crop without overlap

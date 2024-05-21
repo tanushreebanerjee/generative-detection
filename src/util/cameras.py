@@ -1,5 +1,5 @@
 import torch
-from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType
+from pytorch3d.renderer.cameras import _R, _T, PerspectiveCameras, _FocalLengthType, get_ndc_to_screen_transform
 from pytorch3d.common.datatypes import Device
 from pytorch3d.transforms import Transform3d
 from typing import Optional, Union, Tuple, List
@@ -95,32 +95,24 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         return transform
         
     def transform_points_world_from_patch_ndc(self, points_patch_ndc, # points in patch ndc
+                                              depth,
                                             patch_size,
                                             patch_center,
                                             eps: Optional[float] = None, **kwargs) -> torch.Tensor:
-        
-        # inverse of transform_points_patch_ndc
-        
         points_patch_ndc = points_patch_ndc.to(self.device)
-        
-        # ndc --> patch ndc transform
-        ndc_to_patch_ndc_transform = self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs) 
-        
-        patch_ndc_to_ndc_transform = robust_inverse(ndc_to_patch_ndc_transform)
-        
-        # patch ndc --> ndc points
-        points_ndc = patch_ndc_to_ndc_transform.transform_points(points_patch_ndc, eps=1e-7)
-        
-        world_to_ndc_transform = self.get_full_projection_transform(**kwargs)
-        if not self.in_ndc():
-            to_ndc_transform = self.get_ndc_camera_transform(**kwargs)
-            world_to_ndc_transform = world_to_ndc_transform.compose(to_ndc_transform)
-
-        ndc_to_world_transform = robust_inverse(world_to_ndc_transform)
-        
-        points_world = ndc_to_world_transform.transform_points(points_ndc, eps=1e-7)
-        
-        return points_world
+        world_depth = torch.zeros([1, 1, 3])
+        world_depth[..., -1] = depth
+        screen_depth = self.transform_points_screen(world_depth)
+        # patch --> ndc
+        points_ndc = robust_inverse(self.get_patch_ndc_camera_transform(patch_size, patch_center, **kwargs)).transform_points(points_patch_ndc, eps=1e-7)
+        # ndc --> screen
+        points_screen = robust_inverse(self.get_ndc_camera_transform()).transform_points(points_ndc, eps=1e-7)
+        # points_screen[..., -1] = depth
+        # screen --> camera
+        points_screen[..., -1] = screen_depth[..., -1] 
+        points_camera = -self.get_projection_transform().inverse().transform_points(points_screen, eps=1e-7)
+        points_camera[..., -1] = -points_camera[..., -1]
+        return points_camera
         
     def transform_points_patch_ndc(self, points, 
                                    patch_size, 
@@ -137,7 +129,10 @@ class PatchPerspectiveCameras(PerspectiveCameras):
         
         # ndc --> patch ndc points
         points_patch_ndc = ndc_to_patch_ndc_transform.transform_points(points_ndc, eps=1e-7)
-        
+        ##### DEBUGGING #####
+        # world_depth = points[..., -1]
+        # abc = self.transform_points_world_from_patch_ndc(points_patch_ndc, world_depth, patch_size, patch_center, eps=1e-7)
+        ##### DEBUGGING #####
         # if first 2 values are > 0.5 print
         if points_patch_ndc.dim() == 3:
             points_patch_ndc = points_patch_ndc.view(-1)
