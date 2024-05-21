@@ -519,7 +519,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.bbox_3d_gt = ret_cam_instance.bbox_3d
             ret.bbox_3d_gt_2 = ret_cam_instance2.bbox_3d
             ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
-            ret.resampling_factor2 = ret_cam_instance2.resampling_factor
+            ret.resampling_factor_2 = ret_cam_instance2.resampling_factor
             ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
@@ -532,20 +532,20 @@ class NuScenesBase(MMDetNuScenesDataset):
 
             ret.yaw = ret_cam_instance.yaw
             ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
-            ret.yaw2 = ret_cam_instance2.yaw
+            ret.yaw_2 = ret_cam_instance2.yaw
             ret.fill_factor = ret_cam_instance.fill_factor
-            ret.fill_factor2 = ret_cam_instance2.fill_factor
+            ret.fill_factor_2 = ret_cam_instance2.fill_factor
             mask_2d_bbox = ret_cam_instance.mask_2d_bbox
-            mask_2d_bbox2 = ret_cam_instance2.mask_2d_bbox
+            mask_2d_bbox_2 = ret_cam_instance2.mask_2d_bbox
             
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             
-            if mask_2d_bbox2.dim() == 2:
-                mask_2d_bbox2 = mask_2d_bbox2.unsqueeze(0)
+            if mask_2d_bbox_2.dim() == 2:
+                mask_2d_bbox_2 = mask_2d_bbox_2.unsqueeze(0)
             
             ret.mask_2d_bbox = mask_2d_bbox
-            ret.mask_2d_bbox2 = mask_2d_bbox2
+            ret.mask_2d_bbox_2 = mask_2d_bbox_2
             camera_params = ret_cam_instance.camera_params
             
             for key, value in camera_params.items():
@@ -601,18 +601,18 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
             ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
             ret.resampling_factor = torch.tensor((self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1]))
-            ret.resampling_factor2 = ret.resampling_factor
+            ret.resampling_factor_2 = ret.resampling_factor
             ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
             ret.yaw = 0.0
-            ret.yaw2 = 0.0
+            ret.yaw_2 = 0.0
             ret.yaw_perturbed = 0.0
             ret.fill_factor = 0.0
-            ret.fill_factor2 = 0.0
+            ret.fill_factor_2 = 0.0
             mask_2d_bbox = torch.zeros(self.patch_size[0], self.patch_size[1], dtype=torch.float32)
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
-            ret.mask_2d_bbox2 = mask_2d_bbox
+            ret.mask_2d_bbox_2 = mask_2d_bbox
             camera_params = {
                 "focal_length": torch.tensor([0.0], dtype=torch.float32),
                 "principal_point": torch.tensor([[0.0, 0.0]], dtype=torch.float32),
@@ -624,7 +624,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             for key, value in camera_params.items():
                 ret[key] = value
         
-        for key in ["cam_name", "img_path", "sample_data_token", "cam2img", "cam2ego", "class_name", "bbox_3d_gt_2", "lidar2cam", "bbox_3d_gt", "resampling_factor", "resampling_factor2", "device", "image_size"]:
+        for key in ["cam_name", "img_path", "sample_data_token", "cam2img", "cam2ego", "class_name", "bbox_3d_gt_2", "lidar2cam", "bbox_3d_gt", "resampling_factor", "resampling_factor_2", "device", "image_size"]:
             value = ret[key]
             if isinstance(value, list) or isinstance(value, tuple):
                 ret[key] = torch.tensor(value, dtype=torch.float32)
