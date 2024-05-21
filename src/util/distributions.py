@@ -16,14 +16,6 @@ class DiagonalGaussianDistribution(LDM_DiagonalGaussianDistribution):
                                        + self.var - 1.0 - self.logvar,
                                        dim=[1, 2, 3])
             else:
-                # make sure all tensors are on the same device
-                # other_device = other.mean.device
-                # self.mean = self.mean.to(other_device)
-                # self.var = self.var.to(other_device)
-                # self.logvar = self.logvar.to(other_device)
-                # other.mean = other.mean.to(other_device)
-                # other.var = other.var.to(other_device)
-                # other.logvar = other.logvar.to(other_device)
                 
                 # adding batch dim
                 other_mean = other.mean.squeeze().unsqueeze(0).to(self.mean) # other.mean torch.Size([1, 9])

@@ -44,7 +44,7 @@ CAM_NAME2CAM_ID = {cam_name: i for i, cam_name in enumerate(CAMERA_NAMES)}
 CAM_ID2CAM_NAME = {i: cam_name for i, cam_name in enumerate(CAMERA_NAMES)}
 
 Z_NEAR = 0.01
-Z_FAR = 55.0
+Z_FAR = 60.0
 
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900

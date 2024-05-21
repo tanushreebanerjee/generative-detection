@@ -36,13 +36,6 @@ def get_world_coord_decoded_pose(decoded_pose_patch, camera_params,
                                  patch_resampling_factor,
                                  eps=None):
     
-    # has a batch dim
-    # first 4: t1, t2, t3, yaw
-    # next 3: L, H, W
-    # next 1: Fill factor
-    # remaining: class probs
-    # if no batch dim unsqueeze
-    
     camera = PatchPerspectiveCameras(
         focal_length = camera_params["focal_length"],
         principal_point=camera_params["principal_point"],
