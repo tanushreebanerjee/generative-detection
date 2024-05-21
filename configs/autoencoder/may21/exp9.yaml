@@ -21,10 +21,10 @@ model:
         kl_weight_obj: 1.0e-5
         kl_weight_bbox: 1.0e-2
         disc_weight: 0.5
-        pose_weight: 80000
-        fill_factor_weight: 500000
+        pose_weight: 100000
+        fill_factor_weight: 100000
         class_weight: 1000000
-        bbox_weight: 200000
+        bbox_weight: 100000
         pose_loss_fn: "l1"
         mask_weight: 0
         mask_loss_fn: "l2"
@@ -134,7 +134,7 @@ lightning:
   trainer:
     accumulate_grad_batches: 1
     accelerator: gpu
-    max_epochs: 50
+    max_epochs: 1000
     strategy: ddp
     detect_anomaly: True
     precision: 32
