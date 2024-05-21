@@ -27,6 +27,23 @@ YAW_MAX = 60
 YAW_MIN = 20
 LHW_DIM = 3
 
+
+LABEL_NAME2ID = {
+    'car': 0, 
+    'truck': 1,
+    'trailer': 2,
+    'bus': 3,
+    'construction_vehicle': 4,
+    'bicycle': 5,
+    'motorcycle': 6,
+    'pedestrian': 7,
+    'traffic_cone': 8,
+    'barrier': 9,
+    'background': 10
+}
+
+LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
+
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""
     def __init__(self, *args, **kwargs):
@@ -317,10 +334,28 @@ class PoseAutoencoder(AutoencoderKL):
         mask_2d_bbox = batch["mask_2d_bbox"]
             
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
-        snd_pose = batch.get("key_to_snd_obj", None)
-        snd_patch = batch.get("key_to_snd_patch", None)
+        if "pose_6d_2" in batch:
+            snd_pose = self.get_pose_input(batch, "pose_6d_2").to(self.device) # torch.Size([4, 4]) #
+            snd_bbox = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3]) 
+            snd_fill = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float().unsqueeze(0)
+            snd_mask_2d_bbox = batch["mask_2d_bbox"]
+
+            snd_pose = snd_pose.unsqueeze(0) if snd_pose.dim() == 1 else snd_pose
+            snd_bbox = snd_bbox.unsqueeze(0) if snd_bbox.dim() == 1 else snd_bbox
+            # get one hot encoding for class_id - all classes in self.label_id2class_id.values
+            num_classes = self.num_classes
+            class_probs = torch.nn.functional.one_hot(torch.tensor(class_gt), num_classes=num_classes).float()
+            second_pose = torch.cat((snd_pose, snd_bbox, snd_fill, class_probs), dim=1)
+        else:
+            second_pose = None
+            snd_mask_2d_bbox = None
         
-        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
+        if "patch2" in batch:
+            snd_patch = self.get_input(batch, "patch2").permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256]) 
+        else:
+            snd_patch = None
+        
+        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt, second_pose=second_pose)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         if optimizer_idx == 0:
             # train encoder+decoder+logvar # last layer: torch.Size([3, 128, 3, 3])
@@ -328,7 +363,7 @@ class PoseAutoencoder(AutoencoderKL):
                                             dec_obj, dec_pose,
                                             class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                                             posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
-                                            last_layer=self.get_last_layer(), split="train", snd_patch=snd_patch)
+                                            last_layer=self.get_last_layer(), split="train", snd_patch=snd_patch, snd_mask_2d_bbox=snd_mask_2d_bbox)            
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return aeloss
@@ -339,7 +374,7 @@ class PoseAutoencoder(AutoencoderKL):
                                                 dec_obj, dec_pose,
                                                 class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                                                 posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
-                                                last_layer=self.get_last_layer(), split="train")
+                                                last_layer=self.get_last_layer(), split="train", snd_patch=snd_patch)
             self.log("discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return discloss

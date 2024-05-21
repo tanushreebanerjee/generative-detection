@@ -484,59 +484,87 @@ class NuScenesBase(MMDetNuScenesDataset):
             img_file = sample_img_info.img_path.split("/")[-1]
             
             ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-            if ret_cam_instance is None:
+            # get perturbed crop of the same object instance again
+            ret_cam_instance2 = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            
+            if ret_cam_instance is None or ret_cam_instance2 is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
             
             ret.patch = ret_cam_instance.patch
+            ret.patch2 = ret_cam_instance2.patch
             ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
             ret.original_class_id = ret_cam_instance.class_id
             ret.class_name = LABEL_ID2NAME[ret.original_class_id]
             pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
+            pose_6d_2, bbox_sizes_2 = ret_cam_instance2.pose_6d, ret_cam_instance2.bbox_sizes
             # set requires grad = False
             pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
             pose_6d = pose_6d.detach().requires_grad_(False)
             bbox_sizes = bbox_sizes.detach().requires_grad_(False)
+
+            pose_6d_2 = pose_6d_2.unsqueeze(0) if pose_6d_2.dim() == 1 else pose_6d_2
+            pose_6d_2 = pose_6d_2.detach().requires_grad_(False)
+            bbox_sizes_2 = bbox_sizes_2.detach().requires_grad_(False)
             
             ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
+            ret.pose_6d_2, ret.bbox_sizes_2 = pose_6d_2, bbox_sizes_2
+
             patch_size_original = ret_cam_instance.patch_size
             patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
             ret.patch_size = patch_size_original
             ret.patch_center_2d = patch_center_2d
             ret.bbox_3d_gt = ret_cam_instance.bbox_3d
+            ret.bbox_3d_gt_2 = ret_cam_instance2.bbox_3d
             ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
+            ret.resampling_factor2 = ret_cam_instance2.resampling_factor
             ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
-            assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
+            
+            if ret.pose_6d_2.dim() == 3:
+                ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
+            
             ret.pose_6d = ret.pose_6d.squeeze(0)
+            ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
+
             ret.yaw = ret_cam_instance.yaw
             ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
+            ret.yaw2 = ret_cam_instance2.yaw
             ret.fill_factor = ret_cam_instance.fill_factor
+            ret.fill_factor2 = ret_cam_instance2.fill_factor
             mask_2d_bbox = ret_cam_instance.mask_2d_bbox
+            mask_2d_bbox2 = ret_cam_instance2.mask_2d_bbox
+            
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+            
+            if mask_2d_bbox2.dim() == 2:
+                mask_2d_bbox2 = mask_2d_bbox2.unsqueeze(0)
+            
             ret.mask_2d_bbox = mask_2d_bbox
+            ret.mask_2d_bbox2 = mask_2d_bbox2
             camera_params = ret_cam_instance.camera_params
             
             for key, value in camera_params.items():
                 ret[key] = value
-            ### DEBUG ###
-            pose_6d = ret.pose_6d.unsqueeze(0) if ret.pose_6d.dim() == 1 else ret.pose_6d
-            lhw = ret.bbox_sizes.unsqueeze(0) if ret.bbox_sizes.dim() == 1 else ret.bbox_sizes
-            fill_factor = torch.tensor([ret.fill_factor]).unsqueeze(0)
-            # get one hot encoding for class_id - all classes in self.label_id2class_id.values
-            num_classes = len(self.label_id2class_id.values())
-            class_probs = torch.nn.functional.one_hot(torch.tensor(ret.class_id), num_classes=num_classes).float().unsqueeze(0)
+            
+            # ### DEBUG ###
+            # pose_6d = ret.pose_6d.unsqueeze(0) if ret.pose_6d.dim() == 1 else ret.pose_6d
+            # lhw = ret.bbox_sizes.unsqueeze(0) if ret.bbox_sizes.dim() == 1 else ret.bbox_sizes
+            # fill_factor = torch.tensor([ret.fill_factor]).unsqueeze(0)
+            # # get one hot encoding for class_id - all classes in self.label_id2class_id.values
+            # num_classes = len(self.label_id2class_id.values())
+            # class_probs = torch.nn.functional.one_hot(torch.tensor(ret.class_id), num_classes=num_classes).float().unsqueeze(0)
 
-            decoded_pose_patch = torch.cat((pose_6d, lhw, fill_factor, class_probs), dim=1)
-            patch_size_resampled = self.patch_size
-            det_world_coords = get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
-                                 patch_size_resampled, ret.patch_center_2d, 
-                                 ret.resampling_factor)
-            ### DEBUG ###
+            # decoded_pose_patch = torch.cat((pose_6d, lhw, fill_factor, class_probs), dim=1)
+            # patch_size_resampled = self.patch_size
+            # det_world_coords = get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
+            #                      patch_size_resampled, ret.patch_center_2d, 
+            #                      ret.resampling_factor)
+            # ### DEBUG ###
     
         else:  # get random crop without overlap
             # bbox = [x1, y1, x2, y2]

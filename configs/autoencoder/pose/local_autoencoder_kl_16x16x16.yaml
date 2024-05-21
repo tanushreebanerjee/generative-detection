@@ -7,8 +7,8 @@ model:
     ckpt_path: "/n/fs/pci-sharedt/tb21/generative-detection/logs/2024-05-20T03-00-24_exp1/checkpoints/last.ckpt"
     euler_convention: "XYZ"
     activation: "relu"
-    dropout_prob_init: 1.0
-    dropout_prob_final: 0.7
+    dropout_prob_init: 0.0
+    dropout_prob_final: 0.0
     pose_conditioned_generation_steps: 45000
     dropout_warmup_steps: 45000
     add_noise_to_z_obj: True
@@ -16,6 +16,7 @@ model:
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
+        use_mask_loss: False
         encoder_pretrain_steps: 30000
         disc_start: 30000
         kl_weight_obj: 1.0

@@ -15,6 +15,7 @@ model:
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
+        use_mask_loss: False
         encoder_pretrain_steps: 30000
         disc_start: 30000
         kl_weight_obj: 1.0
