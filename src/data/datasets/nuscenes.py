@@ -63,7 +63,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
         self.label_names = label_names
-        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in label_names]
+        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
         self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
@@ -588,27 +588,45 @@ class NuScenesBase(MMDetNuScenesDataset):
             transform = transforms.Compose([transforms.ToTensor()])
             background_patch_tensor = transform(background_patch)
             ret.patch = background_patch_tensor
+            ret.patch2 = background_patch_tensor
             ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
             ret.original_class_id = LABEL_NAME2ID['background']
             ret.class_name = LABEL_ID2NAME[LABEL_NAME2ID['background']]
             ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+            ret.pose_6d_2 = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+            ret.bbox_sizes_2 = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.patch_size = torch.tensor(self.patch_size, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
             ret.patch_center_2d = torch.tensor([self.patch_size[0] // 2, self.patch_size[1] // 2], dtype=torch.float32)
             ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
-            ret.resampling_factor = (self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1])
+            ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
+            ret.resampling_factor = torch.tensor((self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1]))
+            ret.resampling_factor2 = ret.resampling_factor
             ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
             ret.yaw = 0.0
+            ret.yaw2 = 0.0
             ret.yaw_perturbed = 0.0
             ret.fill_factor = 0.0
+            ret.fill_factor2 = 0.0
             mask_2d_bbox = torch.zeros(self.patch_size[0], self.patch_size[1], dtype=torch.float32)
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
+            ret.mask_2d_bbox2 = mask_2d_bbox
+            camera_params = {
+                "focal_length": torch.tensor([0.0], dtype=torch.float32),
+                "principal_point": torch.tensor([[0.0, 0.0]], dtype=torch.float32),
+                "znear": 0.0,
+                "device": "cpu",
+                "zfar": 0.0,
+                "image_size": torch.tensor([(0, 0)], dtype=torch.float32),
+            }
+            for key, value in camera_params.items():
+                ret[key] = value
         
-        for key in ["cam2img", "cam2ego", "lidar2cam", "bbox_3d_gt"]:
+        for key in ["cam_name", "img_path", "sample_data_token", "cam2img", "cam2ego", "class_name", "bbox_3d_gt_2", "lidar2cam", "bbox_3d_gt", "resampling_factor", "resampling_factor2", "device", "image_size"]:
             value = ret[key]
-            if isinstance(value, list):
+            if isinstance(value, list) or isinstance(value, tuple):
                 ret[key] = torch.tensor(value, dtype=torch.float32)
          
         return ret

@@ -333,7 +333,7 @@ class PoseAutoencoder(AutoencoderKL):
         if "pose_6d_2" in batch:
             snd_pose = self.get_pose_input(batch, "pose_6d_2").to(self.device) # torch.Size([4, 4]) #
             snd_bbox = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3]) 
-            snd_fill = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float().unsqueeze(0)
+            snd_fill = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float().unsqueeze(1)
             snd_mask_2d_bbox = batch["mask_2d_bbox"]
 
             snd_pose = snd_pose.unsqueeze(0) if snd_pose.dim() == 1 else snd_pose
