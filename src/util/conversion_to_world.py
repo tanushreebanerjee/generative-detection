@@ -1,7 +1,7 @@
 import torch
 from src.util.cameras import PatchPerspectiveCameras, z_learned_to_world
 import pickle as pkl
-
+import os
 POSE_6D_DIM = 4
 LHW_DIM = 3
 FILL_FACTOR_DIM = 1
@@ -31,7 +31,7 @@ with open(hmin_path, "rb") as f:
 with open(hmax_path, "rb") as f:
     hmax_dict = pkl.load(f)
 
-def get_world_coord_decoded_pose(decoded_pose_patch, camera, 
+def get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
                                  patch_size, patch_center, 
                                  patch_resampling_factor,
                                  eps=None):
@@ -42,6 +42,15 @@ def get_world_coord_decoded_pose(decoded_pose_patch, camera,
     # next 1: Fill factor
     # remaining: class probs
     # if no batch dim unsqueeze
+    
+    camera = PatchPerspectiveCameras(
+        focal_length = camera_params["focal_length"],
+        principal_point=camera_params["principal_point"],
+        znear=camera_params["znear"],
+        zfar=camera_params["zfar"],
+        device=camera_params["device"],
+        image_size=camera_params["image_size"])
+    
     if len(decoded_pose_patch.shape) == 1:
         decoded_pose_patch = decoded_pose_patch.unsqueeze(0)
     
@@ -88,7 +97,7 @@ def get_world_coord_decoded_pose(decoded_pose_patch, camera,
                                 patch_height=patch_size[0])
     
     z_world = z_learned_to_world(z_learned=z_learned, zmin=zmin, zmax=zmax, 
-                                    patch_resampling_factor=patch_resampling_factor)
+                                    patch_resampling_factor=patch_resampling_factor[0])
     
     
     # return format: (x, y, z, l, h, w, yaw)

@@ -19,6 +19,7 @@ import torchvision.ops as ops
 from torchvision.transforms.functional import pil_to_tensor
 import random
 import pickle as pkl
+from src.util.conversion_to_world import get_world_coord_decoded_pose
 
 LABEL_NAME2ID = {
     'car': 0, 
@@ -427,6 +428,14 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.patch_size = patch_size_original
         cam_instance.resampling_factor = resampling_factor
         cam_instance.fill_factor = fill_factor
+        cam_instance.camera_params = {
+            "focal_length": focal_length,
+            "principal_point": principal_point,
+            "znear": Z_NEAR,
+            "device": "cpu",
+            "zfar": Z_FAR,
+            "image_size": image_size,
+        }
         return cam_instance
     
     def __getitem__(self, idx):
@@ -510,6 +519,24 @@ class NuScenesBase(MMDetNuScenesDataset):
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
+            camera_params = ret_cam_instance.camera_params
+            
+            for key, value in camera_params.items():
+                ret[key] = value
+            ### DEBUG ###
+            pose_6d = ret.pose_6d.unsqueeze(0) if ret.pose_6d.dim() == 1 else ret.pose_6d
+            lhw = ret.bbox_sizes.unsqueeze(0) if ret.bbox_sizes.dim() == 1 else ret.bbox_sizes
+            fill_factor = torch.tensor([ret.fill_factor]).unsqueeze(0)
+            # get one hot encoding for class_id - all classes in self.label_id2class_id.values
+            num_classes = len(self.label_id2class_id.values())
+            class_probs = torch.nn.functional.one_hot(torch.tensor(ret.class_id), num_classes=num_classes).float().unsqueeze(0)
+
+            decoded_pose_patch = torch.cat((pose_6d, lhw, fill_factor, class_probs), dim=1)
+            patch_size_resampled = self.patch_size
+            det_world_coords = get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
+                                 patch_size_resampled, ret.patch_center_2d, 
+                                 ret.resampling_factor)
+            ### DEBUG ###
     
         else:  # get random crop without overlap
             # bbox = [x1, y1, x2, y2]
