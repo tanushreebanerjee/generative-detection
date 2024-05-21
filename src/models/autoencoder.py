@@ -22,10 +22,23 @@ import logging
 
 POSE_6D_DIM = 4
 FILL_FACTOR_DIM=1
-PITCH_MAX = 360
-YAW_MAX = 60
-YAW_MIN = 20
 LHW_DIM = 3
+
+LABEL_NAME2ID = {
+    'car': 0, 
+    'truck': 1,
+    'trailer': 2,
+    'bus': 3,
+    'construction_vehicle': 4,
+    'bicycle': 5,
+    'motorcycle': 6,
+    'pedestrian': 7,
+    'traffic_cone': 8,
+    'barrier': 9,
+    'background': 10
+}
+
+LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
 
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""
@@ -251,14 +264,16 @@ class PoseAutoencoder(AutoencoderKL):
             
             # torch.Size([4, 16, 16, 16]), True
             dec_pose, bbox_posterior = self._decode_pose(pose_feat, sample_posterior) # torch.Size([4, 8]), torch.Size([4, 7])
-            
+            # Replace pose with other pose if supervised with other patch
             if second_pose is not None:
-                dec_pose = second_pose
+                gen_pose = second_pose.to(dec_pose)
+            else:
+                gen_pose = dec_pose
             
             if self.global_step < self.encoder_pretrain_steps: # no reconstruction loss in this phase
                 dec_obj = torch.zeros_like(input_im).to(self.device) # torch.Size([4, 3, 256, 256])
             else:
-                enc_pose = self._encode_pose(dec_pose) # torch.Size([4, 16, 16, 16])
+                enc_pose = self._encode_pose(gen_pose) # torch.Size([4, 16, 16, 16])
                 
                 assert z_obj.shape == enc_pose.shape, f"z_obj shape: {z_obj.shape}, enc_pose shape: {enc_pose.shape}"
                 
@@ -268,11 +283,11 @@ class PoseAutoencoder(AutoencoderKL):
             
             return dec_obj, dec_pose, posterior_obj, bbox_posterior
         
-    def get_pose_input(self, batch, k):
-        x = batch[k] 
+    def get_pose_input(self, batch, k, postfix=""):
+        x = batch[k+postfix] 
 
         if self.train_on_yaw:
-            yaw = batch["yaw"]
+            yaw = batch["yaw"+postfix]
             # place yaw at index 3
             x[:, 3] = yaw
         
@@ -304,35 +319,68 @@ class PoseAutoencoder(AutoencoderKL):
         x = batch[k]
         return x
     
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def get_all_inputs(self, batch, postfix=""):
+        # Get RGB GT
         rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256]) 
         rgb_gt = self._rescale(rgb_gt)
+        mask_2d_bbox = batch["mask_2d_bbox"]
+        # Get Pose GT
         pose_gt = self.get_pose_input(batch, self.pose_key).to(self.device) # torch.Size([4, 4]) #
+        # Get 2D Mask
         mask_gt = self.get_mask_input(batch, self.image_mask_key) # None
         mask_gt = mask_gt.to(self.device) if mask_gt is not None else None
-        class_gt = self.get_class_input(batch, self.class_key).to(self.device) # torch.Size([4])
-        class_gt_label = batch["class_name"]
         bbox_gt = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3])
         fill_factor_gt = self.get_fill_factor_input(batch, self.fill_factor_key).to(self.device).float()
-        mask_2d_bbox = batch["mask_2d_bbox"]
+        # Get Class GT
+        class_gt = self.get_class_input(batch, self.class_key).to(self.device) # torch.Size([4])
+        class_gt_label = batch["class_name"]
+
             
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
-        snd_pose = batch.get("key_to_snd_obj", None)
-        snd_patch = batch.get("key_to_snd_patch", None)
+        if "pose_6d_2" in batch:
+            # Replace RGB and Mask with second patch
+            rgb_gt = self.get_input(batch, "patch2").permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256])
+            mask_2d_bbox = batch["mask_2d_bbox_2"]
+            
+            # Get respective pose for forward pass
+            snd_pose = self.get_pose_input(batch, self.pose_key, postfix="_2").to(self.device) # torch.Size([4, 4]) #
+            snd_bbox = self.get_bbox_input(batch, self.bbox_key).to(self.device) # torch.Size([4, 3]) 
+            snd_fill = self.get_fill_factor_input(batch, self.fill_factor_key+"_2").to(self.device).float().unsqueeze(1)
+
+            # snd_pose = snd_pose.unsqueeze(0) if snd_pose.dim() == 1 else snd_pose
+            # snd_bbox = snd_bbox.unsqueeze(0) if snd_bbox.dim() == 1 else snd_bbox
+            # get one hot encoding for class_id - all classes in self.label_id2class_id.values
+            num_classes = self.num_classes
+            class_probs = torch.nn.functional.one_hot(torch.tensor(class_gt), num_classes=num_classes).float()
+            second_pose = torch.cat((snd_pose, snd_bbox, snd_fill, class_probs), dim=1)
+        else:
+            second_pose = None
+            
+        return rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose
+    
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        # Get inputs in right shape
+        rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose = self.get_all_inputs(batch)
+        # Run full forward pass
         
-        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt)
+        #### PLEASE DEBUG 2D MASK ####
+        mask_2d_bbox = torch.ones_like(mask_2d_bbox)
+        #### PLEASE DEBUG 2D MASK ####
+        
+        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt, second_pose=second_pose)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+        # Train the autoencoder
         if optimizer_idx == 0:
             # train encoder+decoder+logvar # last layer: torch.Size([3, 128, 3, 3])
             aeloss, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                             dec_obj, dec_pose,
                                             class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                                             posterior_obj, bbox_posterior, optimizer_idx, self.global_step, mask_2d_bbox,
-                                            last_layer=self.get_last_layer(), split="train", snd_patch=snd_patch)
+                                            last_layer=self.get_last_layer(), split="train")            
             self.log("aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
             self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=False)
             return aeloss
-
+        # Train the discriminator
         if optimizer_idx == 1:
             # train the discriminator
             discloss, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
@@ -362,13 +410,15 @@ class PoseAutoencoder(AutoencoderKL):
         _, log_dict_ae = self.loss(rgb_gt, mask_gt, pose_gt,
                                       dec_obj, dec_pose,
                                       class_gt, class_gt_label, bbox_gt,fill_factor_gt,
-                                      posterior_obj, bbox_posterior, 0, self.global_step, mask_2d_bbox,
+                                      posterior_obj, bbox_posterior, 0, 
+                                      global_step=self.global_step, mask_2d_bbox=mask_2d_bbox,
                                       last_layer=self.get_last_layer(), split="val")
 
         _, log_dict_disc = self.loss(rgb_gt, mask_gt, pose_gt,
                                         dec_obj, dec_pose,
                                         class_gt, class_gt_label, bbox_gt,fill_factor_gt,
-                                        posterior_obj, bbox_posterior, 1, self.global_step, mask_2d_bbox,
+                                        posterior_obj, bbox_posterior, 1, 
+                                        global_step=self.global_step, mask_2d_bbox=mask_2d_bbox,
                                         last_layer=self.get_last_layer(), split="val")
 
         self.log("val/rec_loss", log_dict_ae["val/rec_loss"], sync_dist=True)

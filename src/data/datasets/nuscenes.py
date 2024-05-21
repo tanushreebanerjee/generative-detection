@@ -44,7 +44,7 @@ CAM_NAME2CAM_ID = {cam_name: i for i, cam_name in enumerate(CAMERA_NAMES)}
 CAM_ID2CAM_NAME = {i: cam_name for i, cam_name in enumerate(CAMERA_NAMES)}
 
 Z_NEAR = 0.01
-Z_FAR = 55.0
+Z_FAR = 60.0
 
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
@@ -63,7 +63,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
         self.label_names = label_names
-        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in label_names]
+        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
         self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
         # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
@@ -492,45 +492,69 @@ class NuScenesBase(MMDetNuScenesDataset):
             
             img_file = sample_img_info.img_path.split("/")[-1]
             
-            ret_cam_instance = self._get_cam_instance(cam_instance,
-                                                      img_path=os.path.join(self.img_root, cam_name, img_file),
-                                                      patch_size=self.patch_size,
-                                                      cam2img=sample_img_info.cam2img)
-            if ret_cam_instance is None:
+            ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            # get perturbed crop of the same object instance again
+            ret_cam_instance2 = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            
+            if ret_cam_instance is None or ret_cam_instance2 is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
             
             ret.patch = ret_cam_instance.patch
+            ret.patch2 = ret_cam_instance2.patch
             ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
             ret.original_class_id = ret_cam_instance.class_id
             ret.class_name = LABEL_ID2NAME[ret.original_class_id]
             pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
+            pose_6d_2, bbox_sizes_2 = ret_cam_instance2.pose_6d, ret_cam_instance2.bbox_sizes
             # set requires grad = False
             pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
             pose_6d = pose_6d.detach().requires_grad_(False)
             bbox_sizes = bbox_sizes.detach().requires_grad_(False)
+
+            pose_6d_2 = pose_6d_2.unsqueeze(0) if pose_6d_2.dim() == 1 else pose_6d_2
+            pose_6d_2 = pose_6d_2.detach().requires_grad_(False)
+            bbox_sizes_2 = bbox_sizes_2.detach().requires_grad_(False)
             
             ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
+            ret.pose_6d_2, ret.bbox_sizes_2 = pose_6d_2, bbox_sizes_2
+
             patch_size_original = ret_cam_instance.patch_size
             patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
             ret.patch_size = patch_size_original
             ret.patch_center_2d = patch_center_2d
             ret.bbox_3d_gt = ret_cam_instance.bbox_3d
+            ret.bbox_3d_gt_2 = ret_cam_instance2.bbox_3d
             ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
+            ret.resampling_factor_2 = ret_cam_instance2.resampling_factor
             ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
-            assert ret.pose_6d.dim() == 2, f"pose_6d dim is {ret.pose_6d.dim()}"
+            
+            if ret.pose_6d_2.dim() == 3:
+                ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
+            
             ret.pose_6d = ret.pose_6d.squeeze(0)
+            ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
+
             ret.yaw = ret_cam_instance.yaw
             ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
+            ret.yaw_2 = ret_cam_instance2.yaw
             ret.fill_factor = ret_cam_instance.fill_factor
+            ret.fill_factor_2 = ret_cam_instance2.fill_factor
             mask_2d_bbox = ret_cam_instance.mask_2d_bbox
+            mask_2d_bbox_2 = ret_cam_instance2.mask_2d_bbox
+            
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+            
+            if mask_2d_bbox_2.dim() == 2:
+                mask_2d_bbox_2 = mask_2d_bbox_2.unsqueeze(0)
+            
             ret.mask_2d_bbox = mask_2d_bbox
+            ret.mask_2d_bbox_2 = mask_2d_bbox_2
             camera_params = ret_cam_instance.camera_params
             ret.camera_params = camera_params
             for key, value in camera_params.items():
@@ -572,27 +596,45 @@ class NuScenesBase(MMDetNuScenesDataset):
             transform = transforms.Compose([transforms.ToTensor()])
             background_patch_tensor = transform(background_patch)
             ret.patch = background_patch_tensor
+            ret.patch2 = background_patch_tensor
             ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
             ret.original_class_id = LABEL_NAME2ID['background']
             ret.class_name = LABEL_ID2NAME[LABEL_NAME2ID['background']]
             ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+            ret.pose_6d_2 = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+            ret.bbox_sizes_2 = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.patch_size = torch.tensor(self.patch_size, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
             ret.patch_center_2d = torch.tensor([self.patch_size[0] // 2, self.patch_size[1] // 2], dtype=torch.float32)
             ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
-            ret.resampling_factor = (self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1])
+            ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
+            ret.resampling_factor = torch.tensor((self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1]))
+            ret.resampling_factor_2 = ret.resampling_factor
             ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
             ret.yaw = 0.0
+            ret.yaw_2 = 0.0
             ret.yaw_perturbed = 0.0
             ret.fill_factor = 0.0
+            ret.fill_factor_2 = 0.0
             mask_2d_bbox = torch.zeros(self.patch_size[0], self.patch_size[1], dtype=torch.float32)
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
+            ret.mask_2d_bbox_2 = mask_2d_bbox
+            camera_params = {
+                "focal_length": torch.tensor([0.0], dtype=torch.float32),
+                "principal_point": torch.tensor([[0.0, 0.0]], dtype=torch.float32),
+                "znear": 0.0,
+                "device": "cpu",
+                "zfar": 0.0,
+                "image_size": torch.tensor([(0, 0)], dtype=torch.float32),
+            }
+            for key, value in camera_params.items():
+                ret[key] = value
         
-        for key in ["cam2img", "cam2ego", "lidar2cam", "bbox_3d_gt"]:
+        for key in ["cam_name", "img_path", "sample_data_token", "cam2img", "cam2ego", "class_name", "bbox_3d_gt_2", "lidar2cam", "bbox_3d_gt", "resampling_factor", "resampling_factor_2", "device", "image_size"]:
             value = ret[key]
-            if isinstance(value, list):
+            if isinstance(value, list) or isinstance(value, tuple):
                 ret[key] = torch.tensor(value, dtype=torch.float32)
          
         return ret

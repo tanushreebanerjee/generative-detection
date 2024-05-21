@@ -4,27 +4,27 @@ model:
   params:
     monitor: "val/rec_loss"
     embed_dim: 16
-    ckpt_path: "/n/fs/pci-sharedt/tb21/generative-detection/logs/2024-05-20T03-00-24_exp1/checkpoints/last.ckpt"
     euler_convention: "XYZ"
     activation: "relu"
-    dropout_prob_init: 1.0
-    dropout_prob_final: 0.7
-    pose_conditioned_generation_steps: 45000
-    dropout_warmup_steps: 45000
+    dropout_prob_init: 0.0
+    dropout_prob_final: 0.0
+    pose_conditioned_generation_steps: 0
+    dropout_warmup_steps: 0
     add_noise_to_z_obj: True
     train_on_yaw: True
     lossconfig:
       target: src.modules.losses.PoseLoss
       params:
-        encoder_pretrain_steps: 30000
-        disc_start: 30000
-        kl_weight_obj: 1.0
-        kl_weight_bbox: 0.000001
+        use_mask_loss: False
+        encoder_pretrain_steps: 0
+        disc_start: 0
+        kl_weight_obj: 1.0e-5
+        kl_weight_bbox: 1.0e-2
         disc_weight: 0.5
-        pose_weight: 80000
-        fill_factor_weight: 500000
-        class_weight: 1000000
-        bbox_weight: 200000
+        pose_weight: 1
+        fill_factor_weight: 1
+        class_weight: 1
+        bbox_weight: 1
         pose_loss_fn: "l1"
         mask_weight: 0
         mask_loss_fn: "l2"
@@ -69,12 +69,12 @@ data:
   data_root: data/nuscenes
   target: src.data.preprocessing.data_modules.DataModuleFromConfig
   params:
-    batch_size: 1
+    batch_size: 12
     num_workers: 0
     wrap: True
     persistent_workers: False
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrainMini
+      target: src.data.datasets.nuscenes.NuScenesTrain
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -153,6 +153,6 @@ lightning:
   trainer:
     accumulate_grad_batches: 1
     accelerator: gpu
-    max_epochs: 1000
+    max_epochs: 50
     strategy: ddp
     detect_anomaly: True

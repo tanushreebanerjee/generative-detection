@@ -24,13 +24,13 @@ class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
         
 class PoseLoss(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""
-    def __init__(self, train_on_yaw=True, kl_weight_obj=1.0, kl_weight_bbox=1e-6, 
+    def __init__(self, train_on_yaw=True, kl_weight_obj=1e-5, kl_weight_bbox=1e-2, 
                  pose_weight=1.0, mask_weight=0.0, class_weight=1.0, bbox_weight=1.0,
                  fill_factor_weight=1.0,
                  pose_loss_fn=None, mask_loss_fn=None, encoder_pretrain_steps=0, pose_conditioned_generation_steps=7000,
                  leak_img_info_steps=0,
-                 use_mask_loss=True, use_class_loss=False, use_bbox_loss=False,
-                 num_classes=1, dataset_stats_path="dataset_stats/combined/all.pkl", 
+                 use_mask_loss=False,
+                 num_classes=11, dataset_stats_path="dataset_stats/combined/all.pkl", 
                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pose_conditioned_generation_steps = pose_conditioned_generation_steps
@@ -97,7 +97,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     logvar = 2 * torch.log(torch.tensor(std_dev))
                 elif key == "fill_factor":
                     mean = 0.5
-                    std_dev = math.sqrt(2)
+                    std_dev = math.sqrt(0.25)
                     logvar = 2 * torch.log(torch.tensor(std_dev))
                 else: # t3, l, h, w - independent of perturbation
                     mean, logvar = stats[key]
@@ -218,10 +218,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                 class_gt, class_gt_label, bbox_gt, fill_factor_gt,
                 posterior_obj, bbox_posterior, optimizer_idx, global_step, mask_2d_bbox,
                 last_layer=None, cond=None, split="train",
-                weights=None, snd_patch=None):
-        if snd_patch is not None:
-            rgb_gt = snd_patch.to(rgb_gt)
-            
+                weights=None):
         mask_2d_bbox = mask_2d_bbox.to(rgb_gt.device)
         use_pixel_loss = True
         if global_step <= (self.leak_img_info_steps + self.encoder_pretrain_steps + self.pose_conditioned_generation_steps):
@@ -314,7 +311,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
                     + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_bbox * kl_loss_obj_bbox)
             else:
-                if global_step > self.encoder_pretrain_steps: # train rec loss only after encoder_pretrain_steps
+                if global_step >= self.encoder_pretrain_steps: # train rec loss only after encoder_pretrain_steps
                     loss = weighted_pose_loss + weighted_mask_loss + weighted_nll_loss \
                         + weighted_class_loss + weighted_bbox_loss + weighted_fill_factor_loss\
                     + (self.kl_weight_obj * kl_loss_obj) + (self.kl_weight_bbox * kl_loss_obj_bbox) \
