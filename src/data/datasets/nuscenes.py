@@ -98,8 +98,8 @@ class NuScenesBase(MMDetNuScenesDataset):
 
             x1 = x1 + delta_x
             y1 = y1 + delta_y
-            x2 = x1 + delta_x
-            y2 = y1 + delta_y
+            x2 = x2 + delta_x
+            y2 = y2 + delta_y
             center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
             
             # Set to corner case to prevent further perturbations
