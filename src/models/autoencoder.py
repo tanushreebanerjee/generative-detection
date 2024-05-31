@@ -1,24 +1,33 @@
 # src/models/autoencoder.py
-
-from ldm.models.autoencoder import AutoencoderKL
-from src.modules.autoencodermodules.feat_encoder import FeatEncoder
-from src.modules.autoencodermodules.feat_decoder import FeatDecoder
-from src.modules.autoencodermodules.pose_encoder import PoseEncoderSpatialVAE as PoseEncoder
-from src.modules.autoencodermodules.pose_decoder import PoseDecoderSpatialVAE as PoseDecoder
-from ldm.util import instantiate_from_config
-from src.util.distributions import DiagonalGaussianDistribution
-from torch.autograd import Variable
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import pytorch_lightning as pl
-from torch.distributions.normal import Normal
-from torchvision.ops import batched_nms, nms
 import math
 import random
 from math import radians
 import numpy as np
 import logging
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+from torch.distributions.normal import Normal
+from torchvision.ops import batched_nms, nms
+import pytorch_lightning as pl
+
+
+from ldm.models.autoencoder import AutoencoderKL
+from ldm.util import instantiate_from_config
+
+from src.modules.autoencodermodules.feat_encoder import FeatEncoder
+from src.modules.autoencodermodules.feat_decoder import FeatDecoder
+from src.modules.autoencodermodules.pose_encoder import PoseEncoderSpatialVAE as PoseEncoder
+from src.modules.autoencodermodules.pose_decoder import PoseDecoderSpatialVAE as PoseDecoder
+from src.util.distributions import DiagonalGaussianDistribution
+
+try:
+    import wandb
+except ImportWarning:
+    print("WandB not installed")
+    wandb = None
+    
 from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
 
@@ -59,6 +68,7 @@ class PoseAutoencoder(AutoencoderKL):
                  intermediate_img_feature_leak_steps=0,
                  add_noise_to_z_obj=True,
                  train_on_yaw=True,
+                 ema_decay=0.999,
                  ):
         pl.LightningModule.__init__(self)
         self.encoder_pretrain_steps = lossconfig["params"]["encoder_pretrain_steps"]
@@ -102,8 +112,34 @@ class PoseAutoencoder(AutoencoderKL):
         self.euler_convention=euler_convention
         self.feat_dims = feat_dims
         
+        self.use_ema = ema_decay is not None
+        if self.use_ema:
+            self.ema_decay = ema_decay
+            assert 0. < ema_decay < 1.
+            self.model_ema = LitEma(self, decay=ema_decay)
+            print(f"Keeping EMAs of {len(list(self.model_ema.buffers()))}.")
+        
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+            
+    @contextmanager
+    def ema_scope(self, context=None):
+        if self.use_ema:
+            self.model_ema.store(self.parameters())
+            self.model_ema.copy_to(self)
+            if context is not None:
+                print(f"{context}: Switched to EMA weights")
+        try:
+            yield None
+        finally:
+            if self.use_ema:
+                self.model_ema.restore(self.parameters())
+                if context is not None:
+                    print(f"{context}: Restored training weights")
+
+    def on_train_batch_end(self, *args, **kwargs):
+        if self.use_ema:
+            self.model_ema(self)
         
     def _get_enc_feat_dims(self, ddconfig):
         """ pass in dummy input of size from config to get the output size of encoder and quant_conv """

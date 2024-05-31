@@ -44,27 +44,26 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
-        
+        # Setup class labels and ids
         self.label_names = label_names
         self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
+        # Setup patch
         self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
-        # define mapping from nuscenes label ids to our label ids depending on num of classes we predict
+        self.perturb_center = perturb_center if self.split != "test" else False
+        self.perturb_scale = perturb_scale if self.split != "test" else False
+        # Define mapping from nuscenes label ids to our label ids depending on num of classes we predict
         self.label_id2class_id = {label : i for i, label in enumerate(self.label_ids)}  
         self.class_id2label_id = {v: k for k, v in self.label_id2class_id.items()}
-        self.perturb_center = perturb_center
-        self.perturb_scale = perturb_scale
+        # Load hmin and hmax dicts
         hmin_path = os.path.join(h_minmax_dir, "hmin.pkl")
         hmax_path = os.path.join(h_minmax_dir, "hmax.pkl")
         with open(hmin_path, "rb") as f:
             self.hmin_dict = pkl.load(f)
         with open(hmax_path, "rb") as f:
             self.hmax_dict = pkl.load(f)
-        
-        if "background" in self.label_names:
-            self.negative_sample_prob = negative_sample_prob
-        else:
-            self.negative_sample_prob = 0.0
+        # Set sampling probability for negative samples
+        self.negative_sample_prob = negative_sample_prob if "background" in self.label_names else 0.0
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -179,7 +178,6 @@ class NuScenesBase(MMDetNuScenesDataset):
     
     def _get_yaw_perturbed(self, yaw, perturb_degrees_min=30, perturb_degrees_max=90):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
-        
         perturb_degrees = np.random.uniform(perturb_degrees_min, perturb_degrees_max)
         perturb_radians = np.radians(perturb_degrees)
         
