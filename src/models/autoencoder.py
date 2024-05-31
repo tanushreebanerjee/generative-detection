@@ -4,6 +4,8 @@ import random
 from math import radians
 import numpy as np
 import logging
+from contextlib import contextmanager
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,23 +14,23 @@ from torch.distributions.normal import Normal
 from torchvision.ops import batched_nms, nms
 import pytorch_lightning as pl
 
-
 from ldm.models.autoencoder import AutoencoderKL
 from ldm.util import instantiate_from_config
+from ldm.modules.ema import LitEma
 
 from src.modules.autoencodermodules.feat_encoder import FeatEncoder
 from src.modules.autoencodermodules.feat_decoder import FeatDecoder
 from src.modules.autoencodermodules.pose_encoder import PoseEncoderSpatialVAE as PoseEncoder
 from src.modules.autoencodermodules.pose_decoder import PoseDecoderSpatialVAE as PoseDecoder
 from src.util.distributions import DiagonalGaussianDistribution
+    
+from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
 try:
     import wandb
 except ImportWarning:
     print("WandB not installed")
     wandb = None
-    
-from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
 
 class Autoencoder(AutoencoderKL):
