@@ -383,10 +383,6 @@ class PoseAutoencoder(AutoencoderKL):
         rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose = self.get_all_inputs(batch)
         # Run full forward pass
         
-        #### PLEASE DEBUG 2D MASK BEFORE ACTIVATING ####
-        mask_2d_bbox = torch.ones_like(mask_2d_bbox)
-        #### PLEASE DEBUG 2D MASK BEFORE ACTIVATING ####
-        
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt, second_pose=second_pose)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         # Train the autoencoder

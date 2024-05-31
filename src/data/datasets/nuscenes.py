@@ -100,8 +100,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             y1 = y1 + delta_y
             x2 = x2 + delta_x
             y2 = y2 + delta_y
-            center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
-            
             # Set to corner case to prevent further perturbations
             is_corner_case = True
         
@@ -119,7 +117,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         #         center_pixel_loc[0] = img_size[0] - max_dim // 2
         #     if center_pixel_loc[1] + max_dim // 2 > img_size[1]:
         #         center_pixel_loc[1] = img_size[1] - max_dim // 2
-                
+        center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
+        
         if int(width) > int(height):
             padding_pixels = int(width) - int(height) 
         else:
@@ -130,12 +129,12 @@ class NuScenesBase(MMDetNuScenesDataset):
         assert np.abs(x1 - x2) == np.abs(y1 - y2), f"Patch is not a square: {x1, y1, x2, y2}"
         assert np.abs(x1 - x2) in PATCH_ANCHOR_SIZES and np.abs(y1 - y2) in PATCH_ANCHOR_SIZES, f"Patch size is not in PATCH_ANCHOR_SIZES: {x1, y1, x2, y2}"
         
-        return [x1, y1, x2, y2], padding_pixels
+        return [x1, y1, x2, y2], center_2d, padding_pixels
             
         # patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
         # patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         
-    def _get_instance_mask(self, bbox, bbox_patch, patch, trans):
+    def _get_instance_mask(self, bbox, bbox_patch, patch):
         # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
         mask_bool = np.zeros((patch.size[1], patch.size[0]), dtype=bool)
         
@@ -165,7 +164,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # Crop Patch from Image around 2D BBOX
         try:
-            patch_box, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
+            patch_box, center_2d, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
             x1, y1, x2, y2 = patch_box
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -182,7 +181,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         transform = transforms.Compose([transforms.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
-        mask = self._get_instance_mask(bbox, patch_box, patch, center_2d)
+        mask = self._get_instance_mask(bbox, patch_box, patch)
         mask = transform(mask)
         
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
@@ -282,7 +281,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                                  patch_height=self.patch_size_return[0])
         
         z_learned = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
-                                       patch_resampling_factor=cam_instance.patch_resampling_factor[0])
+                                       patch_resampling_factor=cam_instance.resampling_factor[0])
         
         if point_patch_ndc.dim() == 3:
             point_patch_ndc = point_patch_ndc.view(-1)
@@ -305,7 +304,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         if se3_exp_map_matrix.dim() == 2:
             se3_exp_map_matrix = se3_exp_map_matrix.unsqueeze(0)
         
-        try: 
+        try:
+            # TODO: Debug this!!!!!!
             pose_6d = se3_log_map(se3_exp_map_matrix) # 6d vector
         except Exception as e:
             logging.info("Error in se3_log_map", e)
@@ -466,7 +466,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.patch = image_crops
             ret.patch_size = patch_sizes
             ret.patch_center_2d = patch_centers 
-            resampling_factor = (self.patch_size_return[0] / patch_sizes[:, 0],self.patch_size_return[1] / patch_sizes[:, 1])
+            # resampling_factor = (self.patch_size_return[0] / patch_sizes[:, 0],self.patch_size_return[1] / patch_sizes[:, 1])
             # patch_obj = self._get_patchGT(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), cam2img=sample_img_info.cam2img)
             return ret
         
