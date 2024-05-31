@@ -2,23 +2,7 @@ import torch
 from src.util.cameras import PatchPerspectiveCameras, z_learned_to_world
 import pickle as pkl
 import os
-POSE_6D_DIM = 4
-LHW_DIM = 3
-FILL_FACTOR_DIM = 1
-
-LABEL_NAME2ID = {
-    'car': 0, 
-    'truck': 1,
-    'trailer': 2,
-    'bus': 3,
-    'construction_vehicle': 4,
-    'bicycle': 5,
-    'motorcycle': 6,
-    'pedestrian': 7,
-    'traffic_cone': 8,
-    'barrier': 9,
-    'background': 10
-}
+from src.data.specs import POSE_6D_DIM, LHW_DIM, FILL_FACTOR_DIM, LABEL_NAME2ID
 
 CLASS_NAMES = list(LABEL_NAME2ID.keys())
 CLASS_IDS = list(LABEL_NAME2ID.values())

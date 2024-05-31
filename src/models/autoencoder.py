@@ -19,26 +19,8 @@ import random
 from math import radians
 import numpy as np
 import logging
+from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
-POSE_6D_DIM = 4
-FILL_FACTOR_DIM=1
-LHW_DIM = 3
-
-LABEL_NAME2ID = {
-    'car': 0, 
-    'truck': 1,
-    'trailer': 2,
-    'bus': 3,
-    'construction_vehicle': 4,
-    'bicycle': 5,
-    'motorcycle': 6,
-    'pedestrian': 7,
-    'traffic_cone': 8,
-    'barrier': 9,
-    'background': 10
-}
-
-LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
 
 class Autoencoder(AutoencoderKL):
     """Autoencoder model with KL divergence loss."""

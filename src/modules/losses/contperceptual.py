@@ -9,13 +9,8 @@ import json
 import pickle as pkl
 import math
 from mmdet.models.losses.focal_loss import FocalLoss
+from src.data.specs import POSE_DIM, LHW_DIM, FILL_FACTOR_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
-POSE_6D_DIM = 4
-LHW_DIM = 3
-FILL_FACTOR_DIM = 1
-BACKGROUND_CLASS_IDX = 10
-
-BBOX_DIM = POSE_6D_DIM + LHW_DIM + FILL_FACTOR_DIM
 
 class LPIPSWithDiscriminator(LPIPSWithDiscriminator_LDM):
     """LPIPS loss with discriminator."""

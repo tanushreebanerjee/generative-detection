@@ -24,3 +24,9 @@ export PYTHONFAULTHANDLER=1
 # srun python3 train.py -b configs/autoencoder/pose/jo_autoencoder_kl_16x16x16.yaml -t --name clip_nan_trace_od_vae_full_4gpu --devices 4
 srun python3 train.py -b configs/autoencoder/may21/exp9.yaml -t --name exp9 --devices 4
 # srun python3 train.py -b configs/autoencoder/may21/exp10.yaml -t --name exp10 --devices 4
+
+
+
+
+
+# srun python3 train.py -b configs/autoencoder/pose/local_autoencoder_kl_16x16x16.yaml -t --devices 1

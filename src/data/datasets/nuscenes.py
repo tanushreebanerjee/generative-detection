@@ -20,22 +20,7 @@ from torchvision.transforms.functional import pil_to_tensor
 import random
 import pickle as pkl
 from src.util.conversion_to_world import get_world_coord_decoded_pose
-
-LABEL_NAME2ID = {
-    'car': 0, 
-    'truck': 1,
-    'trailer': 2,
-    'bus': 3,
-    'construction_vehicle': 4,
-    'bicycle': 5,
-    'motorcycle': 6,
-    'pedestrian': 7,
-    'traffic_cone': 8,
-    'barrier': 9,
-    'background': 10
-}
-
-LABEL_ID2NAME = {v: k for k, v in LABEL_NAME2ID.items()}
+from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
 
 CAM_NAMESPACE = 'CAM'
 CAMERAS = ["FRONT", "FRONT_RIGHT", "FRONT_LEFT", "BACK", "BACK_LEFT", "BACK_RIGHT"]
@@ -49,19 +34,17 @@ Z_FAR = 60.0
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
 
-POSE_DIM = 4
-LHW_DIM = 3
-BBOX_3D_DIM = 7
-
 PATCH_SIZES = [50, 100, 200, 400]
 
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
                  is_sweep=False, perturb_center=False, perturb_scale=False, 
                  negative_sample_prob=0.5, h_minmax_dir = "dataset_stats/combined", **kwargs):
+        # Setup directory
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
         super().__init__(data_root=data_root, **kwargs)
+        
         self.label_names = label_names
         self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")

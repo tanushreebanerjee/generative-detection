@@ -4,10 +4,8 @@ import numpy as np
 import torch.nn.functional as F
 import torch
 from torch.autograd import Variable
+from src.data.specs import POSE_DIM, LHW_DIM, FILL_FACTOR_DIM
 
-POSE_DIM = 4
-LHW_DIM = 3
-FILL_FACTOR_DIM=1
 HIDDEN_DIM_1_DIV = 8
 HIDDEN_DIM_2_DIV = 4
 
