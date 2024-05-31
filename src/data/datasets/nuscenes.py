@@ -34,7 +34,7 @@ Z_FAR = 60.0
 NUSC_IMG_WIDTH = 1600
 NUSC_IMG_HEIGHT = 900
 
-PATCH_SIZES = [50, 100, 200, 400]
+PATCH_ANCHOR_SIZES = [50, 100, 200, 400]
 
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
@@ -49,7 +49,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
         # Setup patch
-        self.patch_size = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
+        self.patch_size_return = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
         self.perturb_center = perturb_center if self.split != "test" else False
         self.perturb_scale = perturb_scale if self.split != "test" else False
         # Define mapping from nuscenes label ids to our label ids depending on num of classes we predict
@@ -70,111 +70,131 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.num_cameras = len(CAMERA_NAMES)
         return self.num_samples * self.num_cameras
     
-    def _generate_patch(self, img_path, cam_instance):
-        # load image from path using PIL
-        img_pil = Image.open(img_path)
-        if img_pil is None:
-            raise FileNotFoundError(f"Image not found at {img_path}")
-
-        # return croped list of images as defined by 2d bbox for each instance
-        bbox = cam_instance.bbox # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
-        center_2d = cam_instance.center_2d # Projected center location on the image, a list has shape (2,)
+    def _get_patch_dims(self, bbox, center_2d, img_size):
+        # Object BBOX
+        center_pixel_loc = np.floor(center_2d).astype(np.int32)
+        x1, y1, x2, y2 = np.round(bbox).astype(np.int32) 
+        width = x2 - x1
+        height = y2 - y1
+        # get max side length
+        max_dim = max(width, height)
         
-        # if center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
-        if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
-            return None, None, None, None, None
+        # Get closest pre-defined patch size
+        dim_diffs = [abs(max_dim - patch_size) for patch_size in PATCH_ANCHOR_SIZES]
+        patch_size = PATCH_ANCHOR_SIZES[dim_diffs.index(min(dim_diffs))]
         
-        x1, y1, x2, y2 = bbox # actual object bbox
+        # Crop Patch from Image around 2D BBOX
+        x1 = center_pixel_loc[0] - patch_size // 2
+        y1 = center_pixel_loc[1] - patch_size // 2
+        x2 = center_pixel_loc[0] + patch_size // 2
+        y2 = center_pixel_loc[1] + patch_size // 2
+        
         is_corner_case = False
-        
-        try:
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            # make patch a square by taking max of width and height, centered at center_2d
-            width = x2 - x1
-            height = y2 - y1
-            floored_center = np.floor(center_2d).astype(np.int32)
-            box_size = max(int(width), int(height))
-            
-            if x1 >= img_pil.size[0] or y1 >= img_pil.size[1] or x2 <= 0 or y2 <= 0:
-                is_corner_case = True
-                # get intersection of bbox with image
-                x1 = max(0, x1)
-                y1 = max(0, y1)
-                x2 = min(img_pil.size[0], x2)
-                y2 = min(img_pil.size[1], y2)
-                
-                width = x2 - x1
-                height = y2 - y1
-                # get max
-                max_dim = max(width, height)
-                
-                # choose center of patch as min diff from PATCH_SIZES
-                dim_diffs = [abs(max_dim - patch_size) for patch_size in PATCH_SIZES]
-                patch_size = PATCH_SIZES[dim_diffs.index(min(dim_diffs))]
+        # Handle Out of Bounds Edge Cases
+        if x2 >= img_size[0] or y2 >= img_size[1] or x1 <= 0 or y1 <= 0:
+            # Move patch back into image
+            delta_x = (max(0, x1) - x1) + (min(img_size[0], x2) - x2)
+            delta_y = (max(0, y1) - y1) + (min(img_size[1], y2) - y2)
 
-                x1 = x1 + (width - patch_size) // 2 
-                y1 = y1 + (height - patch_size) // 2
-                x2 = x1 + patch_size
-                y2 = y1 + patch_size
-                center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
+            x1 = x1 + delta_x
+            y1 = y1 + delta_y
+            x2 = x1 + delta_x
+            y2 = y1 + delta_y
+            center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
             
-            if self.perturb_scale and not is_corner_case:
-                # make box_size one of PATCH_SIZES centered at center_2d 
-                bbox_size_diffs = [abs(box_size - patch_size) for patch_size in PATCH_SIZES]
-                box_size = PATCH_SIZES[bbox_size_diffs.index(min(bbox_size_diffs))]
-                # make sure scaled box is within image, and still a square
-                if floored_center[0] - box_size // 2 < 0:
-                    floored_center[0] = box_size // 2
-                if floored_center[1] - box_size // 2 < 0:
-                    floored_center[1] = box_size // 2
-                if floored_center[0] + box_size // 2 > img_pil.size[0]:
-                    floored_center[0] = img_pil.size[0] - box_size // 2
-                if floored_center[1] + box_size // 2 > img_pil.size[1]:
-                    floored_center[1] = img_pil.size[1] - box_size // 2
-                    
-            if int(width) > int(height):
-                padding_pixels = int(width) - int(height) 
-            else:
-                padding_pixels = 0
-                
-            y1 = floored_center[1] - box_size // 2 
-            y2 = floored_center[1] + box_size // 2 
-            x1 = floored_center[0] - box_size // 2 
-            x2 = floored_center[0] + box_size // 2 
-              
-            patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
-            patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
-        except Exception as e:
-            logging.info(f"Error in cropping image: {e}")
-            return None, None, None, None, None
+            # Set to corner case to prevent further perturbations
+            is_corner_case = True
         
-        resized_width, resized_height = self.patch_size
-        # ratio of original image to resized image
-        try:
-            resampling_factor = (resized_width / patch.size[0], resized_height / patch.size[1])
-            assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
-        except ZeroDivisionError:
-            logging.info("patch size is 0", patch.size)
-            return None, None, None, None, None
-        patch_resized = patch.resize((resized_width, resized_height), resample=Resampling.BILINEAR, reducing_gap=1.0)
+        # # Change Patch Scale
+        # if self.perturb_scale and not is_corner_case:
+        #     # # Make box_size one of PATCH_ANCHOR_SIZES centered at center_2d 
+        #     # bbox_size_diffs = [abs(max_dim - patch_size) for patch_size in PATCH_ANCHOR_SIZES]
+        #     # box_size = PATCH_ANCHOR_SIZES[bbox_size_diffs.index(min(bbox_size_diffs))]
+        #     # Make sure scaled box is within image, and still a square
+        #     if center_pixel_loc[0] - max_dim // 2 < 0:
+        #         center_pixel_loc[0] = max_dim // 2
+        #     if center_pixel_loc[1] - max_dim // 2 < 0:
+        #         center_pixel_loc[1] = max_dim // 2
+        #     if center_pixel_loc[0] + max_dim // 2 > img_size[0]:
+        #         center_pixel_loc[0] = img_size[0] - max_dim // 2
+        #     if center_pixel_loc[1] + max_dim // 2 > img_size[1]:
+        #         center_pixel_loc[1] = img_size[1] - max_dim // 2
+                
+        if int(width) > int(height):
+            padding_pixels = int(width) - int(height) 
+        else:
+            padding_pixels = 0
+            
+        # y1 = center_pixel_loc[1] - max_dim // 2 
+        # y2 = center_pixel_loc[1] + max_dim // 2 
+        # x1 = center_pixel_loc[0] - max_dim // 2 
+        # x2 = center_pixel_loc[0] + max_dim // 2
+        
+        assert np.abs(x1 - x2) == np.abs(y1 - y2), f"Patch is not a square: {x1, y1, x2, y2}"
+        assert np.abs(x1 - x2) in PATCH_ANCHOR_SIZES and np.abs(y1 - y2) in PATCH_ANCHOR_SIZES, f"Patch size is not in PATCH_ANCHOR_SIZES: {x1, y1, x2, y2}"
+        
+        return [x1, y1, x2, y2], padding_pixels
+            
+        # patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
+        # patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
+        
+    def _get_instance_mask(self, bbox, bbox_patch, patch, trans):
         # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
         mask_bool = np.zeros((patch.size[1], patch.size[0]), dtype=bool)
         # Set the area inside the bounding box to True
         # get original 2d bbox coords
-        x1_full, y1_full, x2_full, y2_full = cam_instance.bbox
+        x1_full, y1_full, x2_full, y2_full = bbox
+        x1, y1, x2, y2 = bbox_patch
         x1_patch = int(x1_full - x1)
         y1_patch = int(y1_full - y1)
-        x2_patch = int(x2_full - x1)
-        y2_patch = int(y2_full - y1)
+        x2_patch = int(x2_full - x2)
+        y2_patch = int(y2_full - y2)
         
         mask_bool[y1_patch:y2_patch, x1_patch:x2_patch] = True
         mask_pil = Image.fromarray(mask_bool)
-        mask_resized = mask_pil.resize((resized_width, resized_height), resample=Resampling.NEAREST, reducing_gap=1.0)
+        mask = mask_pil.resize((self.patch_size_return[0], self.patch_size_return[1]), resample=Resampling.NEAREST, reducing_gap=1.0)
+        return mask
+    
+    def _get_instance_patch(self, img_path, cam_instance):
+        # return croped list of images as defined by 2d bbox for each instance
+        # load image from path using PIL
+        img_pil = Image.open(img_path)
+        if img_pil is None:
+            raise FileNotFoundError(f"Image not found at {img_path}")
+        
+        # bounding box annotation (exterior rectangle of the projected 3D box), a list arrange as [x1, y1, x2, y2].
+        bbox = cam_instance.bbox 
+        # Projected center location on the image, a list has shape (2,)
+        center_2d = cam_instance.center_2d 
+        
+        # If center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
+        if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
+            return None, None, None, None, None
+        
+        # Crop Patch from Image around 2D BBOX
+        try:
+            bbox_patch, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
+            x1, y1, x2, y2 = bbox_patch
+            patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
+            patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
+            
+            # Ratio of original image to resized image
+            resampling_factor = (self.patch_size_return[0] / patch.size[0], self.patch_size_return[1] / patch.size[1])
+            assert resampling_factor[0] == resampling_factor[1], "resampling factor of width and height must be the same but they are not."
+            # Resize Patch to Size expected by Encoder
+            patch_resized = patch.resize((self.patch_size_return[0], self.patch_size_return[1]), resample=Resampling.BILINEAR, reducing_gap=1.0)
+            
+        except Exception as e:
+            logging.info(f"Error in cropping & resizing image: {e}")
+            return None, None, None, None, None
+        
         transform = transforms.Compose([transforms.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
-        mask_resized = transform(mask_resized)
+        mask = self._get_instance_mask(bbox, bbox_patch, center_2d, patch)
+        mask = transform(mask)
+        
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
-        return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled, mask_resized
+        return patch_resized_tensor, patch_size_sq, resampling_factor, padding_pixels_resampled, mask
     
     def _get_yaw_perturbed(self, yaw, perturb_degrees_min=30, perturb_degrees_max=90):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
@@ -225,8 +245,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         
     def _get_pose_6d_lhw(self, camera, cam_instance, patch_size, patch_resampling_factor, fill_factor):
         
-        # fill_factor = padding_pixels_resampled / self.patch_size[0]
-        padding_pixels_resampled = fill_factor * self.patch_size[0]
+        # fill_factor = padding_pixels_resampled /self.patch_size_return[0]
+        padding_pixels_resampled = fill_factor *self.patch_size_return[0]
         bbox_3d = cam_instance.bbox_3d
         x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
@@ -267,7 +287,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         zmin, zmax = get_zminmax(min_val=min_val, max_val=max_val, 
                                  focal_length=camera.focal_length, 
-                                 patch_height=self.patch_size[0])
+                                 patch_height=self.patch_size_return[0])
         
         z_learned = z_world_to_learned(z_world=z_world, zmin=zmin, zmax=zmax, 
                                        patch_resampling_factor=patch_resampling_factor[0])
@@ -313,7 +333,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         pose_6d_no_v1v2[:, -1] = pose_6d[:, -1]
         return pose_6d_no_v1v2, bbox_sizes, yaw
     
-    def get_perturbed_patch(self, center_2d, bbox):
+    def _get_perturbed_patch_center(self, center_2d, bbox):
         # given: original center_2d and bbox
         x1, y1, x2, y2 = bbox
         center_x, center_y = center_2d
@@ -338,23 +358,25 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         return [perturbed_center_x, perturbed_center_y]
     
-    def _get_cam_instance(self, cam_instance, img_path, patch_size, cam2img):
+    def _get_patchGT(self, cam_instance, img_path, cam2img, postfix=""):
         cam_instance = edict(cam_instance)
         
         if self.perturb_center:
-            # random perturb center
+            # Random Perturb of 2D BBOX Center
             center_o = cam_instance.center_2d
             bbox_o = cam_instance.bbox
-            center_perturbed = self.get_perturbed_patch(center_o, bbox_o)
+            center_perturbed = self._get_perturbed_patch_center(center_o, bbox_o)
+            # Replace Center 2D with perturbed center
             cam_instance.center_2d = center_perturbed
         
-        patch, patch_size_original, resampling_factor, padding_pixels_resampled, mask_resampled = self._generate_patch(img_path, cam_instance)
+        # Crop patch from origibal image
+        patch, patch_size_original, resampling_factor, padding_pixels_resampled, mask_resampled = self._get_instance_patch(img_path, cam_instance)
         cam_instance.mask_2d_bbox = mask_resampled
-        # patch_size = torch.tensor(patch_size, dtype=torch.float32)
+        
         if patch is None or patch_size_original is None:
             return None
         
-        fill_factor = padding_pixels_resampled / self.patch_size[0]
+        fill_factor = padding_pixels_resampled /self.patch_size_return[0]
         
         # if no batch dimension, add it
         if patch_size_original.dim() == 1:
@@ -449,17 +471,18 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.patch = image_crops
             ret.patch_size = patch_sizes
             ret.patch_center_2d = patch_centers 
-            resampling_factor = (self.patch_size[0] / patch_sizes[:, 0], self.patch_size[1] / patch_sizes[:, 1])
-            # ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
+            resampling_factor = (self.patch_size_return[0] / patch_sizes[:, 0],self.patch_size_return[1] / patch_sizes[:, 1])
+            # patch_obj = self._get_patchGT(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), cam2img=sample_img_info.cam2img)
             return ret
-            
-        # cam_instances = sample_info.cam_instances[cam_name] # list of dicts for each instance in the current camera image
-        cam_instances = sample_info['cam_instances'][cam_name] # list of dicts for each instance in the current camera image
-        # filter out instances that are not in the label_names
+        
+        # List of dicts for each instance in the current camera image
+        cam_instances = sample_info['cam_instances'][cam_name]
+        # Extract object bbox, class and filter out instances not in label_names
         cam_instances = [cam_instance for cam_instance in cam_instances if cam_instance['bbox_label'] in self.label_ids]
         
         
-        if np.random.rand() <= (1. - self.negative_sample_prob): # get random crop of an instance with 50% overlap
+        if np.random.rand() <= (1. - self.negative_sample_prob):
+            # Get a random crop of an instance with at least 50% overlap
             if len(cam_instances) == 0:
                 # iter next sample if no instances present
                 # prevent querying idx outside of bounds
@@ -467,29 +490,36 @@ class NuScenesBase(MMDetNuScenesDataset):
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
-            
+            # Choose one random object from all objects in the image
             random_idx = np.random.randint(0, len(cam_instances))
             cam_instance = cam_instances[random_idx]
             
             img_file = sample_img_info.img_path.split("/")[-1]
+            # Get cropped image patch and 6d pose for the object instance       
+            patch_obj = self._get_patchGT(cam_instance,
+                                          img_path=os.path.join(self.img_root, cam_name, img_file),
+                                          cam2img=sample_img_info.cam2img,
+                                          postfix="")
+            # get a second crop of the same object instance again
+            # TODO: Make optional
+            patch_obj_2 = self._get_patchGT(cam_instance,
+                                            img_path=os.path.join(self.img_root, cam_name, img_file),
+                                            cam2img=sample_img_info.cam2img,
+                                            postfix="_2")
             
-            ret_cam_instance = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-            # get perturbed crop of the same object instance again
-            ret_cam_instance2 = self._get_cam_instance(cam_instance, img_path=os.path.join(self.img_root, cam_name, img_file), patch_size=self.patch_size, cam2img=sample_img_info.cam2img)
-            
-            if ret_cam_instance is None or ret_cam_instance2 is None:
+            if patch_obj is None or patch_obj_2 is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
             
-            ret.patch = ret_cam_instance.patch
-            ret.patch2 = ret_cam_instance2.patch
-            ret.class_id = self.label_id2class_id[ret_cam_instance.class_id]
-            ret.original_class_id = ret_cam_instance.class_id
+            ret.patch = patch_obj.patch
+            ret.patch_2 = patch_obj_2.patch
+            ret.class_id = self.label_id2class_id[patch_obj.class_id]
+            ret.original_class_id = patch_obj.class_id
             ret.class_name = LABEL_ID2NAME[ret.original_class_id]
-            pose_6d, bbox_sizes = ret_cam_instance.pose_6d, ret_cam_instance.bbox_sizes
-            pose_6d_2, bbox_sizes_2 = ret_cam_instance2.pose_6d, ret_cam_instance2.bbox_sizes
+            pose_6d, bbox_sizes = patch_obj.pose_6d, patch_obj.bbox_sizes
+            pose_6d_2, bbox_sizes_2 = patch_obj_2.pose_6d, patch_obj_2.bbox_sizes
             # set requires grad = False
             pose_6d = pose_6d.unsqueeze(0) if pose_6d.dim() == 1 else pose_6d
             pose_6d = pose_6d.detach().requires_grad_(False)
@@ -502,15 +532,15 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
             ret.pose_6d_2, ret.bbox_sizes_2 = pose_6d_2, bbox_sizes_2
 
-            patch_size_original = ret_cam_instance.patch_size
-            patch_center_2d = torch.tensor(ret_cam_instance.center_2d).float()
+            patch_size_original = patch_obj.patch_size
+            patch_center_2d = torch.tensor(patch_obj.center_2d).float()
             ret.patch_size = patch_size_original
             ret.patch_center_2d = patch_center_2d
-            ret.bbox_3d_gt = ret_cam_instance.bbox_3d
-            ret.bbox_3d_gt_2 = ret_cam_instance2.bbox_3d
-            ret.resampling_factor = ret_cam_instance.resampling_factor # ratio of resized image to original patch size
-            ret.resampling_factor_2 = ret_cam_instance2.resampling_factor
-            ret.pose_6d_perturbed = ret_cam_instance.pose_6d_perturbed
+            ret.bbox_3d_gt = patch_obj.bbox_3d
+            ret.bbox_3d_gt_2 = patch_obj_2.bbox_3d
+            ret.resampling_factor = patch_obj.resampling_factor # ratio of resized image to original patch size
+            ret.resampling_factor_2 = patch_obj_2.resampling_factor
+            ret.pose_6d_perturbed = patch_obj.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
             
@@ -520,13 +550,13 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d = ret.pose_6d.squeeze(0)
             ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
 
-            ret.yaw = ret_cam_instance.yaw
-            ret.yaw_perturbed = ret_cam_instance.yaw_perturbed
-            ret.yaw_2 = ret_cam_instance2.yaw
-            ret.fill_factor = ret_cam_instance.fill_factor
-            ret.fill_factor_2 = ret_cam_instance2.fill_factor
-            mask_2d_bbox = ret_cam_instance.mask_2d_bbox
-            mask_2d_bbox_2 = ret_cam_instance2.mask_2d_bbox
+            ret.yaw = patch_obj.yaw
+            ret.yaw_perturbed = patch_obj.yaw_perturbed
+            ret.yaw_2 = patch_obj_2.yaw
+            ret.fill_factor = patch_obj.fill_factor
+            ret.fill_factor_2 = patch_obj_2.fill_factor
+            mask_2d_bbox = patch_obj.mask_2d_bbox
+            mask_2d_bbox_2 = patch_obj_2.mask_2d_bbox
             
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
@@ -536,7 +566,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             
             ret.mask_2d_bbox = mask_2d_bbox
             ret.mask_2d_bbox_2 = mask_2d_bbox_2
-            camera_params = ret_cam_instance.camera_params
+            camera_params = patch_obj.camera_params
             ret.camera_params = camera_params
             for key, value in camera_params.items():
                 ret[key] = value
@@ -549,7 +579,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             # class_probs = torch.nn.functional.one_hot(torch.tensor(ret.class_id), num_classes=num_classes).float().unsqueeze(0)
 
             # decoded_pose_patch = torch.cat((pose_6d, lhw, fill_factor, class_probs), dim=1)
-            # patch_size_resampled = self.patch_size
+            # patch_size_resampled =self.patch_size_return
             # det_world_coords = get_world_coord_decoded_pose(decoded_pose_patch, camera_params, 
             #                      patch_size_resampled, ret.patch_center_2d, 
             #                      ret.resampling_factor, class_pred_id=ret.class_id)
@@ -565,7 +595,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             if img_pil is None:
                 raise FileNotFoundError(f"Image not found at {img_path}")
             
-            background_patch = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_SIZES)
+            background_patch = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_ANCHOR_SIZES)
             if background_patch is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
@@ -573,11 +603,11 @@ class NuScenesBase(MMDetNuScenesDataset):
                     return self.__getitem__(idx + 1)
                 
             background_patch_original_size = background_patch.size
-            background_patch = background_patch.resize(self.patch_size, resample=Resampling.BILINEAR)
+            background_patch = background_patch.resize(self.patch_size_return, resample=Resampling.BILINEAR)
             transform = transforms.Compose([transforms.ToTensor()])
             background_patch_tensor = transform(background_patch)
             ret.patch = background_patch_tensor
-            ret.patch2 = background_patch_tensor
+            ret.patch_2 = background_patch_tensor
             ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
             ret.original_class_id = LABEL_NAME2ID['background']
             ret.class_name = LABEL_ID2NAME[LABEL_NAME2ID['background']]
@@ -585,11 +615,11 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d_2 = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
             ret.bbox_sizes_2 = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
-            ret.patch_size = torch.tensor(self.patch_size, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
-            ret.patch_center_2d = torch.tensor([self.patch_size[0] // 2, self.patch_size[1] // 2], dtype=torch.float32)
+            ret.patch_size = torch.tensor(self.patch_size_return, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
+            ret.patch_center_2d = torch.tensor([self.patch_size_return[0] // 2,self.patch_size_return[1] // 2], dtype=torch.float32)
             ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
             ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
-            ret.resampling_factor = torch.tensor((self.patch_size[0] / background_patch_original_size[0], self.patch_size[1] / background_patch_original_size[1]))
+            ret.resampling_factor = torch.tensor((self.patch_size_return[0] / background_patch_original_size[0],self.patch_size_return[1] / background_patch_original_size[1]))
             ret.resampling_factor_2 = ret.resampling_factor
             ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
             ret.yaw = 0.0
@@ -597,7 +627,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.yaw_perturbed = 0.0
             ret.fill_factor = 0.0
             ret.fill_factor_2 = 0.0
-            mask_2d_bbox = torch.zeros(self.patch_size[0], self.patch_size[1], dtype=torch.float32)
+            mask_2d_bbox = torch.zeros(self.patch_size_return[0],self.patch_size_return[1], dtype=torch.float32)
             if mask_2d_bbox.dim() == 2:
                 mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             ret.mask_2d_bbox = mask_2d_bbox
@@ -658,7 +688,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         all_patches = []
         all_patch_centers = []
         all_patch_sizes = []
-        for patch_size in PATCH_SIZES:
+        for patch_size in PATCH_ANCHOR_SIZES:
             patches_res_i, patch_center_2d_res_i, patch_size_res_i = self._crop_image_into_squares(image_path, patch_size)
             all_patches.append(patches_res_i)
             all_patch_centers.append(patch_center_2d_res_i)
@@ -693,7 +723,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 for j in range(0, img_width, patch_size):
                     j = j - width_offset * (j //patch_size)
                     box = (j, i, j + patch_size, i + patch_size)
-                    patch = img.crop(box).resize(self.patch_size, resample=Resampling.BILINEAR)
+                    patch = img.crop(box).resize(self.patch_size_return, resample=Resampling.BILINEAR)
                     patches.append(pil_to_tensor(patch))
                     patch_center.append([j + patch_size // 2, i + patch_size // 2])
                     pacth_wh.append([patch_size, patch_size])

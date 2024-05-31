@@ -48,7 +48,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--no-test", type=str2bool, const=True, default=False, nargs="?", help="disable test")
     parser.add_argument("-p", "--project", help="name of new or path to existing project")
     parser.add_argument("-d", "--debug", type=str2bool, nargs="?", const=True, default=False, help="enable post-mortem debugging")
-    parser.add_argument("-s", "--seed", type=int, default=23, help="seed for seed_everything")
+    parser.add_argument("-s", "--seed", type=int, default=64, help="seed for seed_everything")
     parser.add_argument("-f", "--postfix", type=str, default="", help="post-postfix for default name")
     parser.add_argument("-l", "--logdir", type=str, default="logs", help="directory for logs")
     parser.add_argument("--scale_lr", type=str2bool,nargs="?",const=True,default=True,help="scale base-lr by ngpu * batch_size * n_accumulate")

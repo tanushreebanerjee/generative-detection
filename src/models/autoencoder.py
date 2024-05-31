@@ -24,7 +24,7 @@ from src.modules.autoencodermodules.pose_encoder import PoseEncoderSpatialVAE as
 from src.modules.autoencodermodules.pose_decoder import PoseDecoderSpatialVAE as PoseDecoder
 from src.util.distributions import DiagonalGaussianDistribution
     
-from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM
+from src.data.specs import LABEL_NAME2ID, LABEL_ID2NAME, CAM_NAMESPACE,  POSE_DIM, LHW_DIM, BBOX_3D_DIM, BACKGROUND_CLASS_IDX, BBOX_DIM, POSE_6D_DIM, FILL_FACTOR_DIM
 
 try:
     import wandb
@@ -359,7 +359,7 @@ class PoseAutoencoder(AutoencoderKL):
         # torch.Size([4, 3, 256, 256]), torch.Size([4, 8]), torch.Size([4, 16, 16, 16]), torch.Size([4, 7])
         if "pose_6d_2" in batch:
             # Replace RGB and Mask with second patch
-            rgb_gt = self.get_input(batch, "patch2").permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256])
+            rgb_gt = self.get_input(batch, "patch_2").permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256])
             mask_2d_bbox = batch["mask_2d_bbox_2"]
             
             # Get respective pose for forward pass
@@ -383,9 +383,9 @@ class PoseAutoencoder(AutoencoderKL):
         rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose = self.get_all_inputs(batch)
         # Run full forward pass
         
-        #### PLEASE DEBUG 2D MASK ####
+        #### PLEASE DEBUG 2D MASK BEFORE ACTIVATING ####
         mask_2d_bbox = torch.ones_like(mask_2d_bbox)
-        #### PLEASE DEBUG 2D MASK ####
+        #### PLEASE DEBUG 2D MASK BEFORE ACTIVATING ####
         
         dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt, second_pose=second_pose)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
