@@ -244,54 +244,34 @@ def get_ndc_to_patch_ndc_transform(
     device = cameras.device
     # We require the image size, which is necessary for the transform
     if image_size is None:
-        msg = "For NDC to screen conversion, image_size=(height, width) needs to be specified."
-        raise ValueError(msg)
-    # We require the patch size, which is necessary for the transform
-    if patch_size is None:
-        msg = "For NDC to screen conversion, patch_size=(patch_height, patch_width) needs to be specified."
-        raise ValueError(msg)
-    # We require the patch center, which is necessary for the transform
-    if patch_center is None:
-        msg = "For NDC to screen conversion, patch_center=(patch_center_x, patch_center_y) needs to be specified."
-        raise ValueError(msg)
-    
-    K = torch.zeros((cameras._N, 4, 4), device=cameras.device, dtype=torch.float32)
+        raise ValueError("For NDC to patch conversion, image_size=(height, width) needs to be specified.")
     if not torch.is_tensor(image_size):
         image_size = torch.tensor(image_size, device=cameras.device)
     
-    if not torch.is_tensor(patch_size):
-        patch_size = torch.tensor(patch_size, device=cameras.device)
-        
-    if not torch.is_tensor(patch_center):
-        patch_center = torch.tensor(patch_center, device=cameras.device)
-    
     batch_size = image_size.shape[0]
     image_sizes = image_size.view(batch_size, 1, 2)
-    # image_heights, image_widths = image_sizes[..., 0], image_sizes[..., 1]
-    
+    # We require the patch size, which is necessary for the transform
+    if patch_size is None:
+        raise ValueError("For NDC to patch conversion, patch_size=(patch_height, patch_width) needs to be specified.")
+    if not torch.is_tensor(patch_size):
+        patch_size = torch.tensor(patch_size, device=cameras.device)
     patch_size = patch_size.view(batch_size, 1, 2)
-    # patch_height, patch_width = patch_size[..., 0], patch_size[..., 1]
-    
+    # We require the patch center, which is necessary for the transform
+    if patch_center is None:
+        raise ValueError("For NDC to patch conversion, patch_center=(patch_center_x, patch_center_y) needs to be specified.")
+    if not torch.is_tensor(patch_center):
+        patch_center = torch.tensor(patch_center, device=cameras.device)
+    # Patch center given in screen coordinates
     patch_center = patch_center.view(batch_size, 1, 2).to(cameras.device)
+    patch_center = torch.cat([patch_center, torch.zeros_like(patch_center[..., :1])], dim=-1)
+    
+    K = torch.zeros((cameras._N, 4, 4), device=cameras.device, dtype=torch.float32)
     cx_screen, cy_screen = patch_center[..., 0], patch_center[..., 1]
-
-    # For non square images, we scale the points such that the aspect ratio is preserved.
-    # send to available device
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # send to device
-    # patch_width = patch_width.to(device)
-    # patch_height = patch_height.to(device)
-    # image_widths = image_widths.to(device)
-    # image_heights = image_heights.to(device)
-    # cx_screen = cx_screen.to(device)
-    # cy_screen = cy_screen.to(device)
     
     screen_to_ndc_transform = cameras.get_ndc_camera_transform()
-    point_screen = torch.cat([cx_screen, cy_screen, torch.ones_like(cx_screen)], dim=-1)
-    point_ndc = screen_to_ndc_transform.transform_points(point_screen)
-    cx_ndc = point_ndc[..., 0]
-    cy_ndc = point_ndc[..., 1]
+    patch_center_ndc = screen_to_ndc_transform.transform_points(patch_center)
+    cx_ndc = patch_center_ndc[..., 0]
+    cy_ndc = patch_center_ndc[..., 1]
     
     
     patch_size = patch_size.squeeze(0)
