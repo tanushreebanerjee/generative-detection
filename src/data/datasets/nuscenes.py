@@ -65,6 +65,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         # Set sampling probability for negative samples
         self.negative_sample_prob = negative_sample_prob if "background" in self.label_names else 0.0
         
+        self.DEBUG = True
+        
     def __len__(self):
         self.num_samples = super().__len__()
         self.num_cameras = len(CAMERA_NAMES)
@@ -117,7 +119,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         #         center_pixel_loc[0] = img_size[0] - max_dim // 2
         #     if center_pixel_loc[1] + max_dim // 2 > img_size[1]:
         #         center_pixel_loc[1] = img_size[1] - max_dim // 2
-        center_2d = (x1 + patch_size // 2, y1 + patch_size // 2)
+        patch_center = (x1 + patch_size // 2, y1 + patch_size // 2)
         
         if int(width) > int(height):
             padding_pixels = int(width) - int(height) 
@@ -129,7 +131,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         assert np.abs(x1 - x2) == np.abs(y1 - y2), f"Patch is not a square: {x1, y1, x2, y2}"
         assert np.abs(x1 - x2) in PATCH_ANCHOR_SIZES and np.abs(y1 - y2) in PATCH_ANCHOR_SIZES, f"Patch size is not in PATCH_ANCHOR_SIZES: {x1, y1, x2, y2}"
         
-        return [x1, y1, x2, y2], center_2d, padding_pixels
+        return [x1, y1, x2, y2], patch_center, padding_pixels
             
         # patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
         # patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -158,13 +160,17 @@ class NuScenesBase(MMDetNuScenesDataset):
         # Projected center location on the image, a list has shape (2,)
         center_2d = cam_instance.center_2d 
         
+        if self.DEBUG:
+            # colorize center of 2d bbox
+            img_pil.putpixel((int(center_2d[0]), int(center_2d[1])), (255, 0, 0))
+        
         # If center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
             return None, None, None, None, None
         
         # Crop Patch from Image around 2D BBOX
         try:
-            patch_box, center_2d, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
+            patch_box, patch_center, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
             x1, y1, x2, y2 = patch_box
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -185,7 +191,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         mask = transform(mask)
         
         padding_pixels_resampled = padding_pixels * resampling_factor[0]
-        return patch_resized_tensor, center_2d, patch_size_sq, resampling_factor, padding_pixels_resampled, mask
+        return patch_resized_tensor, patch_center, patch_size_sq, resampling_factor, padding_pixels_resampled, mask
     
     def _get_yaw_perturbed(self, yaw, perturb_degrees_min=30, perturb_degrees_max=90):
         # perturb yaw by a random value between -perturb_degrees and perturb_degrees
@@ -238,8 +244,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         # fill_factor = padding_pixels_resampled /self.patch_size_return[0]
         padding_pixels_resampled = cam_instance.fill_factor * self.patch_size_return[0]
-        bbox_3d = cam_instance.bbox_3d
-        x, y, z, l, h, w, yaw = bbox_3d # in camera coordinate system? need to convert to patch NDC
+        x, y, z, l, h, w, yaw = cam_instance.bbox_3d # in camera coordinate system? need to convert to patch NDC
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
         
         object_centroid_3D = (x, y, z)
@@ -353,7 +358,7 @@ class NuScenesBase(MMDetNuScenesDataset):
     def _get_patchGT(self, cam_instance, img_path, cam2img, postfix=""):
         cam_instance = edict(cam_instance)
         
-        if self.perturb_center:
+        if self.perturb_center and not self.DEBUG:
             # Random Perturb of 2D BBOX Center
             center_o = cam_instance.center_2d
             bbox_o = cam_instance.bbox
@@ -362,7 +367,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             cam_instance.center_2d = center_perturbed
         
         # Crop patch from origibal image
-        patch, center_2d, patch_size_original, resampling_factor, padding_pixels_resampled, mask_resampled = self._get_instance_patch(img_path, cam_instance)
+        patch, patch_center, patch_size_original, resampling_factor, padding_pixels_resampled, mask_2d_bbox = self._get_instance_patch(img_path, cam_instance)
         
         if patch is None or patch_size_original is None:
             return None
@@ -374,18 +379,18 @@ class NuScenesBase(MMDetNuScenesDataset):
             patch_size_original = patch_size_original.unsqueeze(0)
             
         # Update Cam Instance with new patch and center_2d
-        cam_instance.patch = patch
-        cam_instance.center_2d = center_2d
-        cam_instance.patch_size = patch_size_original
-        cam_instance.mask_2d_bbox = mask_resampled
-        cam_instance.resampling_factor = resampling_factor
-        cam_instance.fill_factor = fill_factor
-            
-        cam2img = torch.tensor(cam2img, dtype=torch.float32)
+        cam_instance.update({'patch': patch,
+                             'patch_center': patch_center,
+                             'center_2d': patch_center,
+                             'patch_size': patch_size_original,
+                             'resampling_factor': resampling_factor,
+                             'fill_factor': fill_factor,
+                             'mask_2d_bbox': mask_2d_bbox})
+        
         # make 4x4 matrix from 3x3 camera matrix
         K = torch.zeros(4, 4, dtype=torch.float32)
         
-        K[:3, :3] = cam2img
+        K[:3, :3] = torch.tensor(cam2img, dtype=torch.float32)
         K_orig = K.clone().detach().requires_grad_(False)
         K[2, 2] = 0.0
         K[2, 3] = 1.0
@@ -400,20 +405,20 @@ class NuScenesBase(MMDetNuScenesDataset):
         # negate focal length
         focal_length = -focal_length
         
+        # Create Camera Object
         camera = PatchCameras(
             focal_length=focal_length,
             principal_point=principal_point,
             znear=Z_NEAR,
             zfar=Z_FAR,
-            device="cpu",#"cuda" if torch.cuda.is_available() else "cpu",
+            device="cpu",
             image_size=image_size)
         
-        bbox_3d = cam_instance.bbox_3d
-        x, y, z, l, h, w, yaw = bbox_3d
+        x, y, z, l, h, w, yaw = cam_instance.bbox_3d
         
-        center_2d = torch.ones(3, dtype=torch.float32)
-        center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
-        center_2d = center_2d.unsqueeze(0)
+        # center_2d = torch.ones(3, dtype=torch.float32)
+        # center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
+        # center_2d = center_2d.unsqueeze(0)
         # if no instances add 6d vec of zeroes for pose, 3 d vec of zeroes for bbox sizes and -1 for class id
         
         cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance)
