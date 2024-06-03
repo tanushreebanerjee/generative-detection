@@ -369,7 +369,7 @@ class NuScenesBase(MMDetNuScenesDataset):
     def _get_patchGT(self, cam_instance, img_path, cam2img, postfix=""):
         cam_instance = edict(cam_instance)
         
-        if self.perturb_center and not self.DEBUG:
+        if self.perturb_center:
             # Random Perturb of 2D BBOX Center
             center_o = cam_instance.center_2d
             bbox_o = cam_instance.bbox
@@ -434,10 +434,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance)
         
-        cam_instance.v3_pert, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
-        pose_pert = cam_instance.pose_6d.clone()
-        pose_pert[:, -1] = cam_instance.v3_pert
-        cam_instance.pose_6d_perturbed = pose_pert
+        # cam_instance.v3_pert, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
+        # pose_pert = cam_instance.pose_6d.clone()
+        # pose_pert[:, -1] = cam_instance.v3_pert
+        # cam_instance.pose_6d_perturbed = pose_pert
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             return None
         

@@ -280,14 +280,14 @@ def get_ndc_to_patch_ndc_transform(
     patch_scale = (patch_size.min(dim=-1).values - 0.0).to(device)
     principal_point = cameras.get_principal_point()
     
-    K[:, 0, 0] = (img_scale / patch_scale)  # (patch_scale / img_scale)
-    K[:, 1, 1] = (img_scale / patch_scale)  # (patch_scale / img_scale)
+    K[:, 0, 0] = (img_scale / patch_scale)
+    K[:, 1, 1] = (img_scale / patch_scale)
     
     # tx = cx_ndc
     # ty = cy_ndc
     
-    K[:, 3, 0] = -(img_scale / patch_scale) * cx_ndc  # -(patch_scale / img_scale) * cx_ndc
-    K[:, 3, 1] = -(img_scale / patch_scale) * cy_ndc # -(patch_scale / img_scale) * cy_ndc
+    K[:, 3, 0] = -(img_scale / patch_scale) * cx_ndc
+    K[:, 3, 1] = -(img_scale / patch_scale) * cy_ndc
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
