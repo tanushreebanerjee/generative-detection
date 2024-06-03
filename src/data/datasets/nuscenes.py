@@ -276,7 +276,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             p_w = patch_img.size[0]
             p_h = patch_img.size[1]
             # colorize center of 3d bbox
-            patch_img.putpixel((int(point_patch_ndc[0] * p_w - p_w/2), int(point_patch_ndc[1] * p_h - p_h/2)), (0, 255, 0))
+            patch_img.putpixel((int(point_patch_ndc[0] * p_w/2 + p_w/2), int(point_patch_ndc[1] * p_h/2 + p_h/2)), (0, 255, 0))
         
         # TODO: scale z values from camera to learned
         z_world = z

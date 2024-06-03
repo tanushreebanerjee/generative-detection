@@ -266,8 +266,8 @@ def get_ndc_to_patch_ndc_transform(
     patch_center = torch.cat([patch_center, torch.zeros_like(patch_center[..., :1])], dim=-1)
     
     K = torch.zeros((cameras._N, 4, 4), device=cameras.device, dtype=torch.float32)
-    cx_screen, cy_screen = patch_center[..., 0], patch_center[..., 1]
-    
+    # cx_screen, cy_screen = patch_center[..., 0], patch_center[..., 1]
+    # Transform the patch center from screen to NDC
     screen_to_ndc_transform = cameras.get_ndc_camera_transform()
     patch_center_ndc = screen_to_ndc_transform.transform_points(patch_center)
     cx_ndc = patch_center_ndc[..., 0]
@@ -276,18 +276,18 @@ def get_ndc_to_patch_ndc_transform(
     
     patch_size = patch_size.squeeze(0)
 
-    scale = (image_size.min(dim=1).values - 0.0).to(device)
+    img_scale = (image_size.min(dim=1).values - 0.0).to(device)
     patch_scale = (patch_size.min(dim=-1).values - 0.0).to(device)
     principal_point = cameras.get_principal_point()
     
-    K[:, 0, 0] = (patch_scale / scale)
-    K[:, 1, 1] = (patch_scale / scale)
+    K[:, 0, 0] = (img_scale / patch_scale)  # (patch_scale / img_scale)
+    K[:, 1, 1] = (img_scale / patch_scale)  # (patch_scale / img_scale)
     
     # tx = cx_ndc
     # ty = cy_ndc
     
-    K[:, 3, 0] = -(patch_scale / scale) * cx_ndc
-    K[:, 3, 1] = -(patch_scale / scale) * cy_ndc
+    K[:, 3, 0] = -(img_scale / patch_scale) * cx_ndc  # -(patch_scale / img_scale) * cx_ndc
+    K[:, 3, 1] = -(img_scale / patch_scale) * cy_ndc # -(patch_scale / img_scale) * cy_ndc
     K[:, 2, 2] = 1.0
     K[:, 3, 3] = 1.0
     
