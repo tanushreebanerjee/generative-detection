@@ -88,7 +88,7 @@ data:
         with_velocity: False
         use_valid_flag: False
         # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
@@ -108,7 +108,7 @@ data:
         with_velocity: False
         use_valid_flag: False
         # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
