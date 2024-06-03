@@ -45,7 +45,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         super().__init__(data_root=data_root, **kwargs)
         # Setup class labels and ids
         self.label_names = label_names
-        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys()]
+        self.label_ids = [LABEL_NAME2ID[label_name] for label_name in LABEL_NAME2ID.keys() if label_name in label_names]
         logging.info(f"Using label names: {self.label_names}, label ids: {self.label_ids}")
         # Setup patch
         self.patch_size_return = (patch_height, int(patch_height * patch_aspect_ratio)) # aspect ratio is width/height
@@ -161,11 +161,12 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         if self.DEBUG:
             # colorize center of 2d bbox
-            img_pil.putpixel((int(center_2d[0]), int(center_2d[1])), (255, 0, 0))
+            img_pil.putpixel((np.clip(int(center_2d[0]), 0, img_pil.size[0]-1),
+                              np.clip(int(center_2d[1]), 0, img_pil.size[1]-1)), (255, 0, 0))
         
         # If center_2d is out bounds, return None, None, None, None since < 50% of the object is visible
         if center_2d[0] < 0 or center_2d[1] < 0 or center_2d[0] >= img_pil.size[0] or center_2d[1] >= img_pil.size[1]:
-            return None, None, None, None, None
+            return None, None, None, None, None, None
         
         # Crop Patch from Image around 2D BBOX
         try:
@@ -186,7 +187,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             
         except Exception as e:
             logging.info(f"Error in cropping & resizing image: {e}")
-            return None, None, None, None, None
+            return None, None, None, None, None, None
         
         transform = T.Compose([T.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
@@ -375,6 +376,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             bbox_o = cam_instance.bbox
             center_perturbed = self._get_perturbed_patch_center(center_o, bbox_o)
             # Replace Center 2D with perturbed center
+            center_perturbed = [np.clip(int(center_perturbed[0]), 0, NUSC_IMG_WIDTH-1), np.clip(int(center_perturbed[1]), 0, NUSC_IMG_HEIGHT-1)]
             cam_instance.center_2d = center_perturbed
         
         # Crop patch from origibal image
@@ -434,10 +436,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         cam_instance.pose_6d, cam_instance.bbox_sizes, cam_instance.yaw = self._get_pose_6d_lhw(camera, cam_instance)
         
-        # cam_instance.v3_pert, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
-        # pose_pert = cam_instance.pose_6d.clone()
-        # pose_pert[:, -1] = cam_instance.v3_pert
-        # cam_instance.pose_6d_perturbed = pose_pert
+        cam_instance.v3_pert, cam_instance.yaw_perturbed = self._get_pose_6d_perturbed(cam_instance)
+        pose_pert = cam_instance.pose_6d.clone()
+        pose_pert[:, -1] = cam_instance.v3_pert
+        cam_instance.pose_6d_perturbed = pose_pert
         if cam_instance.pose_6d is None or cam_instance.bbox_sizes is None:
             return None
         
@@ -511,21 +513,22 @@ class NuScenesBase(MMDetNuScenesDataset):
                                           img_path=os.path.join(self.img_root, cam_name, img_file),
                                           cam2img=sample_img_info.cam2img,
                                           postfix="")
+            ret.update(patch_obj)
             # get a second crop of the same object instance again
             # TODO: Make optional
             patch_obj_2 = self._get_patchGT(cam_instance,
                                             img_path=os.path.join(self.img_root, cam_name, img_file),
                                             cam2img=sample_img_info.cam2img,
                                             postfix="_2")
-            
+            ret.update({k+"_2": v for k,v in patch_obj_2.items()})
             if patch_obj is None or patch_obj_2 is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
             
-            ret.patch = patch_obj.patch
-            ret.patch_2 = patch_obj_2.patch
+            # ret.patch = patch_obj.patch
+            # ret.patch_2 = patch_obj_2.patch
             ret.class_id = self.label_id2class_id[patch_obj.class_id]
             ret.original_class_id = patch_obj.class_id
             ret.class_name = LABEL_ID2NAME[ret.original_class_id]
@@ -543,14 +546,14 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d, ret.bbox_sizes = pose_6d, bbox_sizes
             ret.pose_6d_2, ret.bbox_sizes_2 = pose_6d_2, bbox_sizes_2
 
-            patch_size_original = patch_obj.patch_size
+            # patch_size_original = patch_obj.patch_size
             patch_center_2d = torch.tensor(patch_obj.center_2d).float()
-            ret.patch_size = patch_size_original
+            # ret.patch_size = patch_size_original
             ret.patch_center_2d = patch_center_2d
             ret.bbox_3d_gt = patch_obj.bbox_3d
             ret.bbox_3d_gt_2 = patch_obj_2.bbox_3d
-            ret.resampling_factor = patch_obj.resampling_factor # ratio of resized image to original patch size
-            ret.resampling_factor_2 = patch_obj_2.resampling_factor
+            # ret.resampling_factor = patch_obj.resampling_factor # ratio of resized image to original patch size
+            # ret.resampling_factor_2 = patch_obj_2.resampling_factor
             ret.pose_6d_perturbed = patch_obj.pose_6d_perturbed
             if ret.pose_6d.dim() == 3:
                 ret.pose_6d = ret.pose_6d.squeeze(0)
@@ -561,22 +564,22 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.pose_6d = ret.pose_6d.squeeze(0)
             ret.pose_6d_2 = ret.pose_6d_2.squeeze(0)
 
-            ret.yaw = patch_obj.yaw
+            # ret.yaw = patch_obj.yaw
             ret.yaw_perturbed = patch_obj.yaw_perturbed
-            ret.yaw_2 = patch_obj_2.yaw
-            ret.fill_factor = patch_obj.fill_factor
-            ret.fill_factor_2 = patch_obj_2.fill_factor
-            mask_2d_bbox = patch_obj.mask_2d_bbox
-            mask_2d_bbox_2 = patch_obj_2.mask_2d_bbox
+            # ret.yaw_2 = patch_obj_2.yaw
+            # ret.fill_factor = patch_obj.fill_factor
+            # ret.fill_factor_2 = patch_obj_2.fill_factor
+            # mask_2d_bbox = patch_obj.mask_2d_bbox
+            # mask_2d_bbox_2 = patch_obj_2.mask_2d_bbox
             
-            if mask_2d_bbox.dim() == 2:
-                mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+            # if mask_2d_bbox.dim() == 2:
+            #     mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
             
-            if mask_2d_bbox_2.dim() == 2:
-                mask_2d_bbox_2 = mask_2d_bbox_2.unsqueeze(0)
+            # if mask_2d_bbox_2.dim() == 2:
+            #     mask_2d_bbox_2 = mask_2d_bbox_2.unsqueeze(0)
             
-            ret.mask_2d_bbox = mask_2d_bbox
-            ret.mask_2d_bbox_2 = mask_2d_bbox_2
+            # ret.mask_2d_bbox = mask_2d_bbox
+            # ret.mask_2d_bbox_2 = mask_2d_bbox_2
             camera_params = patch_obj.camera_params
             ret.camera_params = camera_params
             for key, value in camera_params.items():

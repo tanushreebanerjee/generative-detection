@@ -87,10 +87,11 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
-        perturb_center: False
+        perturb_center: True
         perturb_scale: False
     validation:
       target: src.data.datasets.nuscenes.NuScenesValidationMini
@@ -106,7 +107,8 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
