@@ -8,8 +8,7 @@ import os
 from src.util.cameras import PatchPerspectiveCameras as PatchCameras
 from src.util.cameras import z_world_to_learned
 from pytorch3d.transforms import euler_angles_to_matrix, matrix_to_euler_angles, se3_log_map, se3_exp_map
-from torchvision.transforms.functional import InterpolationMode
-import torchvision.transforms as transforms
+import torchvision.transforms as T
 from PIL import Image as Image
 from PIL.Image import Resampling
 import numpy as np
@@ -74,7 +73,7 @@ class NuScenesBase(MMDetNuScenesDataset):
     
     def _get_patch_dims(self, bbox, center_2d, img_size):
         # Object BBOX
-        center_pixel_loc = np.floor(center_2d).astype(np.int32)
+        center_pixel_loc = np.round(center_2d).astype(np.int32)
         x1, y1, x2, y2 = np.round(bbox).astype(np.int32) 
         width = x2 - x1
         height = y2 - y1
@@ -171,6 +170,10 @@ class NuScenesBase(MMDetNuScenesDataset):
         # Crop Patch from Image around 2D BBOX
         try:
             patch_box, patch_center, padding_pixels = self._get_patch_dims(bbox, center_2d, img_pil.size)
+            if self.DEBUG:
+                # colorize center of patch
+                img_pil.putpixel((int(patch_center[0]), int(patch_center[1])), (0, 0, 255))
+            
             x1, y1, x2, y2 = patch_box
             patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
             patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
@@ -185,7 +188,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             logging.info(f"Error in cropping & resizing image: {e}")
             return None, None, None, None, None
         
-        transform = transforms.Compose([transforms.ToTensor()])
+        transform = T.Compose([T.ToTensor()])
         patch_resized_tensor = transform(patch_resized)
         mask = self._get_instance_mask(bbox, patch_box, patch)
         mask = transform(mask)
@@ -248,7 +251,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         roll, pitch = 0.0, 0.0 # roll and pitch are 0 for all instances in nuscenes dataset
         
         object_centroid_3D = (x, y, z)
-        patch_center = cam_instance.center_2d
+        patch_center = cam_instance.patch_center
         # bbox_2d = cam_instance.bbox
         # width = cam_instance.bbox[2] - cam_instance.bbox[0]
         # height = cam_instance.bbox[3] - cam_instance.bbox[1]
@@ -267,6 +270,14 @@ class NuScenesBase(MMDetNuScenesDataset):
         point_patch_ndc = camera.transform_points_patch_ndc(points=object_centroid_3D,
                                                             patch_size=cam_instance.patch_size, # add delta
                                                             patch_center=patch_center) # add scale
+        
+        if self.DEBUG:
+            patch_img = T.ToPILImage()(cam_instance.patch)
+            p_w = patch_img.size[0]
+            p_h = patch_img.size[1]
+            # colorize center of 3d bbox
+            patch_img.putpixel((int(point_patch_ndc[0] * p_w - p_w/2), int(point_patch_ndc[1] * p_h - p_h/2)), (0, 255, 0))
+        
         # TODO: scale z values from camera to learned
         z_world = z
         
@@ -414,7 +425,7 @@ class NuScenesBase(MMDetNuScenesDataset):
             device="cpu",
             image_size=image_size)
         
-        x, y, z, l, h, w, yaw = cam_instance.bbox_3d
+        # x, y, z, l, h, w, yaw = cam_instance.bbox_3d
         
         # center_2d = torch.ones(3, dtype=torch.float32)
         # center_2d[:2] = torch.tensor(cam_instance.center_2d, dtype=torch.float32)
@@ -604,7 +615,7 @@ class NuScenesBase(MMDetNuScenesDataset):
                 
             background_patch_original_size = background_patch.size
             background_patch = background_patch.resize(self.patch_size_return, resample=Resampling.BILINEAR)
-            transform = transforms.Compose([transforms.ToTensor()])
+            transform = T.Compose([T.ToTensor()])
             background_patch_tensor = transform(background_patch)
             ret.patch = background_patch_tensor
             ret.patch_2 = background_patch_tensor
