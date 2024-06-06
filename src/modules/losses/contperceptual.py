@@ -107,7 +107,7 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
     def compute_pose_loss(self, pred, gt, mask_bg):
         # need to get loss split for each part of the pose - t1, t2, t3, v3
         assert pred.shape == gt.shape, "Prediction and ground truth shapes do not match."
-        assert pred.shape[1] == POSE_6D_DIM, "Invalid pose dimensionality."
+        assert pred.shape[1] == POSE_DIM, "Invalid pose dimensionality."
         
         t1_loss = self.pose_loss(pred[:, 0], gt[:, 0])
         t2_loss = self.pose_loss(pred[:, 1], gt[:, 1])
@@ -252,12 +252,12 @@ class PoseLoss(LPIPSWithDiscriminator_LDM):
             inputs_mask = inputs_mask * mask_2d_bbox
             reconstructions_mask = reconstructions_mask * mask_2d_bbox
         
-        # first POSE_6D_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
-        pose_rec = dec_pose[:, :POSE_6D_DIM] # torch.Size([4, 4])
+        # first POSE_DIM in pose_rec are the 6D pose, next 3 are the LHW and rest is class probs
+        pose_rec = dec_pose[:, :POSE_DIM] # torch.Size([4, 4])
        
-        lhw_rec = dec_pose[:, POSE_6D_DIM:POSE_6D_DIM+LHW_DIM] # torch.Size([4, 3])
-        fill_factor_rec = dec_pose[:, POSE_6D_DIM+LHW_DIM:POSE_6D_DIM+LHW_DIM+FILL_FACTOR_DIM] # 4, 1
-        class_probs = dec_pose[:, POSE_6D_DIM+LHW_DIM+FILL_FACTOR_DIM:] # torch.Size([4, 1])
+        lhw_rec = dec_pose[:, POSE_DIM:POSE_DIM+LHW_DIM] # torch.Size([4, 3])
+        fill_factor_rec = dec_pose[:, POSE_DIM+LHW_DIM:POSE_DIM+LHW_DIM+FILL_FACTOR_DIM] # 4, 1
+        class_probs = dec_pose[:, POSE_DIM+LHW_DIM+FILL_FACTOR_DIM:] # torch.Size([4, 1])
             
         class_loss, weighted_class_loss = self.compute_class_loss(class_gt, class_probs)
         bbox_loss, weighted_bbox_loss = self.compute_bbox_loss(bbox_gt, lhw_rec, mask_bg)

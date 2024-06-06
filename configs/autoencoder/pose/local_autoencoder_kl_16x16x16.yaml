@@ -74,7 +74,7 @@ data:
     wrap: True
     persistent_workers: False
     train:
-      target: src.data.datasets.nuscenes.NuScenesTrain
+      target: src.data.datasets.nuscenes.NuScenesTrainMini
       params:
         data_root: data/nuscenes
         pipeline: []
@@ -87,8 +87,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
@@ -107,8 +106,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        # label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'background']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier', 'background']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
