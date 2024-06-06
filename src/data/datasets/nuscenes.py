@@ -64,7 +64,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         # Set sampling probability for negative samples
         self.negative_sample_prob = negative_sample_prob if "background" in self.label_names else 0.0
         
-        self.DEBUG = True
+        self.DEBUG = False
         
     def __len__(self):
         self.num_samples = super().__len__()

@@ -16,8 +16,8 @@ model:
       target: src.modules.losses.PoseLoss
       params:
         use_mask_loss: False
-        encoder_pretrain_steps: 50000
-        disc_start: 50000
+        encoder_pretrain_steps: 0
+        disc_start: 0
         kl_weight_obj: 1.0e-5
         kl_weight_bbox: 1.0e-2
         disc_weight: 0.5
@@ -87,7 +87,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
@@ -106,7 +106,7 @@ data:
         test_mode: False
         with_velocity: False
         use_valid_flag: False
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: True
@@ -125,7 +125,7 @@ data:
         test_mode: True
         with_velocity: False
         use_valid_flag: False
-        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
+        label_names: ['car', 'truck', 'trailer', 'bus', 'construction_vehicle']
         patch_height: 256
         patch_aspect_ratio: 1.0
         perturb_center: False
