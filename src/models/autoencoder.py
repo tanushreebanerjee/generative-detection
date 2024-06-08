@@ -603,6 +603,7 @@ class PoseAutoencoder(AutoencoderKL):
         x_rgb = self._rescale(x_rgb)
         x_mask = self.get_mask_input(batch, self.image_mask_key)
         x_mask = x_mask.to(self.device) if x_mask is not None else None
+        x_mask_2d_bbox = batch["mask_2d_bbox"]
         
         if x_mask is not None:
             x_mask = x_mask.to(self.device)
@@ -630,6 +631,15 @@ class PoseAutoencoder(AutoencoderKL):
             log["perturbed_pose_reconstruction_rgb"] = xrec_perturbed_pose_rgb.clone().detach()
         
         log["inputs_rgb"] = x_rgb.clone().detach()
+
+        # plot inputs_rgb where mask_2d_bbox is 1
+        if x_mask_2d_bbox is not None:
+            x_mask_2d_bbox = x_mask_2d_bbox.to(self.device) # size: torch.Size([12, 1, 256, 256])
+            # add batch dim if not present
+            x_mask_2d_bbox = x_mask_2d_bbox.unsqueeze(0) if x_mask_2d_bbox.dim() == 3 else x_mask_2d_bbox
+            x_mask_2d_bbox = x_mask_2d_bbox.expand(-1, 3, -1, -1)
+            log["inputs_rgb_mask_2d_bbox"] = x_rgb * x_mask_2d_bbox
+
         return log
     
     def _rescale(self, x):
