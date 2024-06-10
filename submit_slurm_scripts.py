@@ -22,7 +22,7 @@ def submit_slurm_scripts(directory, delay):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Submit all SLURM scripts in a specified directory with a delay between submissions.')
-    parser.add_argument('directory', nargs='?', default='scripts/slurm/train/jun10', help='Directory containing SLURM scripts')
+    parser.add_argument('directory', nargs='?', default='scripts/slurm/train', help='Directory containing SLURM scripts')
     parser.add_argument('--delay', type=int, default=10, help='Delay in seconds between submissions (default: 10 seconds)')
     
     args = parser.parse_args()
