@@ -205,7 +205,7 @@ def get_logger_cfgs(opt, logdir, nowname, lightning_config):
             }
         },
     }
-    default_logger_cfg = default_logger_cfgs["wandb"]
+    default_logger_cfg = default_logger_cfgs["testtube"]
     if "logger" in lightning_config:
         logger_cfg = lightning_config.logger
     else:
