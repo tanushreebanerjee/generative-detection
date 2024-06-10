@@ -141,8 +141,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         pixel_delta = (np.array(bbox) - np.array(bbox_patch)).astype(np.int32)
         pixel_delta[:2] = np.maximum(pixel_delta[:2], 0)
-        # pixel_delta = np.max([np.array(bbox) - np.array(bbox_patch), np.array([0., 0., patch.size[1], patch.size[0]])], axis=0).astype(np.int32)
-        
+                
         # Set the area inside the bounding box to True
         mask_bool[pixel_delta[1]:patch.size[1]+pixel_delta[3], pixel_delta[0]:patch.size[0]+pixel_delta[2]] = 1
         mask_pil = Image.fromarray(mask_bool)
@@ -454,7 +453,7 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         cam_instance.pose_6d = cam_instance.pose_6d.reshape([4])
         
-        # Store Camera Parameters
+        # Store Camera Parametersßßßß
         cam_instance.camera_params = {
             "focal_length": focal_length,
             "principal_point": principal_point,
