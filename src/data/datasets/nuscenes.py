@@ -38,7 +38,8 @@ PATCH_ANCHOR_SIZES = [50, 100, 200, 400]
 class NuScenesBase(MMDetNuScenesDataset):
     def __init__(self, data_root, label_names, patch_height=256, patch_aspect_ratio=1.,
                  is_sweep=False, perturb_center=False, perturb_scale=False, 
-                 negative_sample_prob=0.5, h_minmax_dir = "dataset_stats/combined", **kwargs):
+                 negative_sample_prob=0.5, h_minmax_dir = "dataset_stats/combined", 
+                 perturb_prob=0.0, **kwargs):
         # Setup directory
         self.data_root = data_root
         self.img_root = os.path.join(data_root, "samples" if not is_sweep else "sweeps")
@@ -65,6 +66,8 @@ class NuScenesBase(MMDetNuScenesDataset):
         self.negative_sample_prob = negative_sample_prob if "background" in self.label_names else 0.0
         
         self.DEBUG = False
+        self.perturb_prob = perturb_prob
+
         
     def __len__(self):
         self.num_samples = super().__len__()
@@ -104,20 +107,6 @@ class NuScenesBase(MMDetNuScenesDataset):
             # Set to corner case to prevent further perturbations
             is_corner_case = True
         
-        # # Change Patch Scale
-        # if self.perturb_scale and not is_corner_case:
-        #     # # Make box_size one of PATCH_ANCHOR_SIZES centered at center_2d 
-        #     # bbox_size_diffs = [abs(max_dim - patch_size) for patch_size in PATCH_ANCHOR_SIZES]
-        #     # box_size = PATCH_ANCHOR_SIZES[bbox_size_diffs.index(min(bbox_size_diffs))]
-        #     # Make sure scaled box is within image, and still a square
-        #     if center_pixel_loc[0] - max_dim // 2 < 0:
-        #         center_pixel_loc[0] = max_dim // 2
-        #     if center_pixel_loc[1] - max_dim // 2 < 0:
-        #         center_pixel_loc[1] = max_dim // 2
-        #     if center_pixel_loc[0] + max_dim // 2 > img_size[0]:
-        #         center_pixel_loc[0] = img_size[0] - max_dim // 2
-        #     if center_pixel_loc[1] + max_dim // 2 > img_size[1]:
-        #         center_pixel_loc[1] = img_size[1] - max_dim // 2
         patch_center = (x1 + patch_size // 2, y1 + patch_size // 2)
         
         if int(width) > int(height):
@@ -131,9 +120,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         assert np.abs(x1 - x2) in PATCH_ANCHOR_SIZES and np.abs(y1 - y2) in PATCH_ANCHOR_SIZES, f"Patch size is not in PATCH_ANCHOR_SIZES: {x1, y1, x2, y2}"
         
         return [x1, y1, x2, y2], patch_center, padding_pixels
-            
-        # patch = img_pil.crop((x1, y1, x2, y2)) # left, upper, right, lowe
-        # patch_size_sq = torch.tensor(patch.size, dtype=torch.float32)
         
     def _get_instance_mask(self, bbox, bbox_patch, patch):
         # create a boolean mask for patch with gt 2d bbox as coordinates (x1, y1, x2, y2)
@@ -254,9 +240,6 @@ class NuScenesBase(MMDetNuScenesDataset):
         
         object_centroid_3D = (x, y, z)
         patch_center = cam_instance.patch_center
-        # bbox_2d = cam_instance.bbox
-        # width = cam_instance.bbox[2] - cam_instance.bbox[0]
-        # height = cam_instance.bbox[3] - cam_instance.bbox[1]
         
         if len(patch_center) == 2:
             # add batch dimension
@@ -533,13 +516,19 @@ class NuScenesBase(MMDetNuScenesDataset):
             ret.update(patch_obj)
             # get a second crop of the same object instance again
             # TODO: Make optional
-            patch_obj_2 = self._get_patchGT(cam_instance,
-                                            img_path=os.path.join(self.img_root, cam_name, img_file),
-                                            cam2img=sample_img_info.cam2img,
-                                            postfix="_2")
-            ret.update({k+"_2": v for k,v in patch_obj_2.items()})
-            ret.bbox_3d_gt_2 = patch_obj_2.bbox_3d
-            
+            # only get second crop with probability perturb_prob, else copy first crop dict to second crop dict
+            if np.random.rand() <= self.perturb_prob:
+                patch_obj_2 = self._get_patchGT(cam_instance,
+                                                img_path=os.path.join(self.img_root, cam_name, img_file),
+                                                cam2img=sample_img_info.cam2img,
+                                                postfix="_2")
+                ret.update({k+"_2": v for k,v in patch_obj_2.items()})
+                ret.bbox_3d_gt_2 = patch_obj_2.bbox_3d
+            else:
+                patch_obj_2 = patch_obj.copy()
+                ret.update({k+"_2": v for k,v in patch_obj.items()})
+                ret.bbox_3d_gt_2 = patch_obj.bbox_3d
+                
             if patch_obj is None or patch_obj_2 is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
