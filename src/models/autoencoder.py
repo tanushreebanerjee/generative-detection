@@ -343,6 +343,7 @@ class PoseAutoencoder(AutoencoderKL):
         # Get RGB GT
         rgb_gt = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256]) 
         rgb_gt = self._rescale(rgb_gt)
+        rgb_in = rgb_gt.clone()
         mask_2d_bbox = batch["mask_2d_bbox"]
         # Get Pose GT
         pose_gt = self.get_pose_input(batch, self.pose_key).to(self.device) # torch.Size([4, 4]) #
@@ -376,14 +377,14 @@ class PoseAutoencoder(AutoencoderKL):
         else:
             second_pose = None
             
-        return rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose
+        return rgb_in, rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose
     
     def training_step(self, batch, batch_idx, optimizer_idx):
         # Get inputs in right shape
-        rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose = self.get_all_inputs(batch)
+        rgb_in, rgb_gt, pose_gt, mask_gt, class_gt, class_gt_label, bbox_gt, fill_factor_gt, mask_2d_bbox, second_pose = self.get_all_inputs(batch)
         # Run full forward pass
         
-        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_gt, second_pose=second_pose)
+        dec_obj, dec_pose, posterior_obj, bbox_posterior = self.forward(rgb_in, second_pose=second_pose)
         self.log("dropout_prob", self.dropout_prob, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         # Train the autoencoder
         if optimizer_idx == 0:
