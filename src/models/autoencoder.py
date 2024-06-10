@@ -371,7 +371,7 @@ class PoseAutoencoder(AutoencoderKL):
             # snd_bbox = snd_bbox.unsqueeze(0) if snd_bbox.dim() == 1 else snd_bbox
             # get one hot encoding for class_id - all classes in self.label_id2class_id.values
             num_classes = self.num_classes
-            class_probs = torch.nn.functional.one_hot(torch.tensor(class_gt), num_classes=num_classes).float()
+            class_probs = torch.nn.functional.one_hot(class_gt, num_classes=num_classes).float()
             second_pose = torch.cat((snd_pose, snd_bbox, snd_fill, class_probs), dim=1)
         else:
             second_pose = None
