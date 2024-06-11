@@ -453,6 +453,42 @@ class NuScenesBase(MMDetNuScenesDataset):
         cam_instance.original_class_id = class_id
         
         return cam_instance
+
+    def get_background_patch(self, background_patch):
+        ret = edict()
+        background_patch_original_size = background_patch.size
+        background_patch = background_patch.resize(self.patch_size_return, resample=Resampling.BILINEAR)
+        transform = T.Compose([T.ToTensor()])
+        background_patch_tensor = transform(background_patch)
+        ret.patch = background_patch_tensor
+        # ret.patch_2 = background_patch_tensor
+        ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+        # ret.pose_6d_2 = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
+        # ret.bbox_sizes_2 = torch.zeros(LHW_DIM, dtype=torch.float32)
+        ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
+        ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
+        # ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
+        ret.resampling_factor = torch.tensor((self.patch_size_return[0] / background_patch_original_size[0],self.patch_size_return[1] / background_patch_original_size[1]))
+        # ret.resampling_factor_2 = ret.resampling_factor
+        
+        ret.yaw = 0.0
+        # ret.yaw_2 = 0.0
+        
+        ret.fill_factor = 0.0
+        # ret.fill_factor_2 = 0.0
+        mask_2d_bbox = torch.zeros(self.patch_size_return[0],self.patch_size_return[1], dtype=torch.float32)
+        if mask_2d_bbox.dim() == 2:
+            mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
+        ret.mask_2d_bbox = mask_2d_bbox
+        # ret.mask_2d_bbox_2 = mask_2d_bbox
+        
+        # Extract Class ID
+        class_id = LABEL_NAME2ID['background']
+        ret.class_id = self.label_id2class_id[class_id]
+        ret.class_name = LABEL_ID2NAME[class_id]
+        ret.original_class_id = class_id
+
+        return ret
     
     def __getitem__(self, idx):
         ret = edict()
@@ -552,43 +588,22 @@ class NuScenesBase(MMDetNuScenesDataset):
             if img_pil is None:
                 raise FileNotFoundError(f"Image not found at {img_path}")
             
-            background_patch = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_ANCHOR_SIZES)
+            background_patch, center_2d = self.get_random_crop_without_overlap(img_pil, bbox_2d_list, PATCH_ANCHOR_SIZES)
             if background_patch is None:
                 if idx + 1 >= self.__len__():
                     return self.__getitem__(0)
                 else:
                     return self.__getitem__(idx + 1)
-                
-            background_patch_original_size = background_patch.size
-            background_patch = background_patch.resize(self.patch_size_return, resample=Resampling.BILINEAR)
-            transform = T.Compose([T.ToTensor()])
-            background_patch_tensor = transform(background_patch)
-            ret.patch = background_patch_tensor
-            ret.patch_2 = background_patch_tensor
+
             ret.class_id = self.label_id2class_id[LABEL_NAME2ID['background']]
+
             ret.original_class_id = LABEL_NAME2ID['background']
             ret.class_name = LABEL_ID2NAME[LABEL_NAME2ID['background']]
-            ret.pose_6d = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
-            ret.pose_6d_2 = torch.zeros(POSE_DIM, dtype=torch.float32).squeeze(0)
-            ret.bbox_sizes_2 = torch.zeros(LHW_DIM, dtype=torch.float32)
-            ret.bbox_sizes = torch.zeros(LHW_DIM, dtype=torch.float32)
             ret.patch_size = torch.tensor(self.patch_size_return, dtype=torch.float32).unsqueeze(0) # torch.Size([1, 2])
             ret.patch_center_2d = torch.tensor([self.patch_size_return[0] // 2,self.patch_size_return[1] // 2], dtype=torch.float32)
-            ret.bbox_3d_gt = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
-            ret.bbox_3d_gt_2 = torch.zeros(BBOX_3D_DIM, dtype=torch.float32)
-            ret.resampling_factor = torch.tensor((self.patch_size_return[0] / background_patch_original_size[0],self.patch_size_return[1] / background_patch_original_size[1]))
-            ret.resampling_factor_2 = ret.resampling_factor
             ret.pose_6d_perturbed = torch.zeros(POSE_DIM, dtype=torch.float32).unsqueeze(0)
-            ret.yaw = 0.0
-            ret.yaw_2 = 0.0
             ret.yaw_perturbed = 0.0
-            ret.fill_factor = 0.0
-            ret.fill_factor_2 = 0.0
-            mask_2d_bbox = torch.zeros(self.patch_size_return[0],self.patch_size_return[1], dtype=torch.float32)
-            if mask_2d_bbox.dim() == 2:
-                mask_2d_bbox = mask_2d_bbox.unsqueeze(0)
-            ret.mask_2d_bbox = mask_2d_bbox
-            ret.mask_2d_bbox_2 = mask_2d_bbox
+            ret.bbox_label = LABEL_NAME2ID['background']
             camera_params = {
                 "focal_length": torch.tensor([0.0], dtype=torch.float32),
                 "principal_point": torch.tensor([[0.0, 0.0]], dtype=torch.float32),
@@ -597,9 +612,23 @@ class NuScenesBase(MMDetNuScenesDataset):
                 "zfar": 0.0,
                 "image_size": torch.tensor([(0, 0)], dtype=torch.float32),
             }
-            for key, value in camera_params.items():
-                ret[key] = value
+            ret.update(camera_params)
         
+            background_patch_dict = self.get_background_patch(background_patch)
+            if background_patch_dict is None:
+                if idx + 1 >= self.__len__():
+                    return self.__getitem__(0)
+                else:
+                    return self.__getitem__(idx + 1)
+
+            ret.update(background_patch_dict)
+            ret.update({k + "_2": v for k, v in background_patch_dict.items()})
+
+            # patch_size_original = patch_obj.patch_size
+            patch_center_2d = torch.tensor(center_2d).float()
+            # ret.patch_size = patch_size_original
+            ret.patch_center_2d = patch_center_2d
+            
         for key in ["cam_name", "img_path", "sample_data_token", "cam2img", "cam2ego", "class_name", "bbox_3d_gt_2", "lidar2cam", "bbox_3d_gt", "resampling_factor", "resampling_factor_2", "device", "image_size"]:
             value = ret[key]
             if isinstance(value, list) or isinstance(value, tuple):
@@ -638,8 +667,10 @@ class NuScenesBase(MMDetNuScenesDataset):
             iters += 1
             if iters >= timeout_iters:
                 return None
-                
-        return img_pil.crop((crop_x, crop_y, crop_x + crop_width, crop_y + crop_height))
+            
+        center_2d = torch.tensor([crop_x + crop_width // 2, crop_y + crop_height // 2], dtype=torch.float)
+
+        return img_pil.crop((crop_x, crop_y, crop_x + crop_width, crop_y + crop_height)), center_2d
     
     def _get_all_image_crops(self, image_path):
         all_patches = []
