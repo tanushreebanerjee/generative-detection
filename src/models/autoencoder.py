@@ -122,8 +122,13 @@ class PoseAutoencoder(AutoencoderKL):
             print(f"Keeping EMAs of {len(list(self.model_ema.buffers()))}.")
         
         if ckpt_path is not None:
-            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
-            
+            try:
+                self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+            except Exception as e:
+                # add optimizer to ignore_keys list
+                ignore_keys = ignore_keys + ["optimizer"]
+                self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+
     @contextmanager
     def ema_scope(self, context=None):
         if self.use_ema:
@@ -361,6 +366,7 @@ class PoseAutoencoder(AutoencoderKL):
         if "pose_6d_2" in batch:
             # Replace RGB and Mask with second patch
             rgb_gt = self.get_input(batch, "patch_2").permute(0, 2, 3, 1).to(self.device) # torch.Size([4, 3, 256, 256])
+            rgb_gt = self._rescale(rgb_gt)
             mask_2d_bbox = batch["mask_2d_bbox_2"]
             
             # Get respective pose for forward pass
@@ -599,43 +605,51 @@ class PoseAutoencoder(AutoencoderKL):
     @torch.no_grad()
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
-        
-        x_rgb = self.get_input(batch, self.image_rgb_key).permute(0, 2, 3, 1).to(self.device).float()
-        x_rgb = self._rescale(x_rgb)
-        x_mask = self.get_mask_input(batch, self.image_mask_key)
-        x_mask = x_mask.to(self.device) if x_mask is not None else None
-        x_mask_2d_bbox = batch["mask_2d_bbox"]
-        x_rgb_2 = self.get_input(batch, self.image_rgb_key+"_2").permute(0, 2, 3, 1).to(self.device).float()
-        x_rgb_2 = self._rescale(x_rgb_2)
 
-        if x_mask is not None:
-            x_mask = x_mask.to(self.device)
-            # convert mask to float, 0.0, 1.0 if not already
-            if x_mask.dtype != torch.float32:
-                x_mask = x_mask.float()
+        rgb_in, rgb_gt, pose_gt, mask_gt, class_gt, \
+            class_gt_label, bbox_gt, fill_factor_gt, \
+                mask_2d_bbox, second_pose = self.get_all_inputs(batch)
+        
+        rgb_in_viz = self._rescale(rgb_in)
+        rgb_gt_viz = self._rescale(rgb_gt)
+        # mask_gt_viz = mask_gt.to(self.device) if x_mask is not None else None
+       
+        #x_mask_2d_bbox_viz = mask_2d_bbox
+
+        # if mask_gt_viz is not None:
+        #     mask_gt_viz = mask_gt_viz.to(self.device)
+        #     # convert mask to float, 0.0, 1.0 if not already
+        #     if mask_gt_viz.dtype != torch.float32:
+        #         mask_gt_viz = mask_gt_viz.float()
             
         if not only_inputs:
             # torch.Size([4, 3, 256, 256]) torch.Size([4, 8]) torch.Size([4, 16, 16, 16]) torch.Size([4, 7])
-            xrec, poserec, posterior_obj, bbox_posterior = self.forward(x_rgb)
-            xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec, batch) #torch.Size([4, 3, 256, 256])
+            
+            # Run full forward pass
+            xrec_2, poserec_2, posterior_obj_2, bbox_posterior_2 = self.forward(rgb_in, second_pose=second_pose)
+            xrec, poserec, posterior_obj, bbox_posterior = self.forward(rgb_gt)
+            # xrec_perturbed_pose = self._perturbed_pose_forward(posterior_obj, poserec, batch) #torch.Size([4, 3, 256, 256])
             
             xrec_rgb = xrec[:, :3, :, :] # torch.Size([8, 3, 64, 64])
-            xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :] # torch.Size([4, 3, 256, 256])
+            xrec_rgb_2 = xrec_2[:, :3, :, :] # torch.Size([8, 3, 64, 64])
+            # xrec_perturbed_pose_rgb = xrec_perturbed_pose[:, :3, :, :] # torch.Size([4, 3, 256, 256])
             
-            if x_rgb.shape[1] > 3:
+            if rgb_in_viz.shape[1] > 3:
                 # colorize with random projection
                 assert xrec_rgb.shape[1] > 3
-                x_rgb = self.to_rgb(x_rgb)
+                rgb_in_viz = self.to_rgb(rgb_in_viz)
+                rgb_gt_viz = self.to_rgb(rgb_gt_viz)
                 xrec_rgb = self.to_rgb(xrec_rgb)
-                xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
-                x_rgb_2 = self.to_rgb(x_rgb_2)
-        
+                xrec_rgb_2 = self.to_rgb(xrec_rgb_2)
+                # xrec_perturbed_pose_rgb = self.to_rgb(xrec_perturbed_pose_rgb)
+                
             # scale is 0, 1. scale to -1, 1
             log["reconstructions_rgb"] = xrec_rgb.clone().detach()
-            log["perturbed_pose_reconstruction_rgb"] = xrec_perturbed_pose_rgb.clone().detach()
+            log["reconstructions_rgb_2"] = xrec_rgb_2.clone().detach()
+            # log["perturbed_pose_reconstruction_rgb"] = xrec_perturbed_pose_rgb.clone().detach()
         
-        log["inputs_rgb"] = x_rgb.clone().detach()
-        log["inputs_rgb_2"] = x_rgb_2.clone().detach()
+        log["inputs_rgb_in"] = rgb_in_viz.clone().detach()
+        log["inputs_rgb_gt"] = rgb_gt_viz.clone().detach()
 
         # # plot inputs_rgb where mask_2d_bbox is 1
         # if x_mask_2d_bbox is not None:
@@ -649,11 +663,14 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _rescale(self, x):
         # scale is -1
-        return 2. * (x - x.min()) / (x.max() - x.min()) - 1.
+        x = torch.clamp(x, 0., 1.)
+        return (2. * x) - 1.
     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
         x = F.conv2d(x, weight=self.colorize)
-        x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
+        # clip to [0, 1]
+        x = torch.clamp(x, 0., 1.)
+        x = (2. * x) - 1.
         return x

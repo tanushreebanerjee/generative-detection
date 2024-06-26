@@ -216,6 +216,13 @@ class ImageLogger(Callback):
         if hasattr(pl_module, 'calibrate_grad_norm'):
             if (pl_module.calibrate_grad_norm and batch_idx % 25 == 0) and batch_idx > 0:
                 self.log_gradients(trainer, pl_module, batch_idx=batch_idx)
+    
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        """Callback function called at the end of each test batch."""
+        if not self.disabled and pl_module.global_step > 0:
+            self.log_img(pl_module, batch, batch_idx, split="test")
+        
+        
 
 class CUDACallback(Callback):
     """Callback to log the average peak memory and epoch time. This callback is

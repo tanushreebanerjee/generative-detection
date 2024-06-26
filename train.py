@@ -319,7 +319,7 @@ def get_callbacks_cfgs(opt, now, logdir, ckptdir, cfgdir, config, lightning_conf
                         "verbose": True,
                         'save_top_k': -1,
                         'every_n_train_steps': 10001,
-                        'save_weights_only': True
+                        'save_weights_only': False
                     }
                     }
         }
