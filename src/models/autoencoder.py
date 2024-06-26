@@ -663,14 +663,16 @@ class PoseAutoencoder(AutoencoderKL):
     
     def _rescale(self, x):
         # scale is -1
-        x = torch.clamp(x, 0., 1.)
-        return (2. * x) - 1.
+        return 2. * (x - x.min()) / (x.max() - x.min()) - 1.
+        # x = torch.clamp(x, 0., 1.)
+        # return (2. * x) - 1.
     
     def to_rgb(self, x):
         if not hasattr(self, "colorize"):
             self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
         x = F.conv2d(x, weight=self.colorize)
+        x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
         # clip to [0, 1]
-        x = torch.clamp(x, 0., 1.)
-        x = (2. * x) - 1.
+        # x = torch.clamp(x, 0., 1.)
+        # x = (2. * x) - 1.
         return x
